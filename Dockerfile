@@ -42,5 +42,5 @@ COPY --from=builder /usr/src/app/package.json /usr/src/app/package-lock.json ./
 COPY server.js ./
 
 VOLUME ["/data"]
-EXPOSE 3000
+EXPOSE 80
 CMD ["node", "server.js"]
