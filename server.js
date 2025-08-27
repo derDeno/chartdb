@@ -96,8 +96,23 @@ app.post('/api/diagrams/:id', async (req, res) => {
             // ignore missing file or invalid JSON
         }
 
+      
         const diagram = deepMerge({ ...existing, id: req.params.id }, req.body);
-        await fs.writeFile(file, JSON.stringify(diagram, null, 2));
+        const tmpFile = `${file}.tmp`;
+      
+        await fs.writeFile(tmpFile, JSON.stringify(diagram, null, 2));
+        await fs.rename(tmpFile, file);
+
+        try {
+            const data = await fs.readFile(file, 'utf-8');
+            JSON.parse(data);
+        } catch {
+            return res
+                .status(500)
+                .json({ error: 'Failed to verify saved diagram' });
+        }
+
+
         res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
