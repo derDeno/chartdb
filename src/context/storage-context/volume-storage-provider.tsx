@@ -11,7 +11,12 @@ import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 
 const API_BASE = '/api';
 
-const parseDiagram = (d: Record<string, unknown>): Diagram => ({
+interface RawDiagram extends Omit<Diagram, 'createdAt' | 'updatedAt'> {
+    createdAt: string;
+    updatedAt: string;
+}
+
+const parseDiagram = (d: RawDiagram): Diagram => ({
     ...d,
     createdAt: new Date(d.createdAt),
     updatedAt: new Date(d.updatedAt),
@@ -179,7 +184,7 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
             attributes: Partial<DBTable>;
         }) => {
             await mutateByItemId(id, 'tables', (items, index) => {
-                Object.assign(items[index], attributes);
+                Object.assign(items[index] as object, attributes);
             });
         },
         [mutateByItemId]
@@ -260,7 +265,7 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
             attributes: Partial<DBRelationship>;
         }) => {
             await mutateByItemId(id, 'relationships', (items, index) => {
-                Object.assign(items[index], attributes);
+                Object.assign(items[index] as object, attributes);
             });
         },
         [mutateByItemId]
@@ -328,7 +333,7 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
             attributes: Partial<DBDependency>;
         }) => {
             await mutateByItemId(id, 'dependencies', (items, index) => {
-                Object.assign(items[index], attributes);
+                Object.assign(items[index] as object, attributes);
             });
         },
         [mutateByItemId]
@@ -390,7 +395,7 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
             attributes: Partial<Area>;
         }) => {
             await mutateByItemId(id, 'areas', (items, index) => {
-                Object.assign(items[index], attributes);
+                Object.assign(items[index] as object, attributes);
             });
         },
         [mutateByItemId]
@@ -456,7 +461,7 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
             attributes: Partial<DBCustomType>;
         }) => {
             await mutateByItemId(id, 'customTypes', (items, index) => {
-                Object.assign(items[index], attributes);
+                Object.assign(items[index] as object, attributes);
             });
         },
         [mutateByItemId]
