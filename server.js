@@ -72,7 +72,15 @@ app.post('/api/diagrams/:id', async (req, res) => {
             });
         }
 
-        const diagram = { id: req.params.id, ...req.body };
+        let existing = {};
+        try {
+            const data = await fs.readFile(file, 'utf-8');
+            existing = JSON.parse(data);
+        } catch {
+            // ignore missing file or invalid JSON
+        }
+
+        const diagram = { ...existing, id: req.params.id, ...req.body };
         await fs.writeFile(file, JSON.stringify(diagram, null, 2));
         res.json({ ok: true });
     } catch (e) {
@@ -142,5 +150,5 @@ app.delete('/api/diagram-filters/:id', async (req, res) => {
     }
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 80;
 app.listen(port, () => console.log(`Server running on ${port}`));
