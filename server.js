@@ -32,6 +32,21 @@ const deepMerge = (target, source) => {
     return target;
 };
 
+const normalizeDiagram = (diagram) => {
+    diagram.tables = Array.isArray(diagram.tables) ? diagram.tables : [];
+    diagram.relationships = Array.isArray(diagram.relationships)
+        ? diagram.relationships
+        : [];
+    diagram.dependencies = Array.isArray(diagram.dependencies)
+        ? diagram.dependencies
+        : [];
+    diagram.areas = Array.isArray(diagram.areas) ? diagram.areas : [];
+    diagram.customTypes = Array.isArray(diagram.customTypes)
+        ? diagram.customTypes
+        : [];
+    return diagram;
+};
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -50,7 +65,7 @@ app.get('/api/diagrams', async (_req, res) => {
                     if (!diagram.id) {
                         diagram.id = path.basename(f, '.json');
                     }
-                    return diagram;
+                    return normalizeDiagram(diagram);
                 })
         );
         res.json(diagrams);
@@ -67,7 +82,7 @@ app.get('/api/diagrams/:id', async (req, res) => {
         if (!diagram.id) {
             diagram.id = path.basename(file, '.json');
         }
-        res.json(diagram);
+        res.json(normalizeDiagram(diagram));
     } catch {
         res.status(404).end();
     }
@@ -95,7 +110,9 @@ app.post('/api/diagrams/:id', async (req, res) => {
         } catch {
             // ignore missing file or invalid JSON
         }
-        const diagram = deepMerge({ ...existing, id: req.params.id }, req.body);
+        const diagram = normalizeDiagram(
+            deepMerge({ ...existing, id: req.params.id }, req.body)
+        );
         const tmpFile = `${file}.tmp`;
 
         await fs.writeFile(tmpFile, JSON.stringify(diagram, null, 2));
