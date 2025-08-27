@@ -33,7 +33,13 @@ const deepMerge = (target, source) => {
 };
 
 const normalizeDiagram = (diagram) => {
-    diagram.tables = Array.isArray(diagram.tables) ? diagram.tables : [];
+    diagram.tables = Array.isArray(diagram.tables)
+        ? diagram.tables.map((table) => ({
+              ...table,
+              fields: Array.isArray(table.fields) ? table.fields : [],
+              indexes: Array.isArray(table.indexes) ? table.indexes : [],
+          }))
+        : [];
     diagram.relationships = Array.isArray(diagram.relationships)
         ? diagram.relationships
         : [];
@@ -42,7 +48,11 @@ const normalizeDiagram = (diagram) => {
         : [];
     diagram.areas = Array.isArray(diagram.areas) ? diagram.areas : [];
     diagram.customTypes = Array.isArray(diagram.customTypes)
-        ? diagram.customTypes
+        ? diagram.customTypes.map((customType) => ({
+              ...customType,
+              values: Array.isArray(customType.values) ? customType.values : [],
+              fields: Array.isArray(customType.fields) ? customType.fields : [],
+          }))
         : [];
     return diagram;
 };

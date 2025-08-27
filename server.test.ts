@@ -85,6 +85,8 @@ describe('POST /api/diagrams/:id array defaults', () => {
             databaseType: 'mysql',
             createdAt: '2024-01-01',
             updatedAt: '2024-01-01',
+            tables: [{ id: 't1', name: 'Table1' }],
+            customTypes: [{ id: 'ct1', name: 'Type1', kind: 'enum' }],
         };
 
         let res = await fetch(`${baseUrl}/api/diagrams/${id}`, {
@@ -100,5 +102,9 @@ describe('POST /api/diagrams/:id array defaults', () => {
         expect(Array.isArray(diagram.dependencies)).toBe(true);
         expect(Array.isArray(diagram.areas)).toBe(true);
         expect(Array.isArray(diagram.customTypes)).toBe(true);
+        expect(Array.isArray(diagram.tables[0].fields)).toBe(true);
+        expect(Array.isArray(diagram.tables[0].indexes)).toBe(true);
+        expect(Array.isArray(diagram.customTypes[0].values)).toBe(true);
+        expect(Array.isArray(diagram.customTypes[0].fields)).toBe(true);
     });
 });
