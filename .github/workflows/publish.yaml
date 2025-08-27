@@ -2,8 +2,8 @@
 name: Build and publish volume-backed image
 
 on:
-  push:
-    branches: [main]
+#  push:
+#    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
