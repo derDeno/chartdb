@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import type { StorageContext } from './storage-context';
 import { storageContext } from './storage-context';
 import Dexie, { type EntityTable } from 'dexie';
@@ -230,6 +230,103 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
         });
         return dexieDB;
     }, []);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/storage');
+                if (!res.ok) return;
+                const data = await res.json();
+                await db.transaction(
+                    'rw',
+                    db.diagrams,
+                    db.db_tables,
+                    db.db_relationships,
+                    db.db_dependencies,
+                    db.areas,
+                    db.db_custom_types,
+                    db.config,
+                    db.diagram_filters,
+                    async () => {
+                        if (data.diagrams)
+                            await db.diagrams.bulkPut(data.diagrams);
+                        if (data.db_tables)
+                            await db.db_tables.bulkPut(data.db_tables);
+                        if (data.db_relationships)
+                            await db.db_relationships.bulkPut(
+                                data.db_relationships
+                            );
+                        if (data.db_dependencies)
+                            await db.db_dependencies.bulkPut(
+                                data.db_dependencies
+                            );
+                        if (data.areas) await db.areas.bulkPut(data.areas);
+                        if (data.db_custom_types)
+                            await db.db_custom_types.bulkPut(
+                                data.db_custom_types
+                            );
+                        if (data.config) await db.config.bulkPut(data.config);
+                        if (data.diagram_filters)
+                            await db.diagram_filters.bulkPut(
+                                data.diagram_filters
+                            );
+                    }
+                );
+            } catch (e) {
+                console.error('Failed to load storage', e);
+            }
+        };
+        load();
+    }, [db]);
+
+    useEffect(() => {
+        const sync = async () => {
+            const payload = {
+                diagrams: await db.diagrams.toArray(),
+                db_tables: await db.db_tables.toArray(),
+                db_relationships: await db.db_relationships.toArray(),
+                db_dependencies: await db.db_dependencies.toArray(),
+                areas: await db.areas.toArray(),
+                db_custom_types: await db.db_custom_types.toArray(),
+                config: await db.config.toArray(),
+                diagram_filters: await db.diagram_filters.toArray(),
+            };
+            try {
+                await fetch('/api/storage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } catch (e) {
+                console.error('Failed to save storage', e);
+            }
+        };
+
+        const tables = [
+            db.diagrams,
+            db.db_tables,
+            db.db_relationships,
+            db.db_dependencies,
+            db.areas,
+            db.db_custom_types,
+            db.config,
+            db.diagram_filters,
+        ];
+
+        for (const table of tables) {
+            table.hook('creating', sync);
+            table.hook('updating', sync);
+            table.hook('deleting', sync);
+        }
+
+        return () => {
+            for (const table of tables) {
+                table.hook('creating').unsubscribe(sync);
+                table.hook('updating').unsubscribe(sync);
+                table.hook('deleting').unsubscribe(sync);
+            }
+        };
+    }, [db]);
 
     const getConfig: StorageContext['getConfig'] =
         useCallback(async (): Promise<ChartDBConfig | undefined> => {
