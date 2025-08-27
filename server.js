@@ -16,6 +16,22 @@ const ensureDir = async (dir) => {
     await fs.mkdir(dir, { recursive: true });
 };
 
+const deepMerge = (target, source) => {
+    for (const key of Object.keys(source)) {
+        const srcVal = source[key];
+        const tgtVal = target[key];
+        if (srcVal && typeof srcVal === 'object' && !Array.isArray(srcVal)) {
+            target[key] = deepMerge(
+                tgtVal && typeof tgtVal === 'object' ? { ...tgtVal } : {},
+                srcVal
+            );
+        } else {
+            target[key] = srcVal;
+        }
+    }
+    return target;
+};
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -80,7 +96,7 @@ app.post('/api/diagrams/:id', async (req, res) => {
             // ignore missing file or invalid JSON
         }
 
-        const diagram = { ...existing, id: req.params.id, ...req.body };
+        const diagram = deepMerge({ ...existing, id: req.params.id }, req.body);
         await fs.writeFile(file, JSON.stringify(diagram, null, 2));
         res.json({ ok: true });
     } catch (e) {
@@ -151,4 +167,8 @@ app.delete('/api/diagram-filters/:id', async (req, res) => {
 });
 
 const port = process.env.PORT || 80;
-app.listen(port, () => console.log(`Server running on ${port}`));
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(port, () => console.log(`Server running on ${port}`));
+}
+
+export default app;
