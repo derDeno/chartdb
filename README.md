@@ -99,14 +99,16 @@ VITE_OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> npm run build
 ### Run the Docker Container
 
 ```bash
-docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -p 8080:80 ghcr.io/chartdb/chartdb:latest
+docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -v chartdb-data:/data -p 8080:3000 ghcr.io/chartdb/chartdb:latest
 ```
+
+The container stores diagrams under `/data`. Mount a volume at this path to keep diagrams between restarts.
 
 #### Build and Run locally
 
 ```bash
 docker build -t chartdb .
-docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -p 8080:80 chartdb
+docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -v chartdb-data:/data -p 8080:3000 chartdb
 ```
 
 #### Using Custom Inference Server
@@ -122,7 +124,8 @@ docker build \
 docker run \
   -e OPENAI_API_ENDPOINT=<YOUR_ENDPOINT> \
   -e LLM_MODEL_NAME=<YOUR_MODEL_NAME> \
-  -p 8080:80 chartdb
+  -v chartdb-data:/data \
+  -p 8080:3000 chartdb
 ```
 
 > **Privacy Note:** ChartDB includes privacy-focused analytics via Fathom Analytics. You can disable this by adding `-e DISABLE_ANALYTICS=true` to the run command or `--build-arg VITE_DISABLE_ANALYTICS=true` when building.
