@@ -39,10 +39,24 @@ export const VolumeStorageProvider: React.FC<React.PropsWithChildren> = ({
     }, []);
 
     const saveDiagram = useCallback(async (diagram: Diagram) => {
+        const normalized = {
+            id: diagram.id,
+            name: diagram.name,
+            databaseType: diagram.databaseType,
+            databaseEdition: diagram.databaseEdition,
+            tables: diagram.tables ?? [],
+            relationships: diagram.relationships ?? [],
+            dependencies: diagram.dependencies ?? [],
+            areas: diagram.areas ?? [],
+            customTypes: diagram.customTypes ?? [],
+            createdAt: diagram.createdAt,
+            updatedAt: diagram.updatedAt,
+        };
+
         await fetch(`${API_BASE}/diagrams/${diagram.id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(diagram),
+            body: JSON.stringify(normalized),
         });
     }, []);
 
