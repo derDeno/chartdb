@@ -109,6 +109,16 @@ docker build -t chartdb .
 docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -p 8080:80 chartdb
 ```
 
+#### Persist diagrams on host
+
+To save diagrams on a mounted volume instead of the browser's storage, enable
+volume storage at build time and mount a directory to `/data` when running:
+
+```bash
+docker build --build-arg VITE_USE_VOLUME=true -t chartdb .
+docker run -p 8080:80 -v /path/to/diagrams:/data chartdb
+```
+
 #### Using Custom Inference Server
 
 ```bash

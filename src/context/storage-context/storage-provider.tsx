@@ -11,8 +11,9 @@ import type { DBDependency } from '@/lib/domain/db-dependency';
 import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
+import { VolumeStorageProvider } from './volume-storage-provider';
 
-export const StorageProvider: React.FC<React.PropsWithChildren> = ({
+const IndexedDBStorageProvider: React.FC<React.PropsWithChildren> = ({
     children,
 }) => {
     const db = useMemo(() => {
@@ -817,5 +818,15 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
         >
             {children}
         </storageContext.Provider>
+    );
+};
+
+const useVolumeStorage = import.meta.env.VITE_USE_VOLUME === 'true';
+
+export const StorageProvider: React.FC<React.PropsWithChildren> = (props) => {
+    return useVolumeStorage ? (
+        <VolumeStorageProvider {...props} />
+    ) : (
+        <IndexedDBStorageProvider {...props} />
     );
 };
