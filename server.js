@@ -26,11 +26,16 @@ app.get('/api/diagrams', async (_req, res) => {
         const diagrams = await Promise.all(
             files
                 .filter((f) => f.endsWith('.json'))
-                .map((f) =>
-                    fs
-                        .readFile(path.join(diagramsDir, f), 'utf-8')
-                        .then(JSON.parse)
-                )
+                .map(async (f) => {
+                    const file = path.join(diagramsDir, f);
+                    const diagram = JSON.parse(
+                        await fs.readFile(file, 'utf-8')
+                    );
+                    if (!diagram.id) {
+                        diagram.id = path.basename(f, '.json');
+                    }
+                    return diagram;
+                })
         );
         res.json(diagrams);
     } catch (e) {
@@ -42,7 +47,11 @@ app.get('/api/diagrams/:id', async (req, res) => {
     try {
         const file = path.join(diagramsDir, `${req.params.id}.json`);
         const data = await fs.readFile(file, 'utf-8');
-        res.json(JSON.parse(data));
+        const diagram = JSON.parse(data);
+        if (!diagram.id) {
+            diagram.id = path.basename(file, '.json');
+        }
+        res.json(diagram);
     } catch {
         res.status(404).end();
     }
@@ -52,7 +61,19 @@ app.post('/api/diagrams/:id', async (req, res) => {
     try {
         await ensureDir(diagramsDir);
         const file = path.join(diagramsDir, `${req.params.id}.json`);
-        await fs.writeFile(file, JSON.stringify(req.body, null, 2));
+
+        const required = ['name', 'databaseType', 'createdAt', 'updatedAt'];
+        const missing = required.filter(
+            (key) => !Object.prototype.hasOwnProperty.call(req.body, key)
+        );
+        if (missing.length) {
+            return res.status(400).json({
+                error: `Missing required fields: ${missing.join(', ')}`,
+            });
+        }
+
+        const diagram = { id: req.params.id, ...req.body };
+        await fs.writeFile(file, JSON.stringify(diagram, null, 2));
         res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
