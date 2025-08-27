@@ -36,8 +36,17 @@ describe('POST /api/diagrams/:id deep merge', () => {
             databaseType: 'mysql',
             createdAt: '2024-01-01',
             updatedAt: '2024-01-01',
-            tables: { t1: { id: 't1', name: 'Table1' } },
-            relationships: { r1: { id: 'r1', name: 'Rel1' } },
+            tables: [{ id: 't1', name: 'Table1' }],
+            relationships: [
+                {
+                    id: 'r1',
+                    name: 'Rel1',
+                    sourceTableId: 't1',
+                    targetTableId: 't1',
+                    sourceFieldId: 'f1',
+                    targetFieldId: 'f1',
+                },
+            ],
         };
         let res = await fetch(`${baseUrl}/api/diagrams/${id}`, {
             method: 'POST',
@@ -51,8 +60,6 @@ describe('POST /api/diagrams/:id deep merge', () => {
             databaseType: 'mysql',
             createdAt: '2024-01-01',
             updatedAt: '2024-01-02',
-            tables: { t2: { id: 't2', name: 'Table2' } },
-            relationships: { r2: { id: 'r2', name: 'Rel2' } },
         };
         res = await fetch(`${baseUrl}/api/diagrams/${id}`, {
             method: 'POST',
@@ -63,9 +70,35 @@ describe('POST /api/diagrams/:id deep merge', () => {
 
         res = await fetch(`${baseUrl}/api/diagrams/${id}`);
         const diagram = await res.json();
-        expect(diagram.tables).toHaveProperty('t1');
-        expect(diagram.tables).toHaveProperty('t2');
-        expect(diagram.relationships).toHaveProperty('r1');
-        expect(diagram.relationships).toHaveProperty('r2');
+        expect(diagram.tables).toHaveLength(1);
+        expect(diagram.tables[0].id).toBe('t1');
+        expect(diagram.relationships).toHaveLength(1);
+        expect(diagram.relationships[0].id).toBe('r1');
+    });
+});
+
+describe('POST /api/diagrams/:id array defaults', () => {
+    it('ensures array fields are present when omitted', async () => {
+        const id = 'arr-test';
+        const minimal = {
+            name: 'Diagram',
+            databaseType: 'mysql',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+        };
+
+        let res = await fetch(`${baseUrl}/api/diagrams/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(minimal),
+        });
+        expect(res.status).toBe(200);
+
+        res = await fetch(`${baseUrl}/api/diagrams/${id}`);
+        const diagram = await res.json();
+        expect(Array.isArray(diagram.tables)).toBe(true);
+        expect(Array.isArray(diagram.dependencies)).toBe(true);
+        expect(Array.isArray(diagram.areas)).toBe(true);
+        expect(Array.isArray(diagram.customTypes)).toBe(true);
     });
 });
