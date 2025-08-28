@@ -13,8 +13,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const diagramFile = (id) => path.join(DATA_DIR, `${id}.json`);
+const sendIndexHtml = (res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+};
 
-app.get('/diagram', async (_req, res) => {
+const wantsHtml = (req) => req.headers.accept?.includes('text/html');
+
+app.get('/diagram', async (req, res) => {
+    if (wantsHtml(req)) {
+        return sendIndexHtml(res);
+    }
     try {
         const files = await fs.readdir(DATA_DIR);
         const diagrams = [];
@@ -24,7 +32,6 @@ app.get('/diagram', async (_req, res) => {
                     path.join(DATA_DIR, file),
                     'utf-8'
                 );
-              
                 const data = JSON.parse(content);
                 data.id = path.basename(file, '.json');
                 diagrams.push(data);
@@ -37,6 +44,9 @@ app.get('/diagram', async (_req, res) => {
 });
 
 app.get('/diagram/:id', async (req, res) => {
+    if (wantsHtml(req)) {
+        return sendIndexHtml(res);
+    }
     try {
         const content = await fs.readFile(diagramFile(req.params.id), 'utf-8');
         const data = JSON.parse(content);
@@ -92,7 +102,6 @@ app.put('/config', async (req, res) => {
 });
 
 app.use((_req, res) => {
-
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 

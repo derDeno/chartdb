@@ -8,14 +8,22 @@ import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import type { ChartDBConfig } from '@/lib/domain/config';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
-import { diagramToJSONOutput } from '@/lib/export-import-utils';
+import {
+    diagramToJSONOutput,
+    diagramFromJSONInput,
+} from '@/lib/export-import-utils';
 
 const listDiagramsFromServer = async (): Promise<Diagram[]> => {
     const res = await fetch('/diagram');
     if (!res.ok) {
         return [];
     }
-    return await res.json();
+    const diagrams = (await res.json()) as Record<string, unknown>[];
+    return diagrams.map((d) => {
+        const parsed = diagramFromJSONInput(JSON.stringify(d));
+        parsed.id = d.id as string;
+        return parsed;
+    });
 };
 
 const fetchDiagram = async (id: string): Promise<Diagram | undefined> => {
@@ -23,7 +31,10 @@ const fetchDiagram = async (id: string): Promise<Diagram | undefined> => {
     if (!res.ok) {
         return undefined;
     }
-    return await res.json();
+    const text = await res.text();
+    const parsed = diagramFromJSONInput(text);
+    parsed.id = id;
+    return parsed;
 };
 
 const saveDiagram = async (diagram: Diagram): Promise<void> => {
