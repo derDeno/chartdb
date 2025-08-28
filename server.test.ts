@@ -85,6 +85,8 @@ describe('POST /api/diagrams/:id array defaults', () => {
             databaseType: 'mysql',
             createdAt: '2024-01-01',
             updatedAt: '2024-01-01',
+            tables: [{ id: 't1', name: 'Table1' }],
+            customTypes: [{ id: 'ct1', name: 'Type1', kind: 'enum' }],
         };
 
         let res = await fetch(`${baseUrl}/api/diagrams/${id}`, {
@@ -100,5 +102,57 @@ describe('POST /api/diagrams/:id array defaults', () => {
         expect(Array.isArray(diagram.dependencies)).toBe(true);
         expect(Array.isArray(diagram.areas)).toBe(true);
         expect(Array.isArray(diagram.customTypes)).toBe(true);
+        expect(Array.isArray(diagram.tables[0].fields)).toBe(true);
+        expect(Array.isArray(diagram.tables[0].indexes)).toBe(true);
+        expect(Array.isArray(diagram.customTypes[0].values)).toBe(true);
+        expect(Array.isArray(diagram.customTypes[0].fields)).toBe(true);
+    });
+});
+
+describe('POST /api/diagrams/:id concurrent saves', () => {
+    it('does not corrupt data when requests overlap', async () => {
+        const id = 'race';
+        const payloadA = {
+            name: 'A',
+            databaseType: 'mysql',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+            tables: [{ id: 'ta', name: 'TA' }],
+        };
+        const payloadB = {
+            name: 'B',
+            databaseType: 'mysql',
+            createdAt: '2024-01-01',
+            updatedAt: '2024-01-01',
+            tables: [{ id: 'tb', name: 'TB' }],
+        };
+
+        const [resA, resB] = await Promise.all([
+            fetch(`${baseUrl}/api/diagrams/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadA),
+            }),
+            fetch(`${baseUrl}/api/diagrams/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadB),
+            }),
+        ]);
+        expect(resA.status).toBe(200);
+        expect(resB.status).toBe(200);
+
+        const res = await fetch(`${baseUrl}/api/diagrams/${id}`);
+        const diagram = await res.json();
+
+        expect(diagram.tables).toHaveLength(1);
+        const tableId = diagram.tables[0].id;
+        if (tableId === 'ta') {
+            expect(diagram.name).toBe('A');
+        } else if (tableId === 'tb') {
+            expect(diagram.name).toBe('B');
+        } else {
+            throw new Error('unexpected table id');
+        }
     });
 });
