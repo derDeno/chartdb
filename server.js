@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
+import { randomUUID } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -123,7 +124,7 @@ app.post('/api/diagrams/:id', async (req, res) => {
         const diagram = normalizeDiagram(
             deepMerge({ ...existing, id: req.params.id }, req.body)
         );
-        const tmpFile = `${file}.tmp`;
+        const tmpFile = `${file}.${randomUUID()}.tmp`;
 
         await fs.writeFile(tmpFile, JSON.stringify(diagram, null, 2));
         await fs.rename(tmpFile, file);
