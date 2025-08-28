@@ -24,6 +24,7 @@ app.get('/diagram', async (_req, res) => {
                     path.join(DATA_DIR, file),
                     'utf-8'
                 );
+              
                 const data = JSON.parse(content);
                 data.id = path.basename(file, '.json');
                 diagrams.push(data);
@@ -91,6 +92,7 @@ app.put('/config', async (req, res) => {
 });
 
 app.use((_req, res) => {
+
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
