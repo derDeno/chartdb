@@ -24,7 +24,10 @@ app.get('/diagram', async (_req, res) => {
                     path.join(DATA_DIR, file),
                     'utf-8'
                 );
-                diagrams.push(JSON.parse(content));
+              
+                const data = JSON.parse(content);
+                data.id = path.basename(file, '.json');
+                diagrams.push(data);
             }
         }
         res.json(diagrams);
@@ -36,7 +39,9 @@ app.get('/diagram', async (_req, res) => {
 app.get('/diagram/:id', async (req, res) => {
     try {
         const content = await fs.readFile(diagramFile(req.params.id), 'utf-8');
-        res.type('application/json').send(content);
+        const data = JSON.parse(content);
+        data.id = req.params.id;
+        res.json(data);
     } catch {
         res.status(404).send('Not found');
     }
@@ -45,7 +50,8 @@ app.get('/diagram/:id', async (req, res) => {
 app.put('/diagram/:id', async (req, res) => {
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
-        const json = JSON.stringify(req.body, null, 2);
+        const diagram = { ...req.body, id: req.params.id };
+        const json = JSON.stringify(diagram, null, 2);
         await fs.writeFile(diagramFile(req.params.id), json);
         res.status(204).end();
     } catch {
@@ -85,7 +91,8 @@ app.put('/config', async (req, res) => {
     }
 });
 
-app.get('*', (_req, res) => {
+app.use((_req, res) => {
+
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
