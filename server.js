@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import process from 'node:process';
+import { randomUUID } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,24 +17,14 @@ const ensureDir = async (dir) => {
     await fs.mkdir(dir, { recursive: true });
 };
 
-const deepMerge = (target, source) => {
-    for (const key of Object.keys(source)) {
-        const srcVal = source[key];
-        const tgtVal = target[key];
-        if (srcVal && typeof srcVal === 'object' && !Array.isArray(srcVal)) {
-            target[key] = deepMerge(
-                tgtVal && typeof tgtVal === 'object' ? { ...tgtVal } : {},
-                srcVal
-            );
-        } else {
-            target[key] = srcVal;
-        }
-    }
-    return target;
-};
-
 const normalizeDiagram = (diagram) => {
-    diagram.tables = Array.isArray(diagram.tables) ? diagram.tables : [];
+    diagram.tables = Array.isArray(diagram.tables)
+        ? diagram.tables.map((table) => ({
+              ...table,
+              fields: Array.isArray(table.fields) ? table.fields : [],
+              indexes: Array.isArray(table.indexes) ? table.indexes : [],
+          }))
+        : [];
     diagram.relationships = Array.isArray(diagram.relationships)
         ? diagram.relationships
         : [];
@@ -42,7 +33,11 @@ const normalizeDiagram = (diagram) => {
         : [];
     diagram.areas = Array.isArray(diagram.areas) ? diagram.areas : [];
     diagram.customTypes = Array.isArray(diagram.customTypes)
-        ? diagram.customTypes
+        ? diagram.customTypes.map((customType) => ({
+              ...customType,
+              values: Array.isArray(customType.values) ? customType.values : [],
+              fields: Array.isArray(customType.fields) ? customType.fields : [],
+          }))
         : [];
     return diagram;
 };
@@ -103,17 +98,8 @@ app.post('/api/diagrams/:id', async (req, res) => {
             });
         }
 
-        let existing = {};
-        try {
-            const data = await fs.readFile(file, 'utf-8');
-            existing = JSON.parse(data);
-        } catch {
-            // ignore missing file or invalid JSON
-        }
-        const diagram = normalizeDiagram(
-            deepMerge({ ...existing, id: req.params.id }, req.body)
-        );
-        const tmpFile = `${file}.tmp`;
+        const diagram = normalizeDiagram({ ...req.body, id: req.params.id });
+        const tmpFile = `${file}.${randomUUID()}.tmp`;
 
         await fs.writeFile(tmpFile, JSON.stringify(diagram, null, 2));
         await fs.rename(tmpFile, file);
