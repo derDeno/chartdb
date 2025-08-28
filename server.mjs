@@ -13,7 +13,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const diagramFile = (id) => path.join(DATA_DIR, `${id}.json`);
-
 const sendIndexHtml = (res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 };
