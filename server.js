@@ -97,7 +97,7 @@ app.post('/api/diagrams/:id', async (req, res) => {
                 error: `Missing required fields: ${missing.join(', ')}`,
             });
         }
-
+      
         const diagram = normalizeDiagram({ ...req.body, id: req.params.id });
         const tmpFile = `${file}.${randomUUID()}.tmp`;
 
