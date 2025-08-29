@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { storageContext } from './storage-context';
-import type { Diagram } from '@/lib/domain/diagram';
+import { diagramSchema, type Diagram } from '@/lib/domain/diagram';
 import type { DBTable } from '@/lib/domain/db-table';
 import type { DBRelationship } from '@/lib/domain/db-relationship';
 import type { DBDependency } from '@/lib/domain/db-dependency';
@@ -8,10 +8,16 @@ import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import type { ChartDBConfig } from '@/lib/domain/config';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
-import {
-    diagramToJSONOutput,
-    diagramFromJSONInput,
-} from '@/lib/export-import-utils';
+
+const parseDiagram = (data: Record<string, unknown>): Diagram =>
+    diagramSchema.parse({
+        ...data,
+        createdAt: new Date(data.createdAt as string),
+        updatedAt: new Date(data.updatedAt as string),
+    });
+
+const serializeDiagram = (diagram: Diagram): string =>
+    JSON.stringify(diagram, null, 2);
 
 const listDiagramsFromServer = async (): Promise<Diagram[]> => {
     const res = await fetch('/diagram');
@@ -19,11 +25,7 @@ const listDiagramsFromServer = async (): Promise<Diagram[]> => {
         return [];
     }
     const diagrams = (await res.json()) as Record<string, unknown>[];
-    return diagrams.map((d) => {
-        const parsed = diagramFromJSONInput(JSON.stringify(d));
-        parsed.id = d.id as string;
-        return parsed;
-    });
+    return diagrams.map((d) => parseDiagram(d));
 };
 
 const fetchDiagram = async (id: string): Promise<Diagram | undefined> => {
@@ -31,14 +33,12 @@ const fetchDiagram = async (id: string): Promise<Diagram | undefined> => {
     if (!res.ok) {
         return undefined;
     }
-    const text = await res.text();
-    const parsed = diagramFromJSONInput(text);
-    parsed.id = id;
-    return parsed;
+    const data = (await res.json()) as Record<string, unknown>;
+    return parseDiagram(data);
 };
 
 const saveDiagram = async (diagram: Diagram): Promise<void> => {
-    const json = diagramToJSONOutput(diagram);
+    const json = serializeDiagram(diagram);
     await fetch(`/diagram/${diagram.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -547,6 +547,7 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 getDiagram,
                 updateDiagram,
                 deleteDiagram,
+                modifyDiagram,
                 addTable,
                 getTable,
                 updateTable,
