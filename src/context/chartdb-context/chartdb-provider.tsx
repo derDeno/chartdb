@@ -1053,30 +1053,31 @@ export const ChartDBProvider: React.FC<
 
     const addRelationships: ChartDBContext['addRelationships'] = useCallback(
         async (
-            relationships: DBRelationship[],
+            relationshipsToAdd: DBRelationship[],
             options = { updateHistory: true }
         ) => {
             setRelationships((currentRelationships) => [
                 ...currentRelationships,
-                ...relationships,
+                ...relationshipsToAdd,
             ]);
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...relationships.map((relationship) =>
-                    db.addRelationship({ diagramId, relationship })
-                ),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            await db.modifyDiagram(diagramId, (d) => {
+                d.relationships = [
+                    ...(d.relationships ?? []),
+                    ...relationshipsToAdd,
+                ];
+                d.updatedAt = updatedAt;
+            });
 
             if (options.updateHistory) {
                 addUndoAction({
                     action: 'addRelationships',
-                    redoData: { relationships },
+                    redoData: { relationships: relationshipsToAdd },
                     undoData: {
-                        relationshipIds: relationships.map((r) => r.id),
+                        relationshipIds: relationshipsToAdd.map((r) => r.id),
                     },
                 });
                 resetRedoStack();
