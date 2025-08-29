@@ -62,7 +62,10 @@ app.put('/diagram/:id', async (req, res) => {
         await fs.mkdir(DATA_DIR, { recursive: true });
         const diagram = { ...req.body, id: req.params.id };
         const json = JSON.stringify(diagram, null, 2);
-        await fs.writeFile(diagramFile(req.params.id), json);
+        const filePath = diagramFile(req.params.id);
+        const tempPath = `${filePath}.tmp`;
+        await fs.writeFile(tempPath, json, 'utf-8');
+        await fs.rename(tempPath, filePath);
         res.status(204).end();
     } catch {
         res.status(500).send('Failed to save');
@@ -94,7 +97,10 @@ app.put('/config', async (req, res) => {
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
         const json = JSON.stringify(req.body, null, 2);
-        await fs.writeFile(path.join(DATA_DIR, 'config.json'), json);
+        const filePath = path.join(DATA_DIR, 'config.json');
+        const tempPath = `${filePath}.tmp`;
+        await fs.writeFile(tempPath, json, 'utf-8');
+        await fs.rename(tempPath, filePath);
         res.status(204).end();
     } catch {
         res.status(500).send('Failed to save config');
