@@ -17,6 +17,19 @@ const sendIndexHtml = (res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 };
 
+const writeJsonAtomic = async (filePath, data) => {
+    const json = JSON.stringify(data, null, 2);
+    const tempPath = `${filePath}.tmp`;
+    const handle = await fs.open(tempPath, 'w');
+    try {
+        await handle.writeFile(json, 'utf-8');
+        await handle.sync();
+    } finally {
+        await handle.close();
+    }
+    await fs.rename(tempPath, filePath);
+};
+
 const wantsHtml = (req) => req.headers.accept?.includes('text/html');
 
 app.get('/diagram', async (req, res) => {
@@ -61,11 +74,7 @@ app.put('/diagram/:id', async (req, res) => {
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
         const diagram = { ...req.body, id: req.params.id };
-        const json = JSON.stringify(diagram, null, 2);
-        const filePath = diagramFile(req.params.id);
-        const tempPath = `${filePath}.tmp`;
-        await fs.writeFile(tempPath, json, 'utf-8');
-        await fs.rename(tempPath, filePath);
+        await writeJsonAtomic(diagramFile(req.params.id), diagram);
         res.status(204).end();
     } catch {
         res.status(500).send('Failed to save');
@@ -96,11 +105,8 @@ app.get('/config', async (_req, res) => {
 app.put('/config', async (req, res) => {
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
-        const json = JSON.stringify(req.body, null, 2);
         const filePath = path.join(DATA_DIR, 'config.json');
-        const tempPath = `${filePath}.tmp`;
-        await fs.writeFile(tempPath, json, 'utf-8');
-        await fs.rename(tempPath, filePath);
+        await writeJsonAtomic(filePath, req.body);
         res.status(204).end();
     } catch {
         res.status(500).send('Failed to save config');
