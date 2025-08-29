@@ -8,7 +8,7 @@ import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import type { ChartDBConfig } from '@/lib/domain/config';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
-import { diagramToJSONOutput } from '@/lib/export-import-utils';
+import { diagramToStorageJSON } from '@/lib/export-import-utils';
 
 const parseDiagram = (data: Record<string, unknown>): Diagram =>
     diagramSchema.parse({
@@ -39,7 +39,7 @@ const saveDiagram = async (diagram: Diagram): Promise<void> => {
     await fetch(`/diagram/${diagram.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: diagramToJSONOutput(diagram),
+        body: JSON.stringify(diagramToStorageJSON(diagram), null, 2),
     });
 };
 
