@@ -40,7 +40,7 @@ const saveDiagram = async (diagram: Diagram): Promise<void> => {
     await fetch(`/diagram/${diagram.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: json,
+        body: JSON.stringify(data, null, 2),
     });
 };
 
