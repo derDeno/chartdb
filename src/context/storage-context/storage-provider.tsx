@@ -36,11 +36,10 @@ const fetchDiagram = async (id: string): Promise<Diagram | undefined> => {
 };
 
 const saveDiagram = async (diagram: Diagram): Promise<void> => {
-    const json = diagramToJSONOutput(diagram);
     await fetch(`/diagram/${diagram.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data, null, 2),
+        body: diagramToJSONOutput(diagram),
     });
 };
 
