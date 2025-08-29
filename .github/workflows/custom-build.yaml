@@ -1,5 +1,5 @@
 # .github/workflows/publish.yml
-name: Build and publish volume-backed image
+name: custom docker build
 
 on:
 #  push:
