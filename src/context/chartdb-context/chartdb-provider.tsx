@@ -292,12 +292,10 @@ export const ChartDBProvider: React.FC<
             setTables((currentTables) => [...currentTables, ...tablesToAdd]);
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                ...tablesToAdd.map((table) =>
-                    db.addTable({ diagramId, table })
-                ),
-            ]);
+            await db.modifyDiagram(diagramId, (d) => {
+                d.tables = [...(d.tables ?? []), ...tablesToAdd];
+                d.updatedAt = updatedAt;
+            });
 
             events.emit({
                 action: 'add_tables',
