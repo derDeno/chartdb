@@ -547,6 +547,7 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 getDiagram,
                 updateDiagram,
                 deleteDiagram,
+                modifyDiagram,
                 addTable,
                 getTable,
                 updateTable,
