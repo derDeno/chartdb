@@ -13,6 +13,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const diagramFile = (id) => path.join(DATA_DIR, `${id}.json`);
+const isDiagramFile = (file) => /^[a-z0-9]{12}\.json$/.test(file);
 const sendIndexHtml = (res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 };
@@ -53,7 +54,10 @@ app.get('/diagram', async (req, res) => {
         const files = await fs.readdir(DATA_DIR);
         const diagrams = [];
         for (const file of files) {
-            if (file.endsWith('.json') && file !== 'config.json') {
+            if (!isDiagramFile(file)) {
+                continue;
+            }
+            try {
                 const content = await fs.readFile(
                     path.join(DATA_DIR, file),
                     'utf-8'
@@ -61,6 +65,8 @@ app.get('/diagram', async (req, res) => {
                 const data = normalizeDiagram(JSON.parse(content));
                 data.id = path.basename(file, '.json');
                 diagrams.push(data);
+            } catch {
+                // Ignore invalid JSON or files that can't be read
             }
         }
         res.json(diagrams);
