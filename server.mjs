@@ -17,6 +17,19 @@ const sendIndexHtml = (res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 };
 
+const normalizeDiagram = (diagram) => ({
+    ...diagram,
+    tables: (diagram.tables ?? []).map((table) => ({
+        ...table,
+        x: table.x ?? 0,
+        y: table.y ?? 0,
+    })),
+    relationships: diagram.relationships ?? [],
+    dependencies: diagram.dependencies ?? [],
+    areas: diagram.areas ?? [],
+    customTypes: diagram.customTypes ?? [],
+});
+
 const writeJsonAtomic = async (filePath, data) => {
     const json = JSON.stringify(data, null, 2);
     const tempPath = `${filePath}.tmp`;
@@ -45,7 +58,7 @@ app.get('/diagram', async (req, res) => {
                     path.join(DATA_DIR, file),
                     'utf-8'
                 );
-                const data = JSON.parse(content);
+                const data = normalizeDiagram(JSON.parse(content));
                 data.id = path.basename(file, '.json');
                 diagrams.push(data);
             }
@@ -62,7 +75,7 @@ app.get('/diagram/:id', async (req, res) => {
     }
     try {
         const content = await fs.readFile(diagramFile(req.params.id), 'utf-8');
-        const data = JSON.parse(content);
+        const data = normalizeDiagram(JSON.parse(content));
         data.id = req.params.id;
         res.json(data);
     } catch {
@@ -73,7 +86,7 @@ app.get('/diagram/:id', async (req, res) => {
 app.put('/diagram/:id', async (req, res) => {
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
-        const diagram = { ...req.body, id: req.params.id };
+        const diagram = normalizeDiagram({ ...req.body, id: req.params.id });
         await writeJsonAtomic(diagramFile(req.params.id), diagram);
         res.status(204).end();
     } catch {
