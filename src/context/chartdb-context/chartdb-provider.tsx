@@ -1589,7 +1589,7 @@ export const ChartDBProvider: React.FC<
 
     const loadDiagram: ChartDBContext['loadDiagram'] = useCallback(
         async (diagramId: string) => {
-            const diagram = await db.getDiagram(diagramId, {
+            const diagram = await dbStorage.getDiagram(diagramId, {
                 includeRelationships: true,
                 includeTables: true,
                 includeDependencies: true,
@@ -1603,7 +1603,7 @@ export const ChartDBProvider: React.FC<
 
             return diagram;
         },
-        [db, loadDiagramFromData]
+        [dbStorage, loadDiagramFromData]
     );
 
     // Custom type operations
