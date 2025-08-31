@@ -27,7 +27,13 @@ const normalizeDiagram = (diagram) => ({
     })),
     relationships: diagram.relationships ?? [],
     dependencies: diagram.dependencies ?? [],
-    areas: diagram.areas ?? [],
+    areas: (diagram.areas ?? []).map((area) => ({
+        ...area,
+        x: area.x ?? 0,
+        y: area.y ?? 0,
+        width: area.width ?? 0,
+        height: area.height ?? 0,
+    })),
     customTypes: diagram.customTypes ?? [],
 });
 

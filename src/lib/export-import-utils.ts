@@ -29,15 +29,20 @@ export const diagramToJSONOutput = (diagram: Diagram): string => {
 
 export const diagramToStorageJSON = (diagram: Diagram): Diagram => ({
     ...diagram,
-    tables:
-        diagram.tables?.map((table) => ({
-            ...table,
-            x: table.x ?? 0,
-            y: table.y ?? 0,
-        })) ?? [],
+    tables: (diagram.tables ?? []).map((table) => ({
+        ...table,
+        x: table.x ?? 0,
+        y: table.y ?? 0,
+    })),
     relationships: diagram.relationships ?? [],
     dependencies: diagram.dependencies ?? [],
-    areas: diagram.areas ?? [],
+    areas: (diagram.areas ?? []).map((area) => ({
+        ...area,
+        x: area.x ?? 0,
+        y: area.y ?? 0,
+        width: area.width ?? 0,
+        height: area.height ?? 0,
+    })),
     customTypes: diagram.customTypes ?? [],
 });
 
