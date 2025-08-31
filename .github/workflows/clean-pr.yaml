@@ -1,0 +1,75 @@
+name: Create PR to main without workflow changes
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_title:
+        description: 'PR title'
+        required: false
+        default: 'Dev → Main (workflows stripped)'
+      pr_body:
+        description: 'PR body'
+        required: false
+        default: 'This PR was generated from dev while dropping .github/workflows changes.'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-clean-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch main
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+
+      - name: Create working branch
+        id: branch
+        run: |
+          new_branch="dev-to-main-no-workflows-${GITHUB_RUN_ID}"
+          git switch -c "$new_branch"
+          echo "name=$new_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Drop workflow changes (keep main’s versions)
+        run: |
+          set -e
+          # 1) Remove all workflow files from the index/worktree (if any came from dev)
+          git rm -r --quiet --ignore-unmatch .github/workflows || true
+          # 2) Restore whatever exists on main (if main has none, nothing comes back)
+          git checkout origin/main -- .github/workflows || true
+          # 3) Stage changes (add back restored files if any)
+          git add -A .github/workflows || true
+
+          # 4) Only commit if there is anything staged
+          if ! git diff --cached --quiet; then
+            git commit -m "Drop workflow changes for main (restore from origin/main)"
+          else
+            echo "No workflow diffs to commit."
+          fi
+
+      - name: Push branch
+        run: |
+          git push -u origin "${{ steps.branch.outputs.name }}"
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Install gh is not required on ubuntu-latest; it’s preinstalled
+          gh pr create \
+            --base main \
+            --head "${{ steps.branch.outputs.name }}" \
+            --title "${{ github.event.inputs.pr_title }}" \
+            --body  "${{ github.event.inputs.pr_body }}"
