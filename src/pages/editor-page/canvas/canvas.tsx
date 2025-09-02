@@ -569,15 +569,17 @@ export const Canvas: React.FC<CanvasProps> = ({
                     ),
                 });
                 setOverlapGraph(overlappingTablesInDiagram);
-                fitView({
-                    duration: 500,
-                    padding: 0.1,
-                    maxZoom: 0.8,
-                });
+                if (!tableId) {
+                    fitView({
+                        duration: 500,
+                        padding: 0.1,
+                        maxZoom: 0.8,
+                    });
+                }
             }, 500)();
             prevFilter.current = filter;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType]);
+    }, [filter, fitView, tables, setOverlapGraph, databaseType, tableId]);
 
     useEffect(() => {
         const checkParentAreas = debounce(() => {
