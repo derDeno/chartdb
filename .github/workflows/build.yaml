@@ -2,7 +2,7 @@ name: custom docker build
 
 on:
   push:
-    branches: [dev]
+    branches: [new-feat]
     tags:
       - docker-run-*
   workflow_dispatch:
