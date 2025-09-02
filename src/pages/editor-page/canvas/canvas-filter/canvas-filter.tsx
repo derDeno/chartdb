@@ -28,6 +28,7 @@ import { FilterItemActions } from './filter-item-actions';
 import { databasesWithSchemas } from '@/lib/domain';
 import { getOperatingSystem } from '@/lib/utils';
 import { useLocalConfig } from '@/hooks/use-local-config';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 export interface CanvasFilterProps {
     onClose: () => void;
@@ -52,6 +53,9 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
     const [groupingMode, setGroupingMode] = useState<GroupingMode>('schema');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const { showDBViews } = useLocalConfig();
+    const navigate = useNavigate();
+    const { search } = useLocation();
+    const { diagramId } = useParams<{ diagramId: string }>();
 
     // Extract only the properties needed for tree data
     const relevantTableData = useMemo<RelevantTableData[]>(
@@ -188,8 +192,12 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                     ],
                 });
             }, 100);
+
+            if (diagramId) {
+                navigate(`/diagrams/${diagramId}/${tableId}${search}`);
+            }
         },
-        [fitView, setNodes]
+        [fitView, setNodes, navigate, diagramId, search]
     );
 
     // Handle node click

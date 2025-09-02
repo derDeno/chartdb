@@ -28,6 +28,7 @@ import {
     useKeyPress,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useParams } from 'react-router-dom';
 import equal from 'fast-deep-equal';
 import type { TableNodeType } from './table-node/table-node';
 import { TableNode } from './table-node/table-node';
@@ -247,7 +248,14 @@ export const Canvas: React.FC<CanvasProps> = ({
         showFilter,
         setShowFilter,
     } = useCanvas();
-    const { filter, loading: filterLoading } = useDiagramFilter();
+    const {
+        filter,
+        loading: filterLoading,
+        setTableIdsFilterEmpty,
+        addTablesToFilter,
+        clearTableIdsFilter,
+    } = useDiagramFilter();
+    const { tableId } = useParams<{ diagramId: string; tableId?: string }>();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -292,7 +300,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
+        if (!isInitialLoadingNodes && !tableId) {
             debounce(() => {
                 fitView({
                     duration: 200,
@@ -301,7 +309,48 @@ export const Canvas: React.FC<CanvasProps> = ({
                 });
             }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, tableId]);
+
+    useEffect(() => {
+        if (!tableId) {
+            setNodes((nodes) =>
+                nodes.map((node) => ({ ...node, selected: false }))
+            );
+            clearTableIdsFilter();
+            return;
+        }
+
+        if (clean) {
+            setTableIdsFilterEmpty();
+            addTablesToFilter({ tableIds: [tableId] });
+        } else {
+            clearTableIdsFilter();
+        }
+
+        setTimeout(() => {
+            setNodes((nodes) =>
+                nodes.map((node) =>
+                    node.id === tableId
+                        ? { ...node, selected: true }
+                        : { ...node, selected: false }
+                )
+            );
+            fitView({
+                duration: 500,
+                maxZoom: 1,
+                minZoom: 1,
+                nodes: [{ id: tableId }],
+            });
+        }, 100);
+    }, [
+        tableId,
+        clean,
+        setTableIdsFilterEmpty,
+        addTablesToFilter,
+        clearTableIdsFilter,
+        setNodes,
+        fitView,
+    ]);
 
     useEffect(() => {
         const targetIndexes: Record<string, number> = relationships.reduce(
