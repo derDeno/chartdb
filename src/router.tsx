@@ -6,18 +6,20 @@ import type { TemplatesPageLoaderData } from './pages/templates-page/templates-p
 import { getTemplatesAndAllTags } from './templates-data/template-utils';
 
 const routes: RouteObject[] = [
-    ...['', 'diagrams/:diagramId'].map((path) => ({
-        path,
-        async lazy() {
-            const { EditorPage } = await import(
-                './pages/editor-page/editor-page'
-            );
+    ...['', 'diagrams/:diagramId', 'diagrams/:diagramId/:tableId'].map(
+        (path) => ({
+            path,
+            async lazy() {
+                const { EditorPage } = await import(
+                    './pages/editor-page/editor-page'
+                );
 
-            return {
-                element: <EditorPage />,
-            };
-        },
-    })),
+                return {
+                    element: <EditorPage />,
+                };
+            },
+        })
+    ),
     {
         path: 'examples',
         async lazy() {

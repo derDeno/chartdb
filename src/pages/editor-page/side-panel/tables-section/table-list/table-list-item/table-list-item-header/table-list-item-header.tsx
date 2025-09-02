@@ -38,6 +38,7 @@ import {
 } from '@/components/tooltip/tooltip';
 import { cloneTable } from '@/lib/clone';
 import type { DBSchema } from '@/lib/domain';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
 
@@ -68,6 +69,9 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const { isMd: isDesktop } = useBreakpoint('md');
     const inputRef = React.useRef<HTMLInputElement>(null);
     const { listeners } = useSortable({ id: table.id });
+    const navigate = useNavigate();
+    const { search } = useLocation();
+    const { diagramId } = useParams<{ diagramId: string }>();
 
     const editTableName = useCallback(() => {
         if (!editMode) return;
@@ -122,8 +126,21 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             if (!isDesktop) {
                 hideSidePanel();
             }
+
+            if (diagramId) {
+                navigate(`/diagrams/${diagramId}/${table.id}${search}`);
+            }
         },
-        [fitView, table.id, setNodes, hideSidePanel, isDesktop]
+        [
+            fitView,
+            table.id,
+            setNodes,
+            hideSidePanel,
+            isDesktop,
+            navigate,
+            diagramId,
+            search,
+        ]
     );
 
     const deleteTableHandler = useCallback(() => {
