@@ -359,6 +359,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
 
         setTimeout(() => {
+            if (!tableId) {
+                return;
+            }
             const node = getNode(tableId);
             if (!node) {
                 return;
