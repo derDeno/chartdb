@@ -349,7 +349,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [tableId, setNodes, fitView, updateTable]);
 
     useEffect(() => {
-        if (clean && tableId) {
+        if (!tableId) {
+            return;
+        }
+
+        if (clean) {
             setEdges([]);
             return;
         }
