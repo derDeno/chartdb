@@ -28,6 +28,7 @@ import {
     useKeyPress,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useParams } from 'react-router-dom';
 import equal from 'fast-deep-equal';
 import type { TableNodeType } from './table-node/table-node';
 import { TableNode } from './table-node/table-node';
@@ -93,7 +94,11 @@ import { ShowAllButton } from './show-all-button';
 import { useIsLostInCanvas } from './hooks/use-is-lost-in-canvas';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
-import { filterTable } from '@/lib/domain/diagram-filter/filter';
+import {
+    filterTable,
+    filterRelationship,
+    filterDependency,
+} from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 
 const HIGHLIGHTED_EDGE_Z_INDEX = 1;
@@ -247,7 +252,14 @@ export const Canvas: React.FC<CanvasProps> = ({
         showFilter,
         setShowFilter,
     } = useCanvas();
-    const { filter, loading: filterLoading } = useDiagramFilter();
+    const {
+        filter,
+        loading: filterLoading,
+        setTableIdsFilterEmpty,
+        addTablesToFilter,
+        clearTableIdsFilter,
+    } = useDiagramFilter();
+    const { tableId } = useParams<{ diagramId: string; tableId?: string }>();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -292,7 +304,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
+        if (!isInitialLoadingNodes && !tableId) {
             debounce(() => {
                 fitView({
                     duration: 200,
@@ -301,29 +313,112 @@ export const Canvas: React.FC<CanvasProps> = ({
                 });
             }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, tableId]);
 
     useEffect(() => {
-        const targetIndexes: Record<string, number> = relationships.reduce(
-            (acc, relationship) => {
-                acc[
-                    `${relationship.targetTableId}${relationship.targetFieldId}`
-                ] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        if (!tableId) {
+            setNodes((nodes) =>
+                nodes.map((node) => ({ ...node, selected: false }))
+            );
+            clearTableIdsFilter();
+            return;
+        }
+
+        if (clean) {
+            setTableIdsFilterEmpty();
+            addTablesToFilter({ tableIds: [tableId] });
+            setNodes((nodes) => nodes.filter((node) => node.id === tableId));
+            setEdges([]);
+        } else {
+            clearTableIdsFilter();
+        }
+
+        setTimeout(() => {
+            setNodes((nodes) =>
+                nodes.map((node) =>
+                    node.id === tableId
+                        ? { ...node, selected: true }
+                        : { ...node, selected: false }
+                )
+            );
+            fitView({
+                duration: 500,
+                maxZoom: 1,
+                minZoom: 1,
+                nodes: [{ id: tableId }],
+            });
+        }, 100);
+    }, [
+        tableId,
+        clean,
+        setTableIdsFilterEmpty,
+        addTablesToFilter,
+        clearTableIdsFilter,
+        setNodes,
+        setEdges,
+        fitView,
+    ]);
+
+    useEffect(() => {
+        const defaultSchema = defaultSchemas[databaseType];
+
+        const visibleRelationships = relationships.filter((relationship) =>
+            filterRelationship({
+                tableA: {
+                    id: relationship.sourceTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.sourceTableId
+                    )?.schema,
+                },
+                tableB: {
+                    id: relationship.targetTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.targetTableId
+                    )?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
 
-        const targetDepIndexes: Record<string, number> = dependencies.reduce(
-            (acc, dep) => {
-                acc[dep.tableId] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        const targetIndexes: Record<string, number> =
+            visibleRelationships.reduce(
+                (acc, relationship) => {
+                    acc[
+                        `${relationship.targetTableId}${relationship.targetFieldId}`
+                    ] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
+
+        const visibleDependencies = dependencies.filter((dep) =>
+            filterDependency({
+                tableA: {
+                    id: dep.tableId,
+                    schema: tables.find((t) => t.id === dep.tableId)?.schema,
+                },
+                tableB: {
+                    id: dep.dependentTableId,
+                    schema: tables.find((t) => t.id === dep.dependentTableId)
+                        ?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
+
+        const targetDepIndexes: Record<string, number> =
+            visibleDependencies.reduce(
+                (acc, dep) => {
+                    acc[dep.tableId] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
 
         setEdges([
-            ...relationships.map(
+            ...visibleRelationships.map(
                 (relationship): RelationshipEdgeType => ({
                     id: relationship.id,
                     source: relationship.sourceTableId,
@@ -334,7 +429,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     data: { relationship },
                 })
             ),
-            ...dependencies.map(
+            ...visibleDependencies.map(
                 (dep): DependencyEdgeType => ({
                     id: dep.id,
                     source: dep.dependentTableId,
@@ -347,7 +442,15 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [
+        relationships,
+        dependencies,
+        setEdges,
+        showDBViews,
+        filter,
+        tables,
+        databaseType,
+    ]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -520,15 +623,17 @@ export const Canvas: React.FC<CanvasProps> = ({
                     ),
                 });
                 setOverlapGraph(overlappingTablesInDiagram);
-                fitView({
-                    duration: 500,
-                    padding: 0.1,
-                    maxZoom: 0.8,
-                });
+                if (!tableId) {
+                    fitView({
+                        duration: 500,
+                        padding: 0.1,
+                        maxZoom: 0.8,
+                    });
+                }
             }, 500)();
             prevFilter.current = filter;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType]);
+    }, [filter, fitView, tables, setOverlapGraph, databaseType, tableId]);
 
     useEffect(() => {
         const checkParentAreas = debounce(() => {
