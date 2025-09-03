@@ -210,7 +210,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
 }) => {
-    const { getEdge, getInternalNode, getNode } = useReactFlow();
+    const { getEdge, getInternalNode, getNode, setCenter } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -260,9 +260,6 @@ export const Canvas: React.FC<CanvasProps> = ({
     }>();
     const navigate = useNavigate();
     const { search } = useLocation();
-
-    const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
-
     const initialNodeTables =
         clean && tableId
             ? initialTables.filter((table) => table.id === tableId)
@@ -283,38 +280,39 @@ export const Canvas: React.FC<CanvasProps> = ({
     const [snapToGridEnabled, setSnapToGridEnabled] = useState(false);
 
     useEffect(() => {
-        setIsInitialLoadingNodes(true);
-    }, [initialTables]);
-
-    useEffect(() => {
-        const initialNodes = (
+        const nextTables =
             clean && tableId
-                ? initialTables.filter((table) => table.id === tableId)
-                : initialTables
-        ).map((table) =>
-            tableToTableNode(table, {
-                filter,
-                databaseType,
-                filterLoading,
-                showDBViews,
-            })
-        );
-        if (equal(initialNodes, nodes)) {
-            setIsInitialLoadingNodes(false);
+                ? tables.filter((table) => table.id === tableId)
+                : tables;
+        const nextNodes = nextTables.map((table) => {
+            const existing = nodes.find((n) => n.id === table.id);
+            return {
+                ...tableToTableNode(table, {
+                    filter,
+                    databaseType,
+                    filterLoading,
+                    showDBViews,
+                }),
+                selected: existing?.selected ?? false,
+            };
+        });
+        if (!equal(nextNodes, nodes)) {
+            setNodes(nextNodes);
         }
     }, [
-        initialTables,
-        nodes,
+        tables,
+        clean,
+        tableId,
         filter,
         databaseType,
         filterLoading,
         showDBViews,
-        clean,
-        tableId,
+        setNodes,
+        nodes,
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes && !tableId) {
+        if (!tableId) {
             debounce(() => {
                 fitView({
                     duration: 200,
@@ -323,7 +321,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 });
             }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView, tableId]);
+    }, [tableId, nodes, fitView]);
 
     useEffect(() => {
         if (!tableId) {
@@ -349,6 +347,34 @@ export const Canvas: React.FC<CanvasProps> = ({
             nodes: [{ id: tableId }],
         });
     }, [tableId, setNodes, fitView, updateTable]);
+
+    useEffect(() => {
+        if (clean && tableId) {
+            setEdges([]);
+            return;
+        }
+
+        setTimeout(() => {
+            const node = getNode(tableId);
+            if (!node) {
+                return;
+            }
+            if (clean) {
+                fitView({
+                    duration: 0,
+                    maxZoom: 1,
+                    minZoom: 1,
+                    nodes: [{ id: tableId }],
+                });
+            } else {
+                setCenter(
+                    node.position.x + (node.width ?? 0) / 2,
+                    node.position.y + (node.height ?? 0) / 2,
+                    { zoom: 1 }
+                );
+            }
+        });
+    }, [tableId, clean, setNodes, fitView, updateTable, getNode, setCenter]);
 
     useEffect(() => {
         if (clean && tableId) {
@@ -402,7 +428,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 options: { defaultSchema },
             })
         );
-
+                                                            
         const targetDepIndexes: Record<string, number> =
             visibleDependencies.reduce(
                 (acc, dep) => {
@@ -1339,12 +1365,9 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     const handlePaneClick = useCallback(() => {
         if (!clean && tableId && diagramId) {
-            setNodes((nodes) =>
-                nodes.map((node) => ({ ...node, selected: false }))
-            );
             navigate(`/diagrams/${diagramId}${search}`);
         }
-    }, [clean, tableId, diagramId, navigate, search, setNodes]);
+    }, [clean, tableId, diagramId, navigate, search]);
 
     return (
         <CanvasContextMenu>
