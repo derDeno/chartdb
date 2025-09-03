@@ -374,7 +374,16 @@ export const Canvas: React.FC<CanvasProps> = ({
                 );
             }
         });
-    }, [tableId, clean, setNodes, fitView, updateTable, getNode, setCenter]);
+    }, [
+        tableId,
+        clean,
+        setNodes,
+        fitView,
+        updateTable,
+        getNode,
+        setCenter,
+        setEdges,
+    ]);
 
     useEffect(() => {
         if (clean && tableId) {
