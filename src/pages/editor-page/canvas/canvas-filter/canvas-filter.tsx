@@ -10,7 +10,6 @@ import { useChartDB } from '@/hooks/use-chartdb';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/button/button';
 import { Input } from '@/components/input/input';
-import { useReactFlow } from '@xyflow/react';
 import { TreeView } from '@/components/tree-view/tree-view';
 import type { TreeNode } from '@/components/tree-view/tree';
 import { ScrollArea } from '@/components/scroll-area/scroll-area';
@@ -46,7 +45,6 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
         addTablesToFilter,
         removeTablesFromFilter,
     } = useDiagramFilter();
-    const { fitView, setNodes } = useReactFlow();
     const [searchQuery, setSearchQuery] = useState('');
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -163,43 +161,11 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
 
     const focusOnTable = useCallback(
         (tableId: string) => {
-            // Make sure the table is visible
-            setNodes((nodes) =>
-                nodes.map((node) =>
-                    node.id === tableId
-                        ? {
-                              ...node,
-                              hidden: false,
-                              selected: true,
-                          }
-                        : {
-                              ...node,
-                              selected: false,
-                          }
-                )
-            );
-
-            updateTable(tableId, { expanded: true });
-
-            // Focus on the table
-            setTimeout(() => {
-                fitView({
-                    duration: 500,
-                    maxZoom: 1,
-                    minZoom: 1,
-                    nodes: [
-                        {
-                            id: tableId,
-                        },
-                    ],
-                });
-            }, 100);
-
             if (diagramId) {
                 navigate(`/diagrams/${diagramId}/${tableId}${search}`);
             }
         },
-        [fitView, setNodes, navigate, diagramId, search, updateTable]
+        [navigate, diagramId, search]
     );
 
     // Handle node click

@@ -28,7 +28,7 @@ import {
     useKeyPress,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import equal from 'fast-deep-equal';
 import type { TableNodeType } from './table-node/table-node';
 import { TableNode } from './table-node/table-node';
@@ -254,12 +254,21 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { tableId } = useParams<{ diagramId: string; tableId?: string }>();
+    const { diagramId, tableId } = useParams<{
+        diagramId: string;
+        tableId?: string;
+    }>();
+    const navigate = useNavigate();
+    const { search } = useLocation();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
+    const initialNodeTables =
+        clean && tableId
+            ? initialTables.filter((table) => table.id === tableId)
+            : initialTables;
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        initialNodeTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -278,7 +287,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [initialTables]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = (
+            clean && tableId
+                ? initialTables.filter((table) => table.id === tableId)
+                : initialTables
+        ).map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -296,6 +309,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         databaseType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     useEffect(() => {
@@ -320,21 +335,19 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         updateTable(tableId, { expanded: true });
 
-        setTimeout(() => {
-            setNodes((nodes) =>
-                nodes.map((node) =>
-                    node.id === tableId
-                        ? { ...node, selected: true }
-                        : { ...node, selected: false }
-                )
-            );
-            fitView({
-                duration: 500,
-                maxZoom: 1,
-                minZoom: 1,
-                nodes: [{ id: tableId }],
-            });
-        }, 100);
+        setNodes((nodes) =>
+            nodes.map((node) =>
+                node.id === tableId
+                    ? { ...node, selected: true }
+                    : { ...node, selected: false }
+            )
+        );
+        fitView({
+            duration: 0,
+            maxZoom: 1,
+            minZoom: 1,
+            nodes: [{ id: tableId }],
+        });
     }, [tableId, setNodes, fitView, updateTable]);
 
     useEffect(() => {
@@ -344,7 +357,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
 
         const defaultSchema = defaultSchemas[databaseType];
-
         const visibleRelationships = relationships.filter((relationship) =>
             filterRelationship({
                 tableA: {
@@ -1325,6 +1337,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         []
     );
 
+    const handlePaneClick = useCallback(() => {
+        if (!clean && tableId && diagramId) {
+            setNodes((nodes) =>
+                nodes.map((node) => ({ ...node, selected: false }))
+            );
+            navigate(`/diagrams/${diagramId}${search}`);
+        }
+    }, [clean, tableId, diagramId, navigate, search, setNodes]);
+
     return (
         <CanvasContextMenu>
             <div className="relative flex size-full" id="canvas">
@@ -1339,6 +1360,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     maxZoom={5}
                     minZoom={0.1}
                     onConnect={onConnectHandler}
+                    onPaneClick={handlePaneClick}
                     proOptions={{
                         hideAttribution: true,
                     }}

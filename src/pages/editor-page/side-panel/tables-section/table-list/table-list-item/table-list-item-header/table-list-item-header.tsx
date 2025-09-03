@@ -26,7 +26,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/dropdown-menu/dropdown-menu';
-import { useReactFlow } from '@xyflow/react';
 import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useTranslation } from 'react-i18next';
@@ -62,7 +61,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const { schemasDisplayed } = useDiagramFilter();
     const { openTableSchemaDialog } = useDialog();
     const { t } = useTranslation();
-    const { fitView, setNodes } = useReactFlow();
     const { hideSidePanel } = useLayout();
     const [editMode, setEditMode] = React.useState(false);
     const [tableName, setTableName] = React.useState(table.name);
@@ -99,31 +97,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const focusOnTable = useCallback(
         (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
             event.stopPropagation();
-            setNodes((nodes) =>
-                nodes.map((node) =>
-                    node.id == table.id
-                        ? {
-                              ...node,
-                              selected: true,
-                          }
-                        : {
-                              ...node,
-                              selected: false,
-                          }
-                )
-            );
-
-            updateTable(table.id, { expanded: true });
-            fitView({
-                duration: 500,
-                maxZoom: 1,
-                minZoom: 1,
-                nodes: [
-                    {
-                        id: table.id,
-                    },
-                ],
-            });
 
             if (!isDesktop) {
                 hideSidePanel();
@@ -133,17 +106,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                 navigate(`/diagrams/${diagramId}/${table.id}${search}`);
             }
         },
-        [
-            fitView,
-            table.id,
-            setNodes,
-            hideSidePanel,
-            isDesktop,
-            navigate,
-            diagramId,
-            search,
-            updateTable,
-        ]
+        [table.id, hideSidePanel, isDesktop, navigate, diagramId, search]
     );
 
     const deleteTableHandler = useCallback(() => {
