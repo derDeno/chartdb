@@ -74,6 +74,9 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
         const edges = useStore((store) => store.edges) as EdgeType[];
         const { openTableFromSidebar, selectSidebarSection } = useLayout();
         const [expanded, setExpanded] = useState(table.expanded ?? false);
+        useEffect(() => {
+            setExpanded(table.expanded ?? false);
+        }, [table.expanded]);
         const { t } = useTranslation();
         const [editMode, setEditMode] = useState(false);
         const [tableName, setTableName] = useState(table.name);
