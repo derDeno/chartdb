@@ -355,6 +355,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
 
         setTimeout(() => {
+            if (!tableId) {
+                return;
+            }
             const node = getNode(tableId);
             if (!node) {
                 return;
@@ -374,7 +377,16 @@ export const Canvas: React.FC<CanvasProps> = ({
                 );
             }
         });
-    }, [tableId, clean, setNodes, fitView, updateTable, getNode, setCenter]);
+    }, [
+        tableId,
+        clean,
+        setNodes,
+        fitView,
+        updateTable,
+        getNode,
+        setCenter,
+        setEdges,
+    ]);
 
     useEffect(() => {
         if (clean && tableId) {
