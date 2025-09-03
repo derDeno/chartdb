@@ -253,13 +253,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         showFilter,
         setShowFilter,
     } = useCanvas();
-    const {
-        filter,
-        loading: filterLoading,
-        setTableIdsFilterEmpty,
-        addTablesToFilter,
-        clearTableIdsFilter,
-    } = useDiagramFilter();
+    const { filter, loading: filterLoading } = useDiagramFilter();
     const { tableId } = useParams<{ diagramId: string; tableId?: string }>();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
@@ -321,17 +315,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setNodes((nodes) =>
                 nodes.map((node) => ({ ...node, selected: false }))
             );
-            clearTableIdsFilter();
             return;
-        }
-
-        if (clean) {
-            setTableIdsFilterEmpty();
-            addTablesToFilter({ tableIds: [tableId] });
-            setNodes((nodes) => nodes.filter((node) => node.id === tableId));
-            setEdges([]);
-        } else {
-            clearTableIdsFilter();
         }
 
         updateTable(tableId, { expanded: true });
@@ -351,17 +335,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 nodes: [{ id: tableId }],
             });
         }, 100);
-    }, [
-        tableId,
-        clean,
-        setTableIdsFilterEmpty,
-        addTablesToFilter,
-        clearTableIdsFilter,
-        setNodes,
-        setEdges,
-        fitView,
-        updateTable,
-    ]);
+    }, [tableId, setNodes, fitView, updateTable]);
 
     useEffect(() => {
         if (clean && tableId) {
