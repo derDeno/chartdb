@@ -360,6 +360,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
+        if (clean && tableId) {
+            setEdges([]);
+            return;
+        }
+
         const defaultSchema = defaultSchemas[databaseType];
 
         const visibleRelationships = relationships.filter((relationship) =>
@@ -450,6 +455,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         filter,
         tables,
         databaseType,
+        clean,
+        tableId,
     ]);
 
     useEffect(() => {
@@ -543,8 +550,14 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setNodes((prevNodes) => {
+            const visibleTables =
+                clean && tableId
+                    ? tables.filter((table) => table.id === tableId)
+                    : tables;
+            const visibleAreas = clean && tableId ? [] : areas;
+
             const newNodes = [
-                ...tables.map((table) => {
+                ...visibleTables.map((table) => {
                     const isOverlapping =
                         (overlapGraph.graph.get(table.id) ?? []).length > 0;
                     const node = tableToTableNode(table, {
@@ -573,7 +586,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         },
                     };
                 }),
-                ...areas.map((area) =>
+                ...visibleAreas.map((area) =>
                     areaToAreaNode(area, {
                         tables,
                         filter,
@@ -602,6 +615,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
