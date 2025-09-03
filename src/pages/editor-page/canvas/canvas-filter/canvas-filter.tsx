@@ -10,7 +10,6 @@ import { useChartDB } from '@/hooks/use-chartdb';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/button/button';
 import { Input } from '@/components/input/input';
-import { useReactFlow } from '@xyflow/react';
 import { TreeView } from '@/components/tree-view/tree-view';
 import type { TreeNode } from '@/components/tree-view/tree';
 import { ScrollArea } from '@/components/scroll-area/scroll-area';
@@ -28,6 +27,7 @@ import { FilterItemActions } from './filter-item-actions';
 import { databasesWithSchemas } from '@/lib/domain';
 import { getOperatingSystem } from '@/lib/utils';
 import { useLocalConfig } from '@/hooks/use-local-config';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 export interface CanvasFilterProps {
     onClose: () => void;
@@ -45,13 +45,15 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
         addTablesToFilter,
         removeTablesFromFilter,
     } = useDiagramFilter();
-    const { fitView, setNodes } = useReactFlow();
     const [searchQuery, setSearchQuery] = useState('');
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [isFilterVisible, setIsFilterVisible] = useState(false);
     const [groupingMode, setGroupingMode] = useState<GroupingMode>('schema');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const { showDBViews } = useLocalConfig();
+    const navigate = useNavigate();
+    const { search } = useLocation();
+    const { diagramId } = useParams<{ diagramId: string }>();
 
     // Extract only the properties needed for tree data
     const relevantTableData = useMemo<RelevantTableData[]>(
@@ -159,37 +161,11 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
 
     const focusOnTable = useCallback(
         (tableId: string) => {
-            // Make sure the table is visible
-            setNodes((nodes) =>
-                nodes.map((node) =>
-                    node.id === tableId
-                        ? {
-                              ...node,
-                              hidden: false,
-                              selected: true,
-                          }
-                        : {
-                              ...node,
-                              selected: false,
-                          }
-                )
-            );
-
-            // Focus on the table
-            setTimeout(() => {
-                fitView({
-                    duration: 500,
-                    maxZoom: 1,
-                    minZoom: 1,
-                    nodes: [
-                        {
-                            id: tableId,
-                        },
-                    ],
-                });
-            }, 100);
+            if (diagramId) {
+                navigate(`/diagrams/${diagramId}/${tableId}${search}`);
+            }
         },
-        [fitView, setNodes]
+        [navigate, diagramId, search]
     );
 
     // Handle node click

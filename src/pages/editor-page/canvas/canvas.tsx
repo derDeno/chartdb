@@ -28,6 +28,7 @@ import {
     useKeyPress,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import equal from 'fast-deep-equal';
 import type { TableNodeType } from './table-node/table-node';
 import { TableNode } from './table-node/table-node';
@@ -93,7 +94,11 @@ import { ShowAllButton } from './show-all-button';
 import { useIsLostInCanvas } from './hooks/use-is-lost-in-canvas';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
-import { filterTable } from '@/lib/domain/diagram-filter/filter';
+import {
+    filterTable,
+    filterRelationship,
+    filterDependency,
+} from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 
 const HIGHLIGHTED_EDGE_Z_INDEX = 1;
@@ -231,6 +236,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         updateArea,
         highlightedCustomType,
         highlightCustomTypeId,
+        updateTable,
     } = useChartDB();
     const { showSidePanel } = useLayout();
     const { effectiveTheme } = useTheme();
@@ -248,11 +254,21 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
+    const { diagramId, tableId } = useParams<{
+        diagramId: string;
+        tableId?: string;
+    }>();
+    const navigate = useNavigate();
+    const { search } = useLocation();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
+    const initialNodeTables =
+        clean && tableId
+            ? initialTables.filter((table) => table.id === tableId)
+            : initialTables;
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        initialNodeTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -271,7 +287,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [initialTables]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = (
+            clean && tableId
+                ? initialTables.filter((table) => table.id === tableId)
+                : initialTables
+        ).map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -289,10 +309,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         databaseType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
+        if (!isInitialLoadingNodes && !tableId) {
             debounce(() => {
                 fitView({
                     duration: 200,
@@ -301,29 +323,98 @@ export const Canvas: React.FC<CanvasProps> = ({
                 });
             }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, tableId]);
 
     useEffect(() => {
-        const targetIndexes: Record<string, number> = relationships.reduce(
-            (acc, relationship) => {
-                acc[
-                    `${relationship.targetTableId}${relationship.targetFieldId}`
-                ] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        if (!tableId) {
+            setNodes((nodes) =>
+                nodes.map((node) => ({ ...node, selected: false }))
+            );
+            return;
+        }
+
+        updateTable(tableId, { expanded: true });
+
+        setNodes((nodes) =>
+            nodes.map((node) =>
+                node.id === tableId
+                    ? { ...node, selected: true }
+                    : { ...node, selected: false }
+            )
+        );
+        fitView({
+            duration: 0,
+            maxZoom: 1,
+            minZoom: 1,
+            nodes: [{ id: tableId }],
+        });
+    }, [tableId, setNodes, fitView, updateTable]);
+
+    useEffect(() => {
+        if (clean && tableId) {
+            setEdges([]);
+            return;
+        }
+
+        const defaultSchema = defaultSchemas[databaseType];
+
+        const visibleRelationships = relationships.filter((relationship) =>
+            filterRelationship({
+                tableA: {
+                    id: relationship.sourceTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.sourceTableId
+                    )?.schema,
+                },
+                tableB: {
+                    id: relationship.targetTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.targetTableId
+                    )?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
 
-        const targetDepIndexes: Record<string, number> = dependencies.reduce(
-            (acc, dep) => {
-                acc[dep.tableId] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        const targetIndexes: Record<string, number> =
+            visibleRelationships.reduce(
+                (acc, relationship) => {
+                    acc[
+                        `${relationship.targetTableId}${relationship.targetFieldId}`
+                    ] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
+
+        const visibleDependencies = dependencies.filter((dep) =>
+            filterDependency({
+                tableA: {
+                    id: dep.tableId,
+                    schema: tables.find((t) => t.id === dep.tableId)?.schema,
+                },
+                tableB: {
+                    id: dep.dependentTableId,
+                    schema: tables.find((t) => t.id === dep.dependentTableId)
+                        ?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
+
+        const targetDepIndexes: Record<string, number> =
+            visibleDependencies.reduce(
+                (acc, dep) => {
+                    acc[dep.tableId] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
 
         setEdges([
-            ...relationships.map(
+            ...visibleRelationships.map(
                 (relationship): RelationshipEdgeType => ({
                     id: relationship.id,
                     source: relationship.sourceTableId,
@@ -334,7 +425,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     data: { relationship },
                 })
             ),
-            ...dependencies.map(
+            ...visibleDependencies.map(
                 (dep): DependencyEdgeType => ({
                     id: dep.id,
                     source: dep.dependentTableId,
@@ -347,7 +438,17 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [
+        relationships,
+        dependencies,
+        setEdges,
+        showDBViews,
+        filter,
+        tables,
+        databaseType,
+        clean,
+        tableId,
+    ]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -440,8 +541,14 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setNodes((prevNodes) => {
+            const visibleTables =
+                clean && tableId
+                    ? tables.filter((table) => table.id === tableId)
+                    : tables;
+            const visibleAreas = clean && tableId ? [] : areas;
+
             const newNodes = [
-                ...tables.map((table) => {
+                ...visibleTables.map((table) => {
                     const isOverlapping =
                         (overlapGraph.graph.get(table.id) ?? []).length > 0;
                     const node = tableToTableNode(table, {
@@ -470,7 +577,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         },
                     };
                 }),
-                ...areas.map((area) =>
+                ...visibleAreas.map((area) =>
                     areaToAreaNode(area, {
                         tables,
                         filter,
@@ -499,6 +606,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
@@ -520,15 +629,17 @@ export const Canvas: React.FC<CanvasProps> = ({
                     ),
                 });
                 setOverlapGraph(overlappingTablesInDiagram);
-                fitView({
-                    duration: 500,
-                    padding: 0.1,
-                    maxZoom: 0.8,
-                });
+                if (!tableId) {
+                    fitView({
+                        duration: 500,
+                        padding: 0.1,
+                        maxZoom: 0.8,
+                    });
+                }
             }, 500)();
             prevFilter.current = filter;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType]);
+    }, [filter, fitView, tables, setOverlapGraph, databaseType, tableId]);
 
     useEffect(() => {
         const checkParentAreas = debounce(() => {
@@ -1227,6 +1338,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         []
     );
 
+    const handlePaneClick = useCallback(() => {
+        if (!clean && tableId && diagramId) {
+            setNodes((nodes) =>
+                nodes.map((node) => ({ ...node, selected: false }))
+            );
+            navigate(`/diagrams/${diagramId}${search}`);
+        }
+    }, [clean, tableId, diagramId, navigate, search, setNodes]);
+
     return (
         <CanvasContextMenu>
             <div className="relative flex size-full" id="canvas">
@@ -1241,6 +1361,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     maxZoom={5}
                     minZoom={0.1}
                     onConnect={onConnectHandler}
+                    onPaneClick={handlePaneClick}
                     proOptions={{
                         hideAttribution: true,
                     }}
