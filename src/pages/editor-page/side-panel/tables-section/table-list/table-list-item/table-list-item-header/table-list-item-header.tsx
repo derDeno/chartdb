@@ -112,6 +112,8 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                           }
                 )
             );
+
+            updateTable(table.id, { expanded: true });
             fitView({
                 duration: 500,
                 maxZoom: 1,
@@ -140,6 +142,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             navigate,
             diagramId,
             search,
+            updateTable,
         ]
     );
 

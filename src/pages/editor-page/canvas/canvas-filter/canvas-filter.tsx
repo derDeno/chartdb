@@ -36,7 +36,7 @@ export interface CanvasFilterProps {
 
 export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
     const { t } = useTranslation();
-    const { tables, databaseType, areas } = useChartDB();
+    const { tables, databaseType, areas, updateTable } = useChartDB();
     const {
         filter,
         toggleSchemaFilter,
@@ -179,6 +179,8 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                 )
             );
 
+            updateTable(tableId, { expanded: true });
+
             // Focus on the table
             setTimeout(() => {
                 fitView({
@@ -197,7 +199,7 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                 navigate(`/diagrams/${diagramId}/${tableId}${search}`);
             }
         },
-        [fitView, setNodes, navigate, diagramId, search]
+        [fitView, setNodes, navigate, diagramId, search, updateTable]
     );
 
     // Handle node click

@@ -236,6 +236,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         updateArea,
         highlightedCustomType,
         highlightCustomTypeId,
+        updateTable,
     } = useChartDB();
     const { showSidePanel } = useLayout();
     const { effectiveTheme } = useTheme();
@@ -333,6 +334,8 @@ export const Canvas: React.FC<CanvasProps> = ({
             clearTableIdsFilter();
         }
 
+        updateTable(tableId, { expanded: true });
+
         setTimeout(() => {
             setNodes((nodes) =>
                 nodes.map((node) =>
@@ -357,6 +360,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         setNodes,
         setEdges,
         fitView,
+        updateTable,
     ]);
 
     useEffect(() => {
