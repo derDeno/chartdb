@@ -357,7 +357,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
 
         const defaultSchema = defaultSchemas[databaseType];
-
         const visibleRelationships = relationships.filter((relationship) =>
             filterRelationship({
                 tableA: {

@@ -35,7 +35,7 @@ export interface CanvasFilterProps {
 
 export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
     const { t } = useTranslation();
-    const { tables, databaseType, areas } = useChartDB();
+    const { tables, databaseType, areas, updateTable } = useChartDB();
     const {
         filter,
         toggleSchemaFilter,
