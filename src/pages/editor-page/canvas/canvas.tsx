@@ -260,7 +260,6 @@ export const Canvas: React.FC<CanvasProps> = ({
     }>();
     const navigate = useNavigate();
     const { search } = useLocation();
-
     const initialNodeTables =
         clean && tableId
             ? initialTables.filter((table) => table.id === tableId)
@@ -341,6 +340,19 @@ export const Canvas: React.FC<CanvasProps> = ({
                     : { ...node, selected: false }
             )
         );
+        fitView({
+            duration: 0,
+            maxZoom: 1,
+            minZoom: 1,
+            nodes: [{ id: tableId }],
+        });
+    }, [tableId, setNodes, fitView, updateTable]);
+
+    useEffect(() => {
+        if (clean && tableId) {
+            setEdges([]);
+            return;
+        }
 
         setTimeout(() => {
             const node = getNode(tableId);
@@ -371,7 +383,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
 
         const defaultSchema = defaultSchemas[databaseType];
-
         const visibleRelationships = relationships.filter((relationship) =>
             filterRelationship({
                 tableA: {
@@ -417,7 +428,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 options: { defaultSchema },
             })
         );
-
+                                                            
         const targetDepIndexes: Record<string, number> =
             visibleDependencies.reduce(
                 (acc, dep) => {
