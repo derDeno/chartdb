@@ -94,7 +94,11 @@ import { ShowAllButton } from './show-all-button';
 import { useIsLostInCanvas } from './hooks/use-is-lost-in-canvas';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
-import { filterTable } from '@/lib/domain/diagram-filter/filter';
+import {
+    filterTable,
+    filterRelationship,
+    filterDependency,
+} from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 
 const HIGHLIGHTED_EDGE_Z_INDEX = 1;
@@ -323,6 +327,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (clean) {
             setTableIdsFilterEmpty();
             addTablesToFilter({ tableIds: [tableId] });
+            setNodes((nodes) => nodes.filter((node) => node.id === tableId));
+            setEdges([]);
         } else {
             clearTableIdsFilter();
         }
@@ -349,30 +355,70 @@ export const Canvas: React.FC<CanvasProps> = ({
         addTablesToFilter,
         clearTableIdsFilter,
         setNodes,
+        setEdges,
         fitView,
     ]);
 
     useEffect(() => {
-        const targetIndexes: Record<string, number> = relationships.reduce(
-            (acc, relationship) => {
-                acc[
-                    `${relationship.targetTableId}${relationship.targetFieldId}`
-                ] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        const defaultSchema = defaultSchemas[databaseType];
+
+        const visibleRelationships = relationships.filter((relationship) =>
+            filterRelationship({
+                tableA: {
+                    id: relationship.sourceTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.sourceTableId
+                    )?.schema,
+                },
+                tableB: {
+                    id: relationship.targetTableId,
+                    schema: tables.find(
+                        (t) => t.id === relationship.targetTableId
+                    )?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
 
-        const targetDepIndexes: Record<string, number> = dependencies.reduce(
-            (acc, dep) => {
-                acc[dep.tableId] = 0;
-                return acc;
-            },
-            {} as Record<string, number>
+        const targetIndexes: Record<string, number> =
+            visibleRelationships.reduce(
+                (acc, relationship) => {
+                    acc[
+                        `${relationship.targetTableId}${relationship.targetFieldId}`
+                    ] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
+
+        const visibleDependencies = dependencies.filter((dep) =>
+            filterDependency({
+                tableA: {
+                    id: dep.tableId,
+                    schema: tables.find((t) => t.id === dep.tableId)?.schema,
+                },
+                tableB: {
+                    id: dep.dependentTableId,
+                    schema: tables.find((t) => t.id === dep.dependentTableId)
+                        ?.schema,
+                },
+                filter,
+                options: { defaultSchema },
+            })
         );
+
+        const targetDepIndexes: Record<string, number> =
+            visibleDependencies.reduce(
+                (acc, dep) => {
+                    acc[dep.tableId] = 0;
+                    return acc;
+                },
+                {} as Record<string, number>
+            );
 
         setEdges([
-            ...relationships.map(
+            ...visibleRelationships.map(
                 (relationship): RelationshipEdgeType => ({
                     id: relationship.id,
                     source: relationship.sourceTableId,
@@ -383,7 +429,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     data: { relationship },
                 })
             ),
-            ...dependencies.map(
+            ...visibleDependencies.map(
                 (dep): DependencyEdgeType => ({
                     id: dep.id,
                     source: dep.dependentTableId,
@@ -396,7 +442,15 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [
+        relationships,
+        dependencies,
+        setEdges,
+        showDBViews,
+        filter,
+        tables,
+        databaseType,
+    ]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
