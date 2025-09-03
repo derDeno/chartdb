@@ -428,7 +428,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                 options: { defaultSchema },
             })
         );
-                                                            
         const targetDepIndexes: Record<string, number> =
             visibleDependencies.reduce(
                 (acc, dep) => {
