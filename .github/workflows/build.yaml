@@ -2,7 +2,7 @@ name: custom docker build
 
 on:
   push:
-    branches: [dev]
+    branches: [feat-table-isolation]
     tags:
       - docker-run-*
   workflow_dispatch:
@@ -35,4 +35,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:nightly

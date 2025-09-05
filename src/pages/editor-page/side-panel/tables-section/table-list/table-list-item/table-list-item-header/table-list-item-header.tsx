@@ -26,9 +26,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/dropdown-menu/dropdown-menu';
-import { useReactFlow } from '@xyflow/react';
-import { useLayout } from '@/hooks/use-layout';
-import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useFocusOn } from '@/hooks/use-focus-on';
 import { useTranslation } from 'react-i18next';
 import { useDialog } from '@/hooks/use-dialog';
 import {
@@ -57,15 +55,14 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
         createTable,
         schemas,
         databaseType,
+        readonly,
     } = useChartDB();
     const { schemasDisplayed } = useDiagramFilter();
     const { openTableSchemaDialog } = useDialog();
     const { t } = useTranslation();
-    const { fitView, setNodes } = useReactFlow();
-    const { hideSidePanel } = useLayout();
+    const { focusOnTable } = useFocusOn();
     const [editMode, setEditMode] = React.useState(false);
     const [tableName, setTableName] = React.useState(table.name);
-    const { isMd: isDesktop } = useBreakpoint('md');
     const inputRef = React.useRef<HTMLInputElement>(null);
     const { listeners } = useSortable({ id: table.id });
 
@@ -92,38 +89,12 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
         setEditMode(true);
     };
 
-    const focusOnTable = useCallback(
+    const handleFocusOnTable = useCallback(
         (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
             event.stopPropagation();
-            setNodes((nodes) =>
-                nodes.map((node) =>
-                    node.id == table.id
-                        ? {
-                              ...node,
-                              selected: true,
-                          }
-                        : {
-                              ...node,
-                              selected: false,
-                          }
-                )
-            );
-            fitView({
-                duration: 500,
-                maxZoom: 1,
-                minZoom: 1,
-                nodes: [
-                    {
-                        id: table.id,
-                    },
-                ],
-            });
-
-            if (!isDesktop) {
-                hideSidePanel();
-            }
+            focusOnTable(table.id);
         },
-        [fitView, table.id, setNodes, hideSidePanel, isDesktop]
+        [focusOnTable, table.id]
     );
 
     const deleteTableHandler = useCallback(() => {
@@ -280,12 +251,14 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
 
     return (
         <div className="group flex h-11 flex-1 items-center justify-between gap-1 overflow-hidden">
-            <div
-                className="flex cursor-move items-center justify-center"
-                {...listeners}
-            >
-                <GripVertical className="size-4 text-muted-foreground" />
-            </div>
+            {!readonly ? (
+                <div
+                    className="flex cursor-move items-center justify-center"
+                    {...listeners}
+                >
+                    <GripVertical className="size-4 text-muted-foreground" />
+                </div>
+            ) : null}
             <div className="flex min-w-0 flex-1 px-1">
                 {editMode ? (
                     <Input
@@ -298,7 +271,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                         onChange={(e) => setTableName(e.target.value)}
                         className="h-7 w-full focus-visible:ring-0"
                     />
-                ) : (
+                ) : !readonly ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div
@@ -317,17 +290,26 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                             {t('tool_tips.double_click_to_edit')}
                         </TooltipContent>
                     </Tooltip>
+                ) : (
+                    <div className="truncate px-2 py-0.5">
+                        {table.name}
+                        <span className="text-xs text-muted-foreground">
+                            {schemaToDisplay ? ` (${schemaToDisplay})` : ''}
+                        </span>
+                    </div>
                 )}
             </div>
             <div className="flex flex-row-reverse">
                 {!editMode ? (
                     <>
-                        <div>{renderDropDownMenu()}</div>
+                        {!readonly ? <div>{renderDropDownMenu()}</div> : null}
                         <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
-                            <ListItemHeaderButton onClick={enterEditMode}>
-                                <Pencil />
-                            </ListItemHeaderButton>
-                            <ListItemHeaderButton onClick={focusOnTable}>
+                            {!readonly ? (
+                                <ListItemHeaderButton onClick={enterEditMode}>
+                                    <Pencil />
+                                </ListItemHeaderButton>
+                            ) : null}
+                            <ListItemHeaderButton onClick={handleFocusOnTable}>
                                 <CircleDotDashed />
                             </ListItemHeaderButton>
                         </div>
