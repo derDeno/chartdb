@@ -31,9 +31,7 @@ import {
 } from '@/components/dropdown-menu/dropdown-menu';
 import { ListItemHeaderButton } from '@/pages/editor-page/side-panel/list-item-header-button/list-item-header-button';
 import { mergeRefs } from '@/lib/utils';
-import { useReactFlow } from '@xyflow/react';
-import { useLayout } from '@/hooks/use-layout';
-import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useFocusOn } from '@/hooks/use-focus-on';
 
 export interface AreaListItemProps {
     area: Area;
@@ -41,11 +39,9 @@ export interface AreaListItemProps {
 
 export const AreaListItem = React.forwardRef<HTMLDivElement, AreaListItemProps>(
     ({ area }, forwardedRef) => {
-        const { updateArea, removeArea } = useChartDB();
+        const { updateArea, removeArea, readonly } = useChartDB();
         const { t } = useTranslation();
-        const { fitView, setNodes } = useReactFlow();
-        const { hideSidePanel } = useLayout();
-        const { isMd: isDesktop } = useBreakpoint('md');
+        const { focusOnArea } = useFocusOn();
         const [editMode, setEditMode] = React.useState(false);
         const [areaName, setAreaName] = React.useState(area.name);
         const inputRef = React.useRef<HTMLInputElement>(null);
@@ -92,38 +88,12 @@ export const AreaListItem = React.forwardRef<HTMLDivElement, AreaListItemProps>(
             [area.id, updateArea]
         );
 
-        const focusOnArea = useCallback(
+        const handleFocusOnArea = useCallback(
             (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
                 event.stopPropagation();
-                setNodes((nodes) =>
-                    nodes.map((node) =>
-                        node.id == area.id
-                            ? {
-                                  ...node,
-                                  selected: true,
-                              }
-                            : {
-                                  ...node,
-                                  selected: false,
-                              }
-                    )
-                );
-                fitView({
-                    duration: 500,
-                    maxZoom: 1,
-                    minZoom: 1,
-                    nodes: [
-                        {
-                            id: area.id,
-                        },
-                    ],
-                });
-
-                if (!isDesktop) {
-                    hideSidePanel();
-                }
+                focusOnArea(area.id);
             },
-            [fitView, area.id, setNodes, hideSidePanel, isDesktop]
+            [focusOnArea, area.id]
         );
 
         useClickAway(inputRef, saveAreaName);
@@ -189,12 +159,14 @@ export const AreaListItem = React.forwardRef<HTMLDivElement, AreaListItemProps>(
                 {...attributes}
             >
                 <div className="group flex h-11 items-center justify-between gap-1 overflow-hidden p-2">
-                    <div
-                        className="flex cursor-move items-center justify-center"
-                        {...listeners}
-                    >
-                        <GripVertical className="size-4 text-muted-foreground" />
-                    </div>
+                    {!readonly ? (
+                        <div
+                            className="flex cursor-move items-center justify-center"
+                            {...listeners}
+                        >
+                            <GripVertical className="size-4 text-muted-foreground" />
+                        </div>
+                    ) : null}
 
                     <div className="flex min-w-0 flex-1">
                         {editMode ? (
@@ -208,7 +180,7 @@ export const AreaListItem = React.forwardRef<HTMLDivElement, AreaListItemProps>(
                                 onChange={(e) => setAreaName(e.target.value)}
                                 className="h-7 w-full focus-visible:ring-0"
                             />
-                        ) : (
+                        ) : !readonly ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div
@@ -222,19 +194,26 @@ export const AreaListItem = React.forwardRef<HTMLDivElement, AreaListItemProps>(
                                     {t('tool_tips.double_click_to_edit')}
                                 </TooltipContent>
                             </Tooltip>
+                        ) : (
+                            <div className="truncate px-2 py-0.5 text-sm font-medium">
+                                {area.name}
+                            </div>
                         )}
                     </div>
 
                     <div className="flex items-center gap-1">
                         {!editMode ? (
                             <div className="flex flex-row-reverse items-center gap-1">
-                                {renderDropDownMenu()}
+                                {!readonly ? renderDropDownMenu() : null}
                                 <ColorPicker
                                     color={area.color}
                                     onChange={handleColorChange}
+                                    disabled={readonly}
                                 />
                                 <div className="hidden md:group-hover:flex">
-                                    <ListItemHeaderButton onClick={focusOnArea}>
+                                    <ListItemHeaderButton
+                                        onClick={handleFocusOnArea}
+                                    >
                                         <CircleDotDashed />
                                     </ListItemHeaderButton>
                                 </div>
