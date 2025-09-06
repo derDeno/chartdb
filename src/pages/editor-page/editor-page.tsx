@@ -41,10 +41,12 @@ export const EditorMobileLayoutLazy = React.lazy(
 
 interface EditorPageComponentProps {
     clean?: boolean;
+    tableId?: string | null;
 }
 
 const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
     clean = false,
+    tableId,
 }) => {
     const { diagramName, currentDiagram } = useChartDB();
     const { openStarUsDialog } = useDialog();
@@ -107,11 +109,13 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
                         <EditorDesktopLayoutLazy
                             initialDiagram={initialDiagram}
                             clean={clean}
+                            tableId={tableId ?? undefined}
                         />
                     ) : (
                         <EditorMobileLayoutLazy
                             initialDiagram={initialDiagram}
                             clean={clean}
+                            tableId={tableId ?? undefined}
                         />
                     )}
                 </Suspense>
@@ -124,6 +128,7 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
 export const EditorPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const clean = searchParams.get('clean') === 'true';
+    const tableId = clean ? searchParams.get('table') : null;
 
     return (
         <LocalConfigProvider>
@@ -143,10 +148,10 @@ export const EditorPage: React.FC = () => {
                                                                 <AlertProvider>
                                                                     <DialogProvider>
                                                                         <KeyboardShortcutsProvider>
+                                                                            {/* prettier-ignore */}
                                                                             <EditorPageComponent
-                                                                                clean={
-                                                                                    clean
-                                                                                }
+                                                                                clean={clean}
+                                                                                tableId={tableId}
                                                                             />
                                                                         </KeyboardShortcutsProvider>
                                                                     </DialogProvider>

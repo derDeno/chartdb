@@ -199,11 +199,13 @@ const areaToAreaNode = (
 export interface CanvasProps {
     initialTables: DBTable[];
     clean?: boolean;
+    focusTableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
+    focusTableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -293,17 +295,25 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         if (!isInitialLoadingNodes) {
-            debounce(() => {
+            const action = () =>
                 fitView({
-                    duration: 200,
+                    duration: focusTableId ? 0 : 200,
                     padding: 0.1,
-                    maxZoom: 0.8,
+                    maxZoom: focusTableId ? 1 : 0.8,
                 });
-            }, 500)();
+            if (focusTableId) {
+                action();
+            } else {
+                debounce(action, 500)();
+            }
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
+        if (focusTableId) {
+            setEdges([]);
+            return;
+        }
         const targetIndexes: Record<string, number> = relationships.reduce(
             (acc, relationship) => {
                 acc[
@@ -347,7 +357,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, focusTableId]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -1233,7 +1243,10 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <ReactFlow
                     onlyRenderVisibleElements
                     colorMode={effectiveTheme}
-                    className="canvas-cursor-default nodes-animated"
+                    className={cn(
+                        'canvas-cursor-default',
+                        focusTableId ? '' : 'nodes-animated'
+                    )}
                     nodes={nodes}
                     edges={edges}
                     onNodesChange={onNodesChangeHandler}
@@ -1251,7 +1264,14 @@ export const Canvas: React.FC<CanvasProps> = ({
                         animated: false,
                         type: 'relationship-edge',
                     }}
-                    panOnScroll={scrollAction === 'pan'}
+                    panOnScroll={!focusTableId && scrollAction === 'pan'}
+                    panOnDrag={!focusTableId}
+                    zoomOnScroll={!focusTableId}
+                    zoomOnPinch={!focusTableId}
+                    zoomOnDoubleClick={!focusTableId}
+                    nodesDraggable={!focusTableId && !readonly}
+                    nodesConnectable={!focusTableId && !readonly}
+                    elementsSelectable={!focusTableId}
                     snapToGrid={shiftPressed || snapToGridEnabled}
                     snapGrid={[20, 20]}
                 >
