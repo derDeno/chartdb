@@ -5,6 +5,7 @@ import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 interface FocusOptions {
     select?: boolean;
+    duration?: number;
 }
 
 export const useFocusOn = () => {
@@ -14,7 +15,7 @@ export const useFocusOn = () => {
 
     const focusOnArea = useCallback(
         (areaId: string, options: FocusOptions = {}) => {
-            const { select = true } = options;
+            const { select = true, duration = 500 } = options;
 
             if (select) {
                 setNodes((nodes) =>
@@ -33,7 +34,7 @@ export const useFocusOn = () => {
             }
 
             fitView({
-                duration: 500,
+                duration,
                 maxZoom: 1,
                 minZoom: 1,
                 nodes: [
@@ -52,7 +53,7 @@ export const useFocusOn = () => {
 
     const focusOnTable = useCallback(
         (tableId: string, options: FocusOptions = {}) => {
-            const { select = true } = options;
+            const { select = true, duration = 500 } = options;
 
             if (select) {
                 setNodes((nodes) =>
@@ -71,7 +72,7 @@ export const useFocusOn = () => {
             }
 
             fitView({
-                duration: 500,
+                duration,
                 maxZoom: 1,
                 minZoom: 1,
                 nodes: [
@@ -95,7 +96,7 @@ export const useFocusOn = () => {
             targetTableId: string,
             options: FocusOptions = {}
         ) => {
-            const { select = true } = options;
+            const { select = true, duration = 500 } = options;
 
             if (select) {
                 setEdges((edges) =>
@@ -114,7 +115,7 @@ export const useFocusOn = () => {
             }
 
             fitView({
-                duration: 500,
+                duration,
                 maxZoom: 1,
                 minZoom: 1,
                 nodes: [
