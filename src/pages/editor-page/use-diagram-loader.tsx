@@ -8,11 +8,14 @@ import type { Diagram } from '@/lib/domain/diagram';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-export const useDiagramLoader = () => {
+export const useDiagramLoader = (options?: {
+    clean?: boolean;
+    tableId?: string | null;
+}) => {
     const [initialDiagram, setInitialDiagram] = useState<Diagram | undefined>();
     const { diagramId } = useParams<{ diagramId: string }>();
     const { config } = useConfig();
-    const { loadDiagram, currentDiagram } = useChartDB();
+    const { loadDiagram, loadDiagramFromData, currentDiagram } = useChartDB();
     const { resetRedoStack, resetUndoStack } = useRedoUndoStack();
     const { showLoader, hideLoader } = useFullScreenLoader();
     const { openCreateDiagramDialog, openOpenDiagramDialog } = useDialog();
@@ -43,7 +46,22 @@ export const useDiagramLoader = () => {
                     return;
                 }
 
-                setInitialDiagram(diagram);
+                let loadedDiagram = diagram;
+                if (options?.clean && options.tableId) {
+                    const table = diagram.tables?.find(
+                        (t) => t.id === options.tableId
+                    );
+                    loadedDiagram = {
+                        ...diagram,
+                        tables: table ? [table] : [],
+                        relationships: [],
+                        dependencies: [],
+                        areas: [],
+                    };
+                    loadDiagramFromData(loadedDiagram);
+                }
+
+                setInitialDiagram(loadedDiagram);
                 hideLoader();
 
                 return;
@@ -80,12 +98,15 @@ export const useDiagramLoader = () => {
         navigate,
         listDiagrams,
         loadDiagram,
+        loadDiagramFromData,
         resetRedoStack,
         resetUndoStack,
         hideLoader,
         showLoader,
         currentDiagram?.id,
         openOpenDiagramDialog,
+        options?.clean,
+        options?.tableId,
     ]);
 
     return { initialDiagram };
