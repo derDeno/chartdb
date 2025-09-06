@@ -213,7 +213,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         getNode,
         fitView: reactFlowFitView,
     } = useReactFlow();
-
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -311,21 +310,26 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (isInitialLoadingNodes || !focusTableId) {
             return;
         }
+
         const node = getInternalNode(focusTableId);
-        if (node) {
-            requestAnimationFrame(() => {
-                reactFlowFitView({
-                    nodes: [node],
-                    duration: 0,
-                    padding: 0.1,
-                });
-            });
+        if (!node) {
+            return;
         }
+
+        requestAnimationFrame(() => {
+            reactFlowFitView({
+                nodes: [{ id: focusTableId }],
+                duration: 0,
+                maxZoom: 1,
+                minZoom: 1,
+            });
+        });
     }, [
         isInitialLoadingNodes,
         focusTableId,
         getInternalNode,
         reactFlowFitView,
+        nodes,
     ]);
 
     useEffect(() => {
