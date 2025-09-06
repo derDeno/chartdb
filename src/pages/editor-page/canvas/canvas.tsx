@@ -208,12 +208,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     clean = false,
     focusTableId,
 }) => {
-    const {
-        getEdge,
-        getInternalNode,
-        getNode,
-        fitView: reactFlowFitView,
-    } = useReactFlow();
+    // FitView from useReactFlow is intentionally omitted to avoid an unused variable.
+    const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
