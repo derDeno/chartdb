@@ -199,11 +199,13 @@ const areaToAreaNode = (
 export interface CanvasProps {
     initialTables: DBTable[];
     clean?: boolean;
+    focusTableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
+    focusTableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -293,17 +295,25 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         if (!isInitialLoadingNodes) {
-            debounce(() => {
+            const action = () =>
                 fitView({
-                    duration: 200,
+                    duration: focusTableId ? 0 : 200,
                     padding: 0.1,
-                    maxZoom: 0.8,
+                    maxZoom: focusTableId ? 1 : 0.8,
                 });
-            }, 500)();
+            if (focusTableId) {
+                action();
+            } else {
+                debounce(action, 500)();
+            }
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
+        if (focusTableId) {
+            setEdges([]);
+            return;
+        }
         const targetIndexes: Record<string, number> = relationships.reduce(
             (acc, relationship) => {
                 acc[
@@ -347,7 +357,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, focusTableId]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -440,8 +450,11 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setNodes((prevNodes) => {
+            const visibleTables = focusTableId
+                ? tables.filter((table) => table.id === focusTableId)
+                : tables;
             const newNodes = [
-                ...tables.map((table) => {
+                ...visibleTables.map((table) => {
                     const isOverlapping =
                         (overlapGraph.graph.get(table.id) ?? []).length > 0;
                     const node = tableToTableNode(table, {
@@ -470,14 +483,16 @@ export const Canvas: React.FC<CanvasProps> = ({
                         },
                     };
                 }),
-                ...areas.map((area) =>
-                    areaToAreaNode(area, {
-                        tables,
-                        filter,
-                        databaseType,
-                        filterLoading,
-                    })
-                ),
+                ...(focusTableId
+                    ? []
+                    : areas.map((area) =>
+                          areaToAreaNode(area, {
+                              tables,
+                              filter,
+                              databaseType,
+                              filterLoading,
+                          })
+                      )),
             ];
 
             // Check if nodes actually changed
@@ -499,10 +514,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        focusTableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
     useEffect(() => {
+        if (focusTableId) {
+            prevFilter.current = filter;
+            return;
+        }
         if (!equal(filter, prevFilter.current)) {
             debounce(() => {
                 const overlappingTablesInDiagram = findOverlappingTables({
@@ -528,9 +548,12 @@ export const Canvas: React.FC<CanvasProps> = ({
             }, 500)();
             prevFilter.current = filter;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType]);
+    }, [filter, fitView, tables, setOverlapGraph, databaseType, focusTableId]);
 
     useEffect(() => {
+        if (focusTableId) {
+            return;
+        }
         const checkParentAreas = debounce(() => {
             const visibleTables = nodes
                 .filter((node) => node.type === 'table' && !node.hidden)
@@ -583,7 +606,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         }, 300);
 
         checkParentAreas();
-    }, [nodes, updateTablesState]);
+    }, [nodes, updateTablesState, focusTableId]);
 
     const onConnectHandler = useCallback(
         async (params: AddEdgeParams) => {
@@ -1233,7 +1256,10 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <ReactFlow
                     onlyRenderVisibleElements
                     colorMode={effectiveTheme}
-                    className="canvas-cursor-default nodes-animated"
+                    className={cn(
+                        'canvas-cursor-default',
+                        focusTableId ? '' : 'nodes-animated'
+                    )}
                     nodes={nodes}
                     edges={edges}
                     onNodesChange={onNodesChangeHandler}
@@ -1251,7 +1277,14 @@ export const Canvas: React.FC<CanvasProps> = ({
                         animated: false,
                         type: 'relationship-edge',
                     }}
-                    panOnScroll={scrollAction === 'pan'}
+                    panOnScroll={!focusTableId && scrollAction === 'pan'}
+                    panOnDrag={!focusTableId}
+                    zoomOnScroll={!focusTableId}
+                    zoomOnPinch={!focusTableId}
+                    zoomOnDoubleClick={!focusTableId}
+                    nodesDraggable={!focusTableId && !readonly}
+                    nodesConnectable={!focusTableId && !readonly}
+                    elementsSelectable={!focusTableId}
                     snapToGrid={shiftPressed || snapToGridEnabled}
                     snapGrid={[20, 20]}
                 >
