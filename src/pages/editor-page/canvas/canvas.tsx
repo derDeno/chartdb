@@ -450,8 +450,11 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setNodes((prevNodes) => {
+            const visibleTables = focusTableId
+                ? tables.filter((table) => table.id === focusTableId)
+                : tables;
             const newNodes = [
-                ...tables.map((table) => {
+                ...visibleTables.map((table) => {
                     const isOverlapping =
                         (overlapGraph.graph.get(table.id) ?? []).length > 0;
                     const node = tableToTableNode(table, {
@@ -480,14 +483,16 @@ export const Canvas: React.FC<CanvasProps> = ({
                         },
                     };
                 }),
-                ...areas.map((area) =>
-                    areaToAreaNode(area, {
-                        tables,
-                        filter,
-                        databaseType,
-                        filterLoading,
-                    })
-                ),
+                ...(focusTableId
+                    ? []
+                    : areas.map((area) =>
+                          areaToAreaNode(area, {
+                              tables,
+                              filter,
+                              databaseType,
+                              filterLoading,
+                          })
+                      )),
             ];
 
             // Check if nodes actually changed
@@ -509,10 +514,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        focusTableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
     useEffect(() => {
+        if (focusTableId) {
+            prevFilter.current = filter;
+            return;
+        }
         if (!equal(filter, prevFilter.current)) {
             debounce(() => {
                 const overlappingTablesInDiagram = findOverlappingTables({
@@ -538,9 +548,12 @@ export const Canvas: React.FC<CanvasProps> = ({
             }, 500)();
             prevFilter.current = filter;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType]);
+    }, [filter, fitView, tables, setOverlapGraph, databaseType, focusTableId]);
 
     useEffect(() => {
+        if (focusTableId) {
+            return;
+        }
         const checkParentAreas = debounce(() => {
             const visibleTables = nodes
                 .filter((node) => node.type === 'table' && !node.hidden)
@@ -593,7 +606,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         }, 300);
 
         checkParentAreas();
-    }, [nodes, updateTablesState]);
+    }, [nodes, updateTablesState, focusTableId]);
 
     const onConnectHandler = useCallback(
         async (params: AddEdgeParams) => {
