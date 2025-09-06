@@ -10,6 +10,7 @@ import {
     Check,
     Group,
     Copy,
+    Share2,
 } from 'lucide-react';
 import { ListItemHeaderButton } from '@/pages/editor-page/side-panel/list-item-header-button/list-item-header-button';
 import type { DBTable } from '@/lib/domain/db-table';
@@ -38,6 +39,7 @@ import { cloneTable } from '@/lib/clone';
 import type { DBSchema } from '@/lib/domain';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
+import { useToast } from '@/components/toast/use-toast';
 
 export interface TableListItemHeaderProps {
     table: DBTable;
@@ -65,6 +67,14 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const [tableName, setTableName] = React.useState(table.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const { listeners } = useSortable({ id: table.id });
+    const [linkCopied, setLinkCopied] = React.useState(false);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        if (!linkCopied) return;
+        const timeout = setTimeout(() => setLinkCopied(false), 1500);
+        return () => clearTimeout(timeout);
+    }, [linkCopied]);
 
     const editTableName = useCallback(() => {
         if (!editMode) return;
@@ -135,6 +145,40 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             createTable(clonedTable);
         },
         [createTable, table]
+    );
+
+    const copyTableLink = useCallback(
+        async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+            e.stopPropagation();
+            if (!navigator?.clipboard) {
+                toast({
+                    title: t('copy_to_clipboard_toast.unsupported.title'),
+                    variant: 'destructive',
+                    description: t(
+                        'copy_to_clipboard_toast.unsupported.description'
+                    ),
+                });
+                return;
+            }
+
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('clean', 'true');
+                url.searchParams.set('table', table.id);
+                await navigator.clipboard.writeText(url.toString());
+                setLinkCopied(true);
+            } catch {
+                setLinkCopied(false);
+                toast({
+                    title: t('copy_to_clipboard_toast.failed.title'),
+                    variant: 'destructive',
+                    description: t(
+                        'copy_to_clipboard_toast.failed.description'
+                    ),
+                });
+            }
+        },
+        [table.id, t, toast]
     );
 
     const renderDropDownMenu = useCallback(
@@ -304,6 +348,28 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                     <>
                         {!readonly ? <div>{renderDropDownMenu()}</div> : null}
                         <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <ListItemHeaderButton
+                                            onClick={copyTableLink}
+                                        >
+                                            {linkCopied ? (
+                                                <Check />
+                                            ) : (
+                                                <Share2 />
+                                            )}
+                                        </ListItemHeaderButton>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {t(
+                                        linkCopied
+                                            ? 'copied'
+                                            : 'copy_to_clipboard'
+                                    )}
+                                </TooltipContent>
+                            </Tooltip>
                             {!readonly ? (
                                 <ListItemHeaderButton onClick={enterEditMode}>
                                     <Pencil />
