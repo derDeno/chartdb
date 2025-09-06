@@ -53,7 +53,7 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
     const { isMd: isDesktop } = useBreakpoint('md');
     const { starUsDialogLastOpen, setStarUsDialogLastOpen, githubRepoOpened } =
         useLocalConfig();
-    const { initialDiagram } = useDiagramLoader();
+    const { initialDiagram } = useDiagramLoader({ clean, tableId });
 
     useEffect(() => {
         if (clean || HIDE_CHARTDB_CLOUD) {

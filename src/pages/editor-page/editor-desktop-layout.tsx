@@ -26,10 +26,13 @@ export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
     const { isSidePanelShowed } = useLayout();
 
     if (clean) {
-        const tables = tableId
-            ? (initialDiagram?.tables?.filter((t) => t.id === tableId) ?? [])
-            : (initialDiagram?.tables ?? []);
-        return <Canvas initialTables={tables} clean focusTableId={tableId} />;
+        return (
+            <Canvas
+                initialTables={initialDiagram?.tables ?? []}
+                clean
+                focusTableId={tableId}
+            />
+        );
     }
 
     return (

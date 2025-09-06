@@ -207,7 +207,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     clean = false,
     focusTableId,
 }) => {
-    const { getEdge, getInternalNode, getNode } = useReactFlow();
+    const { getEdge, getInternalNode, getNode, setCenter } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -294,20 +294,24 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
+        if (!isInitialLoadingNodes && !focusTableId) {
             const action = () =>
-                fitView({
-                    duration: focusTableId ? 0 : 200,
-                    padding: 0.1,
-                    maxZoom: focusTableId ? 1 : 0.8,
-                });
-            if (focusTableId) {
-                action();
-            } else {
-                debounce(action, 500)();
-            }
+                fitView({ duration: 200, padding: 0.1, maxZoom: 0.8 });
+            debounce(action, 500)();
         }
     }, [isInitialLoadingNodes, fitView, focusTableId]);
+
+    useEffect(() => {
+        if (isInitialLoadingNodes || !focusTableId) {
+            return;
+        }
+        const node = getNode(focusTableId);
+        if (node) {
+            const x = node.position.x + (node.width ?? 0) / 2;
+            const y = node.position.y + (node.height ?? 0) / 2;
+            setCenter(x, y, { zoom: 1, duration: 0 });
+        }
+    }, [isInitialLoadingNodes, focusTableId, getNode, setCenter]);
 
     useEffect(() => {
         if (focusTableId) {
