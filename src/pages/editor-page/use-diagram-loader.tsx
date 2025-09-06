@@ -75,7 +75,22 @@ export const useDiagramLoader = (options?: {
                     return;
                 }
 
-                setInitialDiagram(diagram);
+                let loadedDiagram = diagram;
+                if (options?.clean && options.tableId) {
+                    const table = diagram.tables?.find(
+                        (t) => t.id === options.tableId
+                    );
+                    loadedDiagram = {
+                        ...diagram,
+                        tables: table ? [table] : [],
+                        relationships: [],
+                        dependencies: [],
+                        areas: [],
+                    };
+                    loadDiagramFromData(loadedDiagram);
+                }
+
+                setInitialDiagram(loadedDiagram);
                 hideLoader();
 
                 return;
