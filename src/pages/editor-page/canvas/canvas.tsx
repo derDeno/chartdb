@@ -213,6 +213,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         getNode,
         fitView: reactFlowFitView,
     } = useReactFlow();
+        
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
