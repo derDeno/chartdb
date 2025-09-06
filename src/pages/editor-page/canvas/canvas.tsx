@@ -307,30 +307,25 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
-        if (isInitialLoadingNodes || !focusTableId) {
+        if (!focusTableId) {
             return;
         }
-
-        const node = getInternalNode(focusTableId);
-        if (!node) {
-            return;
-        }
-
-        requestAnimationFrame(() => {
+        let frame = 0;
+        const center = () => {
+            const node = getInternalNode(focusTableId);
+            if (!node?.width || !node?.height) {
+                frame = requestAnimationFrame(center);
+                return;
+            }
             reactFlowFitView({
                 nodes: [{ id: focusTableId }],
                 duration: 0,
-                maxZoom: 1,
-                minZoom: 1,
+                padding: 0.1,
             });
-        });
-    }, [
-        isInitialLoadingNodes,
-        focusTableId,
-        getInternalNode,
-        reactFlowFitView,
-        nodes,
-    ]);
+        };
+        frame = requestAnimationFrame(center);
+        return () => cancelAnimationFrame(frame);
+    }, [focusTableId, getInternalNode, reactFlowFitView]);
 
     useEffect(() => {
         if (focusTableId) {
