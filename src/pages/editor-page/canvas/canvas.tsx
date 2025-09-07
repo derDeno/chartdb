@@ -15,6 +15,7 @@ import type {
     NodeTypes,
     EdgeTypes,
     NodeChange,
+    Node,
 } from '@xyflow/react';
 import {
     ReactFlow,
@@ -52,7 +53,6 @@ import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { Badge } from '@/components/badge/badge';
 import { useTheme } from '@/hooks/use-theme';
-import { useFocusOn } from '@/hooks/use-focus-on';
 import { useTranslation } from 'react-i18next';
 import type { DBTable } from '@/lib/domain/db-table';
 import { MIN_TABLE_SIZE } from '@/lib/domain/db-table';
@@ -208,8 +208,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     clean = false,
     focusTableId,
 }) => {
-    // FitView from useReactFlow is intentionally omitted to avoid an unused variable.
-    const { getEdge, getInternalNode, getNode } = useReactFlow();
+    const { getEdge, getInternalNode, getNode, fitView } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -245,19 +244,25 @@ export const Canvas: React.FC<CanvasProps> = ({
         useState(false);
     const {
         reorderTables,
-        fitView,
         setOverlapGraph,
         overlapGraph,
         showFilter,
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { focusOnTable } = useFocusOn();
+
+    const filteredInitialTables = useMemo(
+        () =>
+            clean && focusTableId
+                ? initialTables.filter((table) => table.id === focusTableId)
+                : initialTables,
+        [initialTables, clean, focusTableId]
+    );
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -273,10 +278,10 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
-    }, [initialTables]);
+    }, [filteredInitialTables]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -288,7 +293,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setIsInitialLoadingNodes(false);
         }
     }, [
-        initialTables,
+        filteredInitialTables,
         nodes,
         filter,
         databaseType,
@@ -305,7 +310,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
-        if (!focusTableId) {
+        if (!clean || !focusTableId) {
             return;
         }
         let frame = 0;
@@ -315,14 +320,19 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            focusOnTable(focusTableId, { select: false, duration: 0 });
+            fitView({
+                nodes: [node as unknown as Node],
+                duration: 50,
+                padding: 0.1,
+                maxZoom: 1,
+            });
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
-    }, [focusTableId, getInternalNode, focusOnTable]);
+    }, [clean, focusTableId, nodes, getInternalNode, fitView]);
 
     useEffect(() => {
-        if (focusTableId) {
+        if (clean && focusTableId) {
             setEdges([]);
             return;
         }
@@ -369,7 +379,14 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews, focusTableId]);
+    }, [
+        relationships,
+        dependencies,
+        setEdges,
+        showDBViews,
+        focusTableId,
+        clean,
+    ]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
