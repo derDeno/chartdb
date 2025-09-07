@@ -313,14 +313,10 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            fitView({
+            focusOnTable(focusTableId, {
+                select: false,
                 duration: 0,
-                nodes: [
-                    {
-                        id: focusTableId,
-                    },
-                ],
-                padding: 0.1,
+                fit: true,
             });
         };
         frame = requestAnimationFrame(center);
