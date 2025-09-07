@@ -249,9 +249,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
-
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
         initialTables.map((table) =>
             tableToTableNode(table, {
