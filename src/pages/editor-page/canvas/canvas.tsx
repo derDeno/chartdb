@@ -15,6 +15,7 @@ import type {
     NodeTypes,
     EdgeTypes,
     NodeChange,
+    Node,
 } from '@xyflow/react';
 import {
     ReactFlow,
@@ -249,9 +250,16 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
+    const filteredInitialTables = useMemo(
+        () =>
+            clean && focusTableId
+                ? initialTables.filter((table) => table.id === focusTableId)
+                : initialTables,
+        [initialTables, clean, focusTableId]
+    );
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -267,10 +275,10 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
-    }, [initialTables]);
+    }, [filteredInitialTables]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -282,7 +290,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setIsInitialLoadingNodes(false);
         }
     }, [
-        initialTables,
+        filteredInitialTables,
         nodes,
         filter,
         databaseType,
@@ -310,11 +318,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 return;
             }
             fitView({
-                nodes: [
-                    {
-                        id: focusTableId,
-                    },
-                ],
+                nodes: [node as unknown as Node],
                 duration: 50,
                 padding: 0.1,
                 maxZoom: 1,
@@ -322,7 +326,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
-    }, [clean, focusTableId, getInternalNode, fitView]);
+    }, [clean, focusTableId, nodes, getInternalNode, fitView]);
 
     useEffect(() => {
         if (clean && focusTableId) {
