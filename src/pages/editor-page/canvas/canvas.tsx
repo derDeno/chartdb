@@ -252,7 +252,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { focusOnTable } = useFocusOn();
+    const { focusOnTable: focusTable } = useFocusOn();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -315,11 +315,15 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            focusOnTable(focusTableId, { select: false, duration: 0 });
+            focusTable(focusTableId, {
+                select: false,
+                duration: 0,
+                fit: true,
+            });
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
-    }, [focusTableId, getInternalNode, focusOnTable]);
+    }, [focusTableId, getInternalNode, focusTable]);
 
     useEffect(() => {
         if (focusTableId) {
