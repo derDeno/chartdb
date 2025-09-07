@@ -52,7 +52,6 @@ import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { Badge } from '@/components/badge/badge';
 import { useTheme } from '@/hooks/use-theme';
-import { useFocusOn } from '@/hooks/use-focus-on';
 import { useTranslation } from 'react-i18next';
 import type { DBTable } from '@/lib/domain/db-table';
 import { MIN_TABLE_SIZE } from '@/lib/domain/db-table';
@@ -253,9 +252,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
     const { focusOnTable: focusTable } = useFocusOn();
-
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
-
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
         initialTables.map((table) =>
             tableToTableNode(table, {
