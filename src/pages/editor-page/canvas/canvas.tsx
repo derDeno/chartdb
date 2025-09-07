@@ -52,7 +52,6 @@ import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { Badge } from '@/components/badge/badge';
 import { useTheme } from '@/hooks/use-theme';
-import { useFocusOn } from '@/hooks/use-focus-on';
 import { useTranslation } from 'react-i18next';
 import type { DBTable } from '@/lib/domain/db-table';
 import { MIN_TABLE_SIZE } from '@/lib/domain/db-table';
@@ -252,7 +251,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { focusOnTable } = useFocusOn();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -315,11 +313,19 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            focusOnTable(focusTableId, { select: false, duration: 0 });
+            fitView({
+                duration: 0,
+                nodes: [
+                    {
+                        id: focusTableId,
+                    },
+                ],
+                padding: 0.1,
+            });
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
-    }, [focusTableId, getInternalNode, focusOnTable]);
+    }, [focusTableId, getInternalNode, fitView]);
 
     useEffect(() => {
         if (focusTableId) {
