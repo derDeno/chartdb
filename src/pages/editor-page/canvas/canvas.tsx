@@ -250,7 +250,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-
     const filteredInitialTables = useMemo(
         () =>
             clean && focusTableId
@@ -258,9 +257,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 : initialTables,
         [initialTables, clean, focusTableId]
     );
-
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
-
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
         filteredInitialTables.map((table) =>
             tableToTableNode(table, {
