@@ -9,6 +9,7 @@ export interface CanvasContext {
         duration?: number;
         padding?: number;
         maxZoom?: number;
+        nodes?: Array<{ id: string }>;
     }) => void;
     setOverlapGraph: (graph: Graph<string>) => void;
     overlapGraph: Graph<string>;

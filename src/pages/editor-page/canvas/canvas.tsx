@@ -315,7 +315,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            focusOnTable(focusTableId, { select: false, duration: 0 });
+            focusOnTable(focusTableId, {
+                select: false,
+                duration: 0,
+                fit: true,
+            });
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
