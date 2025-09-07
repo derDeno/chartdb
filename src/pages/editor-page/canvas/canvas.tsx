@@ -315,7 +315,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         id: focusTableId,
                     },
                 ],
-                duration: 0,
+                duration: 50,
                 padding: 0.1,
                 maxZoom: 1,
             });
