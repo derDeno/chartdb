@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - 'feat-*'
+      - main
     tags:
       - docker-run-*
   workflow_dispatch:
@@ -31,6 +32,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push (main)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
       - name: Build and push (dev)
         if: github.ref == 'refs/heads/dev'
