@@ -387,9 +387,9 @@ export const Canvas: React.FC<CanvasProps> = ({
                     currentHighlighted === shouldBeHighlighted &&
                     currentAnimated === shouldBeHighlighted &&
                     currentZIndex ===
-                        (shouldBeHighlighted
-                            ? HIGHLIGHTED_EDGE_Z_INDEX
-                            : DEFAULT_EDGE_Z_INDEX)
+                    (shouldBeHighlighted
+                        ? HIGHLIGHTED_EDGE_Z_INDEX
+                        : DEFAULT_EDGE_Z_INDEX)
                 ) {
                     return edge;
                 }
@@ -944,32 +944,32 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 return {
                                     ...currentTable,
                                     ...(positionChange &&
-                                    x !== undefined &&
-                                    y !== undefined &&
-                                    !isNaN(x) &&
-                                    !isNaN(y)
+                                        x !== undefined &&
+                                        y !== undefined &&
+                                        !isNaN(x) &&
+                                        !isNaN(y)
                                         ? {
-                                              x,
-                                              y,
-                                          }
+                                            x,
+                                            y,
+                                        }
                                         : {}),
                                     ...(areaMovement && !positionChange
                                         ? {
-                                              x:
-                                                  currentTable.x +
-                                                  areaMovement.deltaX,
-                                              y:
-                                                  currentTable.y +
-                                                  areaMovement.deltaY,
-                                          }
+                                            x:
+                                                currentTable.x +
+                                                areaMovement.deltaX,
+                                            y:
+                                                currentTable.y +
+                                                areaMovement.deltaY,
+                                        }
                                         : {}),
                                     ...(sizeChange
                                         ? {
-                                              width:
-                                                  sizeChange.dimensions
-                                                      ?.width ??
-                                                  currentTable.width,
-                                          }
+                                            width:
+                                                sizeChange.dimensions
+                                                    ?.width ??
+                                                currentTable.width,
+                                        }
                                         : {}),
                                 };
                             }
@@ -1308,37 +1308,36 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 </>
                             ) : null}
 
-                                <div
-                                    className={`transition-opacity duration-300 ease-in-out ${
-                                        hasOverlappingTables
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
+                            <div
+                                className={`transition-opacity duration-300 ease-in-out ${hasOverlappingTables
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
                                     }`}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span>
-                                                <Button
-                                                    variant="default"
-                                                    className="size-8 p-1 shadow-none"
-                                                    onClick={
-                                                        pulseOverlappingTables
-                                                    }
-                                                >
-                                                    <AlertTriangle className="size-4 text-white" />
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t(
-                                                'toolbar.highlight_overlapping_tables'
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                            >
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                variant="default"
+                                                className="size-8 p-1 shadow-none"
+                                                onClick={
+                                                    pulseOverlappingTables
+                                                }
+                                            >
+                                                <AlertTriangle className="size-4 text-white" />
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {t(
+                                            'toolbar.highlight_overlapping_tables'
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
+                        </div>
                     </Controls>
-                    
+
                     {!clean && isLoadingDOM ? (
                         <Controls
                             position="top-center"
