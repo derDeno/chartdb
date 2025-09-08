@@ -324,6 +324,7 @@ export const id_ID: LanguageTranslation = {
                 tables_count: 'Tabel',
             },
             cancel: 'Batal',
+            start_new: 'Start with a new diagram',
             open: 'Buka',
 
             diagram_actions: {

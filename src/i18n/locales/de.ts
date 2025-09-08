@@ -328,6 +328,7 @@ export const de: LanguageTranslation = {
                 tables_count: 'Tabellen',
             },
             cancel: 'Abbrechen',
+            start_new: 'Start with a new diagram',
             open: 'Öffnen',
 
             diagram_actions: {

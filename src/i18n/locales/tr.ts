@@ -322,6 +322,7 @@ export const tr: LanguageTranslation = {
                 tables_count: 'Tablolar',
             },
             cancel: 'İptal',
+            start_new: 'Start with a new diagram',
             open: 'Aç',
 
             diagram_actions: {
