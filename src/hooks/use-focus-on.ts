@@ -16,7 +16,7 @@ export const useFocusOn = () => {
 
     const focusOnArea = useCallback(
         (areaId: string, options: FocusOptions = {}) => {
-            const { select = true, duration = 500, fit = false } = options;
+            const { select = true, duration = 500 } = options;
 
             if (select) {
                 setNodes((nodes) =>
@@ -36,7 +36,8 @@ export const useFocusOn = () => {
 
             fitView({
                 duration,
-                ...(fit ? {} : { maxZoom: 1, minZoom: 1 }),
+                maxZoom: 1,
+                minZoom: 1,
                 nodes: [
                     {
                         id: areaId,
@@ -73,7 +74,8 @@ export const useFocusOn = () => {
 
             fitView({
                 duration,
-                ...(fit ? {} : { maxZoom: 1, minZoom: 1 }),
+                maxZoom: 1,
+                ...(fit ? { padding: 0.1 } : { minZoom: 1 }),
                 nodes: [
                     {
                         id: tableId,
@@ -95,7 +97,7 @@ export const useFocusOn = () => {
             targetTableId: string,
             options: FocusOptions = {}
         ) => {
-            const { select = true, duration = 500, fit = false } = options;
+            const { select = true, duration = 500 } = options;
 
             if (select) {
                 setEdges((edges) =>
@@ -115,7 +117,8 @@ export const useFocusOn = () => {
 
             fitView({
                 duration,
-                ...(fit ? {} : { maxZoom: 1, minZoom: 1 }),
+                maxZoom: 1,
+                minZoom: 1,
                 nodes: [
                     {
                         id: sourceTableId,
