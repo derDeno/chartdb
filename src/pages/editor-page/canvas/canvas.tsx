@@ -52,7 +52,6 @@ import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { Badge } from '@/components/badge/badge';
 import { useTheme } from '@/hooks/use-theme';
-import { useFocusOn } from '@/hooks/use-focus-on';
 import { useTranslation } from 'react-i18next';
 import type { DBTable } from '@/lib/domain/db-table';
 import { MIN_TABLE_SIZE } from '@/lib/domain/db-table';
@@ -94,6 +93,7 @@ import { ShowAllButton } from './show-all-button';
 import { useIsLostInCanvas } from './hooks/use-is-lost-in-canvas';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
+import { useFocusOn } from '@/hooks/use-focus-on';
 import { filterTable } from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 
@@ -208,8 +208,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     clean = false,
     focusTableId,
 }) => {
-    // FitView from useReactFlow is intentionally omitted to avoid an unused variable.
-    const { getEdge, getInternalNode, getNode } = useReactFlow();
+    const { getEdge, getInternalNode, getNode, fitView } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -245,7 +244,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         useState(false);
     const {
         reorderTables,
-        fitView,
         setOverlapGraph,
         overlapGraph,
         showFilter,
@@ -270,6 +268,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         useEdgesState<EdgeType>(initialEdges);
 
     const [snapToGridEnabled, setSnapToGridEnabled] = useState(false);
+    const [lockCanvas, setLockCanvas] = useState(false);
+
+    useEffect(() => {
+        setLockCanvas(false);
+    }, [focusTableId]);
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
@@ -305,25 +308,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
-        if (!focusTableId) {
-            return;
-        }
-        let frame = 0;
-        const center = () => {
-            const node = getInternalNode(focusTableId);
-            if (!node?.width || !node?.height) {
-                frame = requestAnimationFrame(center);
-                return;
-            }
-            focusOnTable(focusTableId, { select: false, duration: 0 });
-        };
-        frame = requestAnimationFrame(center);
-        return () => cancelAnimationFrame(frame);
-    }, [focusTableId, getInternalNode, focusOnTable]);
-
-    useEffect(() => {
-        if (focusTableId) {
-            setEdges([]);
+        if (clean && focusTableId) {
             return;
         }
         const targetIndexes: Record<string, number> = relationships.reduce(
@@ -369,7 +354,46 @@ export const Canvas: React.FC<CanvasProps> = ({
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews, focusTableId]);
+    }, [
+        relationships,
+        dependencies,
+        setEdges,
+        showDBViews,
+        focusTableId,
+        clean,
+    ]);
+
+    useEffect(() => {
+        if (!clean || !focusTableId) {
+            return;
+        }
+
+        setEdges([]);
+
+        let frame = 0;
+        const center = () => {
+            const node = getInternalNode(focusTableId);
+            if (!node?.width || !node?.height) {
+                frame = requestAnimationFrame(center);
+                return;
+            }
+            focusOnTable(focusTableId, {
+                select: false,
+                duration: 50,
+                fit: true,
+            });
+            setLockCanvas(true);
+        };
+        frame = requestAnimationFrame(center);
+        return () => cancelAnimationFrame(frame);
+    }, [
+        clean,
+        focusTableId,
+        getInternalNode,
+        setEdges,
+        focusOnTable,
+        setLockCanvas,
+    ]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -1262,6 +1286,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         []
     );
 
+    const disableInteraction = focusTableId && lockCanvas;
+
     return (
         <CanvasContextMenu>
             <div className="relative flex size-full" id="canvas">
@@ -1289,14 +1315,14 @@ export const Canvas: React.FC<CanvasProps> = ({
                         animated: false,
                         type: 'relationship-edge',
                     }}
-                    panOnScroll={!focusTableId && scrollAction === 'pan'}
-                    panOnDrag={!focusTableId}
-                    zoomOnScroll={!focusTableId}
-                    zoomOnPinch={!focusTableId}
-                    zoomOnDoubleClick={!focusTableId}
-                    nodesDraggable={!focusTableId && !readonly}
-                    nodesConnectable={!focusTableId && !readonly}
-                    elementsSelectable={!focusTableId}
+                    panOnScroll={!disableInteraction && scrollAction === 'pan'}
+                    panOnDrag={!disableInteraction}
+                    zoomOnScroll={!disableInteraction}
+                    zoomOnPinch={!disableInteraction}
+                    zoomOnDoubleClick={!disableInteraction}
+                    nodesDraggable={!disableInteraction && !readonly}
+                    nodesConnectable={!disableInteraction && !readonly}
+                    elementsSelectable={!disableInteraction}
                     snapToGrid={shiftPressed || snapToGridEnabled}
                     snapGrid={[20, 20]}
                 >
