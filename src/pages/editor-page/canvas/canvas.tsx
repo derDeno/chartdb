@@ -1337,8 +1337,8 @@ export const Canvas: React.FC<CanvasProps> = ({
                                     </Tooltip>
                                 </div>
                             </div>
-                        </Controls>
-                    )}
+                    </Controls>
+                    
                     {!clean && isLoadingDOM ? (
                         <Controls
                             position="top-center"
