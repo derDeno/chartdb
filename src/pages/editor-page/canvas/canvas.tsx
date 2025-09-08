@@ -94,6 +94,7 @@ import { ShowAllButton } from './show-all-button';
 import { useIsLostInCanvas } from './hooks/use-is-lost-in-canvas';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
+import { useFocusOn } from '@/hooks/use-focus-on';
 import { filterTable } from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 
@@ -272,6 +273,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         useEdgesState<EdgeType>(initialEdges);
 
     const [snapToGridEnabled, setSnapToGridEnabled] = useState(false);
+    const [lockCanvas, setLockCanvas] = useState(false);
+
+    useEffect(() => {
+        setLockCanvas(false);
+    }, [focusTableId]);
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
@@ -307,30 +313,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView, focusTableId]);
 
     useEffect(() => {
-        if (!clean || !focusTableId) {
-            return;
-        }
-        let frame = 0;
-        const center = () => {
-            const node = getInternalNode(focusTableId);
-            if (!node?.width || !node?.height) {
-                frame = requestAnimationFrame(center);
-                return;
-            }
-            fitView({
-                nodes: [node as unknown as Node],
-                duration: 50,
-                padding: 0.1,
-                maxZoom: 1,
-            });
-        };
-        frame = requestAnimationFrame(center);
-        return () => cancelAnimationFrame(frame);
-    }, [clean, focusTableId, nodes, getInternalNode, fitView]);
-
-    useEffect(() => {
         if (clean && focusTableId) {
-            setEdges([]);
             return;
         }
         const targetIndexes: Record<string, number> = relationships.reduce(
@@ -342,7 +325,6 @@ export const Canvas: React.FC<CanvasProps> = ({
             },
             {} as Record<string, number>
         );
-
         const targetDepIndexes: Record<string, number> = dependencies.reduce(
             (acc, dep) => {
                 acc[dep.tableId] = 0;
@@ -383,6 +365,34 @@ export const Canvas: React.FC<CanvasProps> = ({
         showDBViews,
         focusTableId,
         clean,
+    ]);
+
+    useEffect(() => {
+        if (!clean || !focusTableId) {
+            return;
+        }
+
+        setEdges([]);
+
+        let frame = 0;
+        const center = () => {
+            const node = getInternalNode(focusTableId);
+            if (!node?.width || !node?.height) {
+                frame = requestAnimationFrame(center);
+                return;
+            }
+            focusOnTable(focusTableId, { select: false, duration: 50 });
+            setLockCanvas(true);
+        };
+        frame = requestAnimationFrame(center);
+        return () => cancelAnimationFrame(frame);
+    }, [
+        clean,
+        focusTableId,
+        getInternalNode,
+        setEdges,
+        focusOnTable,
+        setLockCanvas,
     ]);
 
     useEffect(() => {
@@ -1276,6 +1286,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         []
     );
 
+    const disableInteraction = focusTableId && lockCanvas;
+
     return (
         <CanvasContextMenu>
             <div className="relative flex size-full" id="canvas">
@@ -1303,14 +1315,14 @@ export const Canvas: React.FC<CanvasProps> = ({
                         animated: false,
                         type: 'relationship-edge',
                     }}
-                    panOnScroll={!focusTableId && scrollAction === 'pan'}
-                    panOnDrag={!focusTableId}
-                    zoomOnScroll={!focusTableId}
-                    zoomOnPinch={!focusTableId}
-                    zoomOnDoubleClick={!focusTableId}
-                    nodesDraggable={!focusTableId && !readonly}
-                    nodesConnectable={!focusTableId && !readonly}
-                    elementsSelectable={!focusTableId}
+                    panOnScroll={!disableInteraction && scrollAction === 'pan'}
+                    panOnDrag={!disableInteraction}
+                    zoomOnScroll={!disableInteraction}
+                    zoomOnPinch={!disableInteraction}
+                    zoomOnDoubleClick={!disableInteraction}
+                    nodesDraggable={!disableInteraction && !readonly}
+                    nodesConnectable={!disableInteraction && !readonly}
+                    elementsSelectable={!disableInteraction}
                     snapToGrid={shiftPressed || snapToGridEnabled}
                     snapGrid={[20, 20]}
                 >
