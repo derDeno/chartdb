@@ -375,6 +375,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         setEdges([]);
 
         let frame = 0;
+        let timeoutId: ReturnType<typeof setTimeout>;
         const center = () => {
             const node = getInternalNode(focusTableId);
             if (!node?.width || !node?.height) {
@@ -382,10 +383,13 @@ export const Canvas: React.FC<CanvasProps> = ({
                 return;
             }
             focusOnTable(focusTableId, { select: false, duration: 50 });
-            setLockCanvas(true);
+            timeoutId = setTimeout(() => setLockCanvas(true), 60);
         };
         frame = requestAnimationFrame(center);
-        return () => cancelAnimationFrame(frame);
+        return () => {
+            cancelAnimationFrame(frame);
+            clearTimeout(timeoutId);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clean, focusTableId, getInternalNode, setEdges, setLockCanvas]);
 
