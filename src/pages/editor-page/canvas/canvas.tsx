@@ -381,7 +381,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                 frame = requestAnimationFrame(center);
                 return;
             }
-            focusOnTable(focusTableId, { select: false, duration: 50 });
+            focusOnTable(focusTableId, {
+                select: false,
+                duration: 50,
+                fit: true,
+            });
             setLockCanvas(true);
         };
         frame = requestAnimationFrame(center);
