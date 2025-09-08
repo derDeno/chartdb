@@ -15,7 +15,6 @@ import type {
     NodeTypes,
     EdgeTypes,
     NodeChange,
-    Node,
 } from '@xyflow/react';
 import {
     ReactFlow,
@@ -217,6 +216,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     const { toast } = useToast();
     const { t } = useTranslation();
     const { isLostInCanvas } = useIsLostInCanvas();
+    const { focusOnTable } = useFocusOn();
     const {
         tables,
         areas,
@@ -386,14 +386,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         };
         frame = requestAnimationFrame(center);
         return () => cancelAnimationFrame(frame);
-    }, [
-        clean,
-        focusTableId,
-        getInternalNode,
-        setEdges,
-        focusOnTable,
-        setLockCanvas,
-    ]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clean, focusTableId, getInternalNode, setEdges, setLockCanvas]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
