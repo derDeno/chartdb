@@ -387,9 +387,9 @@ export const Canvas: React.FC<CanvasProps> = ({
                     currentHighlighted === shouldBeHighlighted &&
                     currentAnimated === shouldBeHighlighted &&
                     currentZIndex ===
-                    (shouldBeHighlighted
-                        ? HIGHLIGHTED_EDGE_Z_INDEX
-                        : DEFAULT_EDGE_Z_INDEX)
+                        (shouldBeHighlighted
+                            ? HIGHLIGHTED_EDGE_Z_INDEX
+                            : DEFAULT_EDGE_Z_INDEX)
                 ) {
                     return edge;
                 }
@@ -944,32 +944,32 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 return {
                                     ...currentTable,
                                     ...(positionChange &&
-                                        x !== undefined &&
-                                        y !== undefined &&
-                                        !isNaN(x) &&
-                                        !isNaN(y)
+                                    x !== undefined &&
+                                    y !== undefined &&
+                                    !isNaN(x) &&
+                                    !isNaN(y)
                                         ? {
-                                            x,
-                                            y,
-                                        }
+                                              x,
+                                              y,
+                                          }
                                         : {}),
                                     ...(areaMovement && !positionChange
                                         ? {
-                                            x:
-                                                currentTable.x +
-                                                areaMovement.deltaX,
-                                            y:
-                                                currentTable.y +
-                                                areaMovement.deltaY,
-                                        }
+                                              x:
+                                                  currentTable.x +
+                                                  areaMovement.deltaX,
+                                              y:
+                                                  currentTable.y +
+                                                  areaMovement.deltaY,
+                                          }
                                         : {}),
                                     ...(sizeChange
                                         ? {
-                                            width:
-                                                sizeChange.dimensions
-                                                    ?.width ??
-                                                currentTable.width,
-                                        }
+                                              width:
+                                                  sizeChange.dimensions
+                                                      ?.width ??
+                                                  currentTable.width,
+                                          }
                                         : {}),
                                 };
                             }
@@ -1283,61 +1283,95 @@ export const Canvas: React.FC<CanvasProps> = ({
                                                 <span>
                                                     <Button
                                                         variant="secondary"
-                                                        className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
+                                                        className={cn(
+                                                            'size-8 p-1 shadow-none',
+                                                            snapToGridEnabled ||
+                                                                shiftPressed
+                                                                ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
+                                                                : ''
+                                                        )}
                                                         onClick={() =>
-                                                            highlightCustomTypeId(
-                                                                undefined
+                                                            setSnapToGridEnabled(
+                                                                (prev) => !prev
                                                             )
                                                         }
                                                     >
-                                                        <Highlighter className="size-4" />
+                                                        <Magnet className="size-4" />
                                                     </Button>
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {t(
-                                                    'toolbar.custom_type_highlight_tooltip',
-                                                    {
-                                                        typeName:
-                                                            highlightedCustomType.name,
-                                                    }
-                                                )}
+                                                {t('snap_to_grid_tooltip', {
+                                                    key:
+                                                        operatingSystem ===
+                                                        'mac'
+                                                            ? '⇧'
+                                                            : 'Shift',
+                                                })}
                                             </TooltipContent>
                                         </Tooltip>
-                                    ) : null}
-                                </>
-                            ) : null}
+                                        {highlightedCustomType ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span>
+                                                        <Button
+                                                            variant="secondary"
+                                                            className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
+                                                            onClick={() =>
+                                                                highlightCustomTypeId(
+                                                                    undefined
+                                                                )
+                                                            }
+                                                        >
+                                                            <Highlighter className="size-4" />
+                                                        </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t(
+                                                        'toolbar.custom_type_highlight_tooltip',
+                                                        {
+                                                            typeName:
+                                                                highlightedCustomType.name,
+                                                        }
+                                                    )}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ) : null}
+                                    </>
+                                ) : null}
 
-                            <div
-                                className={`transition-opacity duration-300 ease-in-out ${hasOverlappingTables
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
+                                <div
+                                    className={`transition-opacity duration-300 ease-in-out ${
+                                        hasOverlappingTables
+                                            ? 'opacity-100'
+                                            : 'opacity-0'
                                     }`}
-                            >
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span>
-                                            <Button
-                                                variant="default"
-                                                className="size-8 p-1 shadow-none"
-                                                onClick={
-                                                    pulseOverlappingTables
-                                                }
-                                            >
-                                                <AlertTriangle className="size-4 text-white" />
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {t(
-                                            'toolbar.highlight_overlapping_tables'
-                                        )}
-                                    </TooltipContent>
-                                </Tooltip>
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span>
+                                                <Button
+                                                    variant="default"
+                                                    className="size-8 p-1 shadow-none"
+                                                    onClick={
+                                                        pulseOverlappingTables
+                                                    }
+                                                >
+                                                    <AlertTriangle className="size-4 text-white" />
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t(
+                                                'toolbar.highlight_overlapping_tables'
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
                             </div>
-                        </div>
-                    </Controls>
-
+                        </Controls>
+                    )}
                     {!clean && isLoadingDOM ? (
                         <Controls
                             position="top-center"
