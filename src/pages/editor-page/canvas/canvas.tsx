@@ -40,13 +40,7 @@ import {
 } from './table-node/table-node-field';
 import { Toolbar } from './toolbar/toolbar';
 import { useToast } from '@/components/toast/use-toast';
-import {
-    Pencil,
-    LayoutGrid,
-    AlertTriangle,
-    Magnet,
-    Highlighter,
-} from 'lucide-react';
+import { Pencil, AlertTriangle, Magnet, Highlighter } from 'lucide-react';
 import { Button } from '@/components/button/button';
 import { useLayout } from '@/hooks/use-layout';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
@@ -81,7 +75,6 @@ import {
     TOP_SOURCE_HANDLE_ID_PREFIX,
 } from './table-node/table-node-dependency-indicator';
 import type { DatabaseType } from '@/lib/domain/database-type';
-import { useAlert } from '@/context/alert-context/alert-context';
 import { useCanvas } from '@/hooks/use-canvas';
 import type { AreaNodeType } from './area-node/area-node';
 import { AreaNode } from './area-node/area-node';
@@ -235,12 +228,10 @@ export const Canvas: React.FC<CanvasProps> = ({
     const { showSidePanel } = useLayout();
     const { effectiveTheme } = useTheme();
     const { scrollAction, showDBViews, showMiniMapOnCanvas } = useLocalConfig();
-    const { showAlert } = useAlert();
     const { isMd: isDesktop } = useBreakpoint('md');
     const [highlightOverlappingTables, setHighlightOverlappingTables] =
         useState(false);
     const {
-        reorderTables,
         fitView,
         setOverlapGraph,
         overlapGraph,
@@ -1189,16 +1180,6 @@ export const Canvas: React.FC<CanvasProps> = ({
     const isLoadingDOM =
         tables.length > 0 ? !getInternalNode(tables[0].id) : false;
 
-    const showReorderConfirmation = useCallback(() => {
-        showAlert({
-            title: t('reorder_diagram_alert.title'),
-            description: t('reorder_diagram_alert.description'),
-            actionLabel: t('reorder_diagram_alert.reorder'),
-            closeLabel: t('reorder_diagram_alert.cancel'),
-            onAction: reorderTables,
-        });
-    }, [t, showAlert, reorderTables]);
-
     const hasOverlappingTables = useMemo(
         () =>
             Array.from(overlapGraph.graph).some(
@@ -1255,35 +1236,48 @@ export const Canvas: React.FC<CanvasProps> = ({
                     snapToGrid={shiftPressed || snapToGridEnabled}
                     snapGrid={[20, 20]}
                 >
-                    {!clean && (
-                        <Controls
-                            position="top-left"
-                            showZoom={false}
-                            showFitView={false}
-                            showInteractive={false}
-                            className="!shadow-none"
-                        >
-                            <div className="flex flex-col items-center gap-2 md:flex-row">
-                                {!readonly ? (
-                                    <>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <span>
-                                                    <Button
-                                                        variant="secondary"
-                                                        className="size-8 p-1 shadow-none"
-                                                        onClick={
-                                                            showReorderConfirmation
-                                                        }
-                                                    >
-                                                        <LayoutGrid className="size-4" />
-                                                    </Button>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                {t('toolbar.reorder_diagram')}
-                                            </TooltipContent>
-                                        </Tooltip>
+                    <Controls
+                        position="top-left"
+                        showZoom={false}
+                        showFitView={false}
+                        showInteractive={false}
+                        className="!shadow-none"
+                    >
+                        <div className="flex flex-col items-center gap-2 md:flex-row">
+                            {!readonly ? (
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span>
+                                                <Button
+                                                    variant="secondary"
+                                                    className={cn(
+                                                        'size-8 p-1 shadow-none',
+                                                        snapToGridEnabled ||
+                                                            shiftPressed
+                                                            ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
+                                                            : ''
+                                                    )}
+                                                    onClick={() =>
+                                                        setSnapToGridEnabled(
+                                                            (prev) => !prev
+                                                        )
+                                                    }
+                                                >
+                                                    <Magnet className="size-4" />
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('snap_to_grid_tooltip', {
+                                                key:
+                                                    operatingSystem === 'mac'
+                                                        ? '⇧'
+                                                        : 'Shift',
+                                            })}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    {highlightedCustomType ? (
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <span>
