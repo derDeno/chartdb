@@ -15,6 +15,7 @@ import type {
     NodeTypes,
     EdgeTypes,
     NodeChange,
+    Node,
 } from '@xyflow/react';
 import {
     ReactFlow,
@@ -250,12 +251,16 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { focusOnTable } = useFocusOn();
-
+    const filteredInitialTables = useMemo(
+        () =>
+            clean && focusTableId
+                ? initialTables.filter((table) => table.id === focusTableId)
+                : initialTables,
+        [initialTables, clean, focusTableId]
+    );
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
-
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -276,10 +281,10 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
-    }, [initialTables]);
+    }, [filteredInitialTables]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = filteredInitialTables.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -291,7 +296,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setIsInitialLoadingNodes(false);
         }
     }, [
-        initialTables,
+        filteredInitialTables,
         nodes,
         filter,
         databaseType,
@@ -320,7 +325,6 @@ export const Canvas: React.FC<CanvasProps> = ({
             },
             {} as Record<string, number>
         );
-
         const targetDepIndexes: Record<string, number> = dependencies.reduce(
             (acc, dep) => {
                 acc[dep.tableId] = 0;
