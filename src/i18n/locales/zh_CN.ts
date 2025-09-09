@@ -41,9 +41,8 @@ export const zh_CN: LanguageTranslation = {
                 theme: '主题',
                 show_dependencies: '展示依赖',
                 hide_dependencies: '隐藏依赖',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: '显示小地图',
+                hide_minimap: '隐藏小地图',
             },
             backup: {
                 backup: '备份',

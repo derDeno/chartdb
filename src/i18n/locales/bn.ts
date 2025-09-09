@@ -41,9 +41,8 @@ export const bn: LanguageTranslation = {
                 theme: 'থিম',
                 show_dependencies: 'নির্ভরতাগুলি দেখান',
                 hide_dependencies: 'নির্ভরতাগুলি লুকান',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'মিনি মানচিত্র দেখান',
+                hide_minimap: 'মিনি মানচিত্র লুকান',
             },
 
             backup: {

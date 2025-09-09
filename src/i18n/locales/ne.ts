@@ -41,9 +41,8 @@ export const ne: LanguageTranslation = {
                 theme: 'थिम',
                 show_dependencies: 'डिपेन्डेन्सीहरू देखाउनुहोस्',
                 hide_dependencies: 'डिपेन्डेन्सीहरू लुकाउनुहोस्',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'मिनी नक्शा देखाउनुहोस्',
+                hide_minimap: 'मिनी नक्शा लुकाउनुहोस्',
             },
             // TODO: Translate
             backup: {

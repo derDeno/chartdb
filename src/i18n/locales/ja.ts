@@ -42,9 +42,8 @@ export const ja: LanguageTranslation = {
                 // TODO: Translate
                 show_dependencies: 'Show Dependencies',
                 hide_dependencies: 'Hide Dependencies',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'ミニマップを表示',
+                hide_minimap: 'ミニマップを非表示',
             },
             // TODO: Translate
             backup: {

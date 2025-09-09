@@ -41,9 +41,8 @@ export const vi: LanguageTranslation = {
                 theme: 'Chủ đề',
                 show_dependencies: 'Hiển thị các phụ thuộc',
                 hide_dependencies: 'Ẩn các phụ thuộc',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Hiển thị bản đồ nhỏ',
+                hide_minimap: 'Ẩn bản đồ nhỏ',
             },
             backup: {
                 backup: 'Hỗ trợ',
