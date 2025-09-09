@@ -28,7 +28,8 @@ export const EditorMobileLayout: React.FC<EditorMobileLayoutProps> = ({
     const { isSidePanelShowed, hideSidePanel } = useLayout();
     if (clean) {
         const tables = focusedTableId
-            ? initialDiagram?.tables?.filter((t) => t.id === focusedTableId)
+            ? (initialDiagram?.tables?.filter((t) => t.id === focusedTableId) ??
+              [])
             : (initialDiagram?.tables ?? []);
         return (
             <Canvas

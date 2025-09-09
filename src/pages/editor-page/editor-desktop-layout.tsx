@@ -27,7 +27,8 @@ export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
 
     if (clean) {
         const tables = focusedTableId
-            ? initialDiagram?.tables?.filter((t) => t.id === focusedTableId)
+            ? (initialDiagram?.tables?.filter((t) => t.id === focusedTableId) ??
+              [])
             : (initialDiagram?.tables ?? []);
         return (
             <Canvas

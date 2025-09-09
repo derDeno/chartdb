@@ -114,6 +114,8 @@ export const hi: LanguageTranslation = {
         // TODO: Translate
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'सभी विकल्प देखें...',

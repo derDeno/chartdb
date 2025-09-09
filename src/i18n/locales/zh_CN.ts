@@ -110,6 +110,8 @@ export const zh_CN: LanguageTranslation = {
         show_less: '收起',
         copy_to_clipboard: '复制到剪切板',
         copied: '复制了！',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: '查看所有选项...',

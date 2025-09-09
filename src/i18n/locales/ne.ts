@@ -114,6 +114,8 @@ export const ne: LanguageTranslation = {
         show_less: 'कम देखाउनुहोस्',
         copy_to_clipboard: 'क्लिपबोर्डमा प्रतिलिपि गर्नुहोस्',
         copied: 'प्रतिलिपि गरियो!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'सबै विकल्पहरू हेर्नुहोस्',

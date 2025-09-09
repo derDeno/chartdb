@@ -114,6 +114,8 @@ export const bn: LanguageTranslation = {
         show_less: 'কম দেখুন',
         copy_to_clipboard: 'ক্লিপবোর্ডে অনুলিপি করুন',
         copied: 'অনুলিপি সম্পন্ন!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'সমস্ত বিকল্প দেখুন...',
