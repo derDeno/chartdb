@@ -114,8 +114,6 @@ export const pt_BR: LanguageTranslation = {
         show_less: 'Mostrar Menos',
         copy_to_clipboard: 'Copiar para a Área de Transferência',
         copied: 'Copiado!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'Ver todas as Opções...',

@@ -114,8 +114,6 @@ export const gu: LanguageTranslation = {
         show_less: 'ઓછું બતાવો',
         copy_to_clipboard: 'ક્લિપબોર્ડમાં નકલ કરો',
         copied: 'નકલ થયું!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'બધા વિકલ્પો જુઓ...',
