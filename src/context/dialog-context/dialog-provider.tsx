@@ -141,8 +141,9 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
 
     // Share table dialog
     const [openShareTableDialog, setOpenShareTableDialog] = useState(false);
-    const [shareTableDialogParams, setShareTableDialogParams] =
-        useState<Omit<ShareTableDialogProps, 'dialog'>>();
+    const [shareTableDialogParams, setShareTableDialogParams] = useState<
+        Omit<ShareTableDialogProps, 'dialog'>
+    >({ tableId: '' });
     const openShareTableDialogHandler: DialogContext['openShareTableDialog'] =
         useCallback(
             (params) => {

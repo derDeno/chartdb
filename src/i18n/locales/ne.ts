@@ -115,6 +115,12 @@ export const ne: LanguageTranslation = {
         copy_to_clipboard: 'क्लिपबोर्डमा प्रतिलिपि गर्नुहोस्',
         copied: 'प्रतिलिपि गरियो!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'सबै विकल्पहरू हेर्नुहोस्',
             tables_section: {

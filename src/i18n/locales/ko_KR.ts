@@ -114,6 +114,12 @@ export const ko_KR: LanguageTranslation = {
         copy_to_clipboard: '클립보드에 복사',
         copied: '복사됨!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: '전체 옵션 보기...',
             tables_section: {

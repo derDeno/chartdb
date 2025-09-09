@@ -115,6 +115,12 @@ export const hi: LanguageTranslation = {
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'सभी विकल्प देखें...',
             tables_section: {

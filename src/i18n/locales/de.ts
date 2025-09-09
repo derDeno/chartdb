@@ -116,6 +116,12 @@ export const de: LanguageTranslation = {
         copy_to_clipboard: 'In die Zwischenablage kopieren',
         copied: 'Kopiert!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Alle Optionen anzeigen...',
             tables_section: {

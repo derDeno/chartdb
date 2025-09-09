@@ -114,6 +114,12 @@ export const id_ID: LanguageTranslation = {
         copy_to_clipboard: 'Salin ke Clipboard',
         copied: 'Tersalin!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Tampilkan Semua Pilihan...',
             tables_section: {

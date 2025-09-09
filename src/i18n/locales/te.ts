@@ -115,6 +115,12 @@ export const te: LanguageTranslation = {
         copy_to_clipboard: 'క్లిప్బోర్డుకు కాపీ చేయండి',
         copied: 'కాపీ చేయబడింది!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'అన్ని ఎంపికలను చూడండి...',
             tables_section: {

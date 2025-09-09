@@ -113,6 +113,12 @@ export const uk: LanguageTranslation = {
         copy_to_clipboard: 'Копіювати в буфер обміну',
         copied: 'Скопійовано!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Переглянути всі параметри…',
             tables_section: {
