@@ -112,8 +112,6 @@ export const en = {
         show_less: 'Show Less',
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'View all Options...',
