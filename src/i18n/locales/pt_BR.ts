@@ -115,6 +115,12 @@ export const pt_BR: LanguageTranslation = {
         copy_to_clipboard: 'Copiar para a Área de Transferência',
         copied: 'Copiado!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Ver todas as Opções...',
             tables_section: {

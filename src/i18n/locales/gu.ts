@@ -115,6 +115,12 @@ export const gu: LanguageTranslation = {
         copy_to_clipboard: 'ક્લિપબોર્ડમાં નકલ કરો',
         copied: 'નકલ થયું!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'બધા વિકલ્પો જુઓ...',
             tables_section: {

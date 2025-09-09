@@ -493,6 +493,13 @@ export const ru: LanguageTranslation = {
 
         copy_to_clipboard: 'Скопировать в буфер обмена',
         copied: 'Скопировано!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         snap_to_grid_tooltip: 'Выравнивание по сетке (Удерживайте {{key}})',
         tool_tips: {
             double_click_to_edit: 'Кликните дважды, чтобы изменить',
