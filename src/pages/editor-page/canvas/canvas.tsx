@@ -88,6 +88,7 @@ import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
 import { filterTable } from '@/lib/domain/diagram-filter/filter';
 import { defaultSchemas } from '@/lib/data/default-schemas';
+import { useFocusOn } from '@/hooks/use-focus-on';
 
 const HIGHLIGHTED_EDGE_Z_INDEX = 1;
 const DEFAULT_EDGE_Z_INDEX = 0;
@@ -117,11 +118,13 @@ const tableToTableNode = (
         databaseType,
         filterLoading,
         showDBViews,
+        focusedTableId,
     }: {
         filter?: DiagramFilter;
         databaseType: DatabaseType;
         filterLoading: boolean;
         showDBViews?: boolean;
+        focusedTableId?: string;
     }
 ): TableNodeType => {
     // Always use absolute position for now
@@ -143,7 +146,8 @@ const tableToTableNode = (
                 options: { defaultSchema: defaultSchemas[databaseType] },
             }) ||
             filterLoading ||
-            (!showDBViews && table.isView),
+            (!showDBViews && table.isView) ||
+            (focusedTableId ? table.id !== focusedTableId : false),
     };
 };
 
@@ -154,11 +158,13 @@ const areaToAreaNode = (
         filter,
         databaseType,
         filterLoading,
+        focusedTableId,
     }: {
         tables: DBTable[];
         filter?: DiagramFilter;
         databaseType: DatabaseType;
         filterLoading: boolean;
+        focusedTableId?: string;
     }
 ): AreaNodeType => {
     // Get all tables in this area
@@ -185,18 +191,20 @@ const areaToAreaNode = (
         width: area.width,
         height: area.height,
         zIndex: -10,
-        hidden: !hasVisibleTable || filterLoading,
+        hidden: !hasVisibleTable || filterLoading || !!focusedTableId,
     };
 };
 
 export interface CanvasProps {
     initialTables: DBTable[];
     clean?: boolean;
+    focusedTableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
+    focusedTableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -249,6 +257,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 databaseType,
                 filterLoading,
                 showDBViews,
+                focusedTableId,
             })
         )
     );
@@ -256,6 +265,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         useEdgesState<EdgeType>(initialEdges);
 
     const [snapToGridEnabled, setSnapToGridEnabled] = useState(false);
+    const { focusOnTable } = useFocusOn();
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
@@ -268,6 +278,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 databaseType,
                 filterLoading,
                 showDBViews,
+                focusedTableId,
             })
         );
         if (equal(initialNodes, nodes)) {
@@ -280,6 +291,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         databaseType,
         filterLoading,
         showDBViews,
+        focusedTableId,
     ]);
 
     useEffect(() => {
@@ -323,6 +335,10 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_ID_PREFIX}${targetIndexes[`${relationship.targetTableId}${relationship.targetFieldId}`]++}_${relationship.targetFieldId}`,
                     type: 'relationship-edge',
                     data: { relationship },
+                    hidden: focusedTableId
+                        ? relationship.sourceTableId !== focusedTableId &&
+                          relationship.targetTableId !== focusedTableId
+                        : false,
                 })
             ),
             ...dependencies.map(
@@ -334,11 +350,22 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_DEP_PREFIX}${targetDepIndexes[dep.tableId]++}_${dep.tableId}`,
                     type: 'dependency-edge',
                     data: { dependency: dep },
-                    hidden: !showDBViews,
+                    hidden:
+                        !showDBViews ||
+                        (focusedTableId
+                            ? dep.dependentTableId !== focusedTableId &&
+                              dep.tableId !== focusedTableId
+                            : false),
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, focusedTableId]);
+
+    useEffect(() => {
+        if (focusedTableId && nodes.some((n) => n.id === focusedTableId)) {
+            focusOnTable(focusedTableId);
+        }
+    }, [focusedTableId, nodes, focusOnTable]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -440,6 +467,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         databaseType,
                         filterLoading,
                         showDBViews,
+                        focusedTableId,
                     });
 
                     // Check if table uses the highlighted custom type
@@ -467,6 +495,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         filter,
                         databaseType,
                         filterLoading,
+                        focusedTableId,
                     })
                 ),
             ];
@@ -490,6 +519,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        focusedTableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
