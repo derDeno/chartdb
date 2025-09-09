@@ -58,7 +58,6 @@ import {
 import { MarkerDefinitions } from './marker-definitions';
 import { CanvasContextMenu } from './canvas-context-menu';
 import { areFieldTypesCompatible } from '@/lib/data/data-types/data-types';
-import { useFocusOn } from '@/hooks/use-focus-on';
 import {
     calcTableHeight,
     findOverlappingTables,
@@ -193,13 +192,11 @@ const areaToAreaNode = (
 export interface CanvasProps {
     initialTables: DBTable[];
     clean?: boolean;
-    tableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
-    tableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -242,7 +239,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
-    const { focusOnTable } = useFocusOn();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -287,40 +283,16 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (clean && tableId) {
-            let exists = false;
-            setNodes((nds) => {
-                exists = nds.some((n) => n.id === tableId);
-                return exists
-                    ? nds.map((node) => ({
-                          ...node,
-                          hidden: node.id !== tableId,
-                      }))
-                    : nds;
-            });
-            if (exists) {
-                setEdges((eds) =>
-                    eds.map((edge) => ({ ...edge, hidden: true }))
-                );
-            }
-        }
-    }, [clean, tableId, setNodes, setEdges]);
-
-    useEffect(() => {
         if (!isInitialLoadingNodes) {
-            if (clean && tableId) {
-                focusOnTable(tableId, { select: false });
-            } else {
-                debounce(() => {
-                    fitView({
-                        duration: 200,
-                        padding: 0.1,
-                        maxZoom: 0.8,
-                    });
-                }, 500)();
-            }
+            debounce(() => {
+                fitView({
+                    duration: 200,
+                    padding: 0.1,
+                    maxZoom: 0.8,
+                });
+            }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView, clean, tableId, focusOnTable]);
+    }, [isInitialLoadingNodes, fitView]);
 
     useEffect(() => {
         const targetIndexes: Record<string, number> = relationships.reduce(

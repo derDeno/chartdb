@@ -22,8 +22,6 @@ import { ExportDiagramDialog } from '@/dialogs/export-diagram-dialog/export-diag
 import { ImportDiagramDialog } from '@/dialogs/import-diagram-dialog/import-diagram-dialog';
 import type { ImportDBMLDialogProps } from '@/dialogs/import-dbml-dialog/import-dbml-dialog';
 import { ImportDBMLDialog } from '@/dialogs/import-dbml-dialog/import-dbml-dialog';
-import type { ShareTableDialogProps } from '@/dialogs/share-table-dialog/share-table-dialog';
-import { ShareTableDialog } from '@/dialogs/share-table-dialog/share-table-dialog';
 
 export const DialogProvider: React.FC<React.PropsWithChildren> = ({
     children,
@@ -139,19 +137,6 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
     const [importDBMLDialogParams, setImportDBMLDialogParams] =
         useState<Omit<ImportDBMLDialogProps, 'dialog'>>();
 
-    // Share table dialog
-    const [openShareTableDialog, setOpenShareTableDialog] = useState(false);
-    const [shareTableDialogParams, setShareTableDialogParams] =
-        useState<Omit<ShareTableDialogProps, 'dialog'>>();
-    const openShareTableDialogHandler: DialogContext['openShareTableDialog'] =
-        useCallback(
-            (params) => {
-                setShareTableDialogParams(params);
-                setOpenShareTableDialog(true);
-            },
-            [setOpenShareTableDialog]
-        );
-
     return (
         <dialogContext.Provider
             value={{
@@ -185,8 +170,6 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
                     setOpenImportDBMLDialog(true);
                 },
                 closeImportDBMLDialog: () => setOpenImportDBMLDialog(false),
-                openShareTableDialog: openShareTableDialogHandler,
-                closeShareTableDialog: () => setOpenShareTableDialog(false),
             }}
         >
             {children}
@@ -224,10 +207,6 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
             <ImportDBMLDialog
                 dialog={{ open: openImportDBMLDialog }}
                 {...importDBMLDialogParams}
-            />
-            <ShareTableDialog
-                dialog={{ open: openShareTableDialog }}
-                {...shareTableDialogParams}
             />
         </dialogContext.Provider>
     );
