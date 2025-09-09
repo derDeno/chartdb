@@ -1283,95 +1283,59 @@ export const Canvas: React.FC<CanvasProps> = ({
                                                 <span>
                                                     <Button
                                                         variant="secondary"
-                                                        className={cn(
-                                                            'size-8 p-1 shadow-none',
-                                                            snapToGridEnabled ||
-                                                                shiftPressed
-                                                                ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
-                                                                : ''
-                                                        )}
+                                                        className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
                                                         onClick={() =>
-                                                            setSnapToGridEnabled(
-                                                                (prev) => !prev
+                                                            highlightCustomTypeId(
+                                                                undefined
                                                             )
                                                         }
                                                     >
-                                                        <Magnet className="size-4" />
+                                                        <Highlighter className="size-4" />
                                                     </Button>
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {t('snap_to_grid_tooltip', {
-                                                    key:
-                                                        operatingSystem ===
-                                                        'mac'
-                                                            ? '⇧'
-                                                            : 'Shift',
-                                                })}
+                                                {t(
+                                                    'toolbar.custom_type_highlight_tooltip',
+                                                    {
+                                                        typeName:
+                                                            highlightedCustomType.name,
+                                                    }
+                                                )}
                                             </TooltipContent>
                                         </Tooltip>
-                                        {highlightedCustomType ? (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <span>
-                                                        <Button
-                                                            variant="secondary"
-                                                            className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
-                                                            onClick={() =>
-                                                                highlightCustomTypeId(
-                                                                    undefined
-                                                                )
-                                                            }
-                                                        >
-                                                            <Highlighter className="size-4" />
-                                                        </Button>
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    {t(
-                                                        'toolbar.custom_type_highlight_tooltip',
-                                                        {
-                                                            typeName:
-                                                                highlightedCustomType.name,
-                                                        }
-                                                    )}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ) : null}
-                                    </>
-                                ) : null}
+                                    ) : null}
+                                </>
+                            ) : null}
 
-                                <div
-                                    className={`transition-opacity duration-300 ease-in-out ${
-                                        hasOverlappingTables
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                    }`}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span>
-                                                <Button
-                                                    variant="default"
-                                                    className="size-8 p-1 shadow-none"
-                                                    onClick={
-                                                        pulseOverlappingTables
-                                                    }
-                                                >
-                                                    <AlertTriangle className="size-4 text-white" />
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t(
-                                                'toolbar.highlight_overlapping_tables'
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                            <div
+                                className={`transition-opacity duration-300 ease-in-out ${
+                                    hasOverlappingTables
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                }`}
+                            >
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                variant="default"
+                                                className="size-8 p-1 shadow-none"
+                                                onClick={pulseOverlappingTables}
+                                            >
+                                                <AlertTriangle className="size-4 text-white" />
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {t(
+                                            'toolbar.highlight_overlapping_tables'
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
-                        </Controls>
-                    )}
+                        </div>
+                    </Controls>
                     {!clean && isLoadingDOM ? (
                         <Controls
                             position="top-center"
