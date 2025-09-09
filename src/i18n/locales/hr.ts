@@ -114,9 +114,10 @@ export const hr: LanguageTranslation = {
         copied: 'Kopirano!',
 
         share_table_dialog: {
-            title: 'Share Table',
-            description: 'Copy the link below to share this table.',
-            close: 'Close',
+            title: 'Dijeljenje stola',
+            description:
+                'Kopirajte donju vezu da biste podijelili ovu tablicu.',
+            close: 'Zatvoriti',
         },
 
         side_panel: {
