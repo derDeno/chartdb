@@ -41,9 +41,8 @@ export const es: LanguageTranslation = {
                 theme: 'Tema',
                 show_dependencies: 'Mostrar dependencias',
                 hide_dependencies: 'Ocultar dependencias',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Mostrar minimapa',
+                hide_minimap: 'Ocultar minimapa',
             },
             backup: {
                 backup: 'Respaldo',
@@ -113,6 +112,12 @@ export const es: LanguageTranslation = {
         show_less: 'Mostrar menos',
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'Ver todas las opciones...',

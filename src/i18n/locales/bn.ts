@@ -41,9 +41,8 @@ export const bn: LanguageTranslation = {
                 theme: 'থিম',
                 show_dependencies: 'নির্ভরতাগুলি দেখান',
                 hide_dependencies: 'নির্ভরতাগুলি লুকান',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'মিনি মানচিত্র দেখান',
+                hide_minimap: 'মিনি মানচিত্র লুকান',
             },
 
             backup: {
@@ -114,6 +113,12 @@ export const bn: LanguageTranslation = {
         show_less: 'কম দেখুন',
         copy_to_clipboard: 'ক্লিপবোর্ডে অনুলিপি করুন',
         copied: 'অনুলিপি সম্পন্ন!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'সমস্ত বিকল্প দেখুন...',

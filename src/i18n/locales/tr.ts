@@ -41,9 +41,8 @@ export const tr: LanguageTranslation = {
                 theme: 'Tema',
                 show_dependencies: 'Bağımlılıkları Göster',
                 hide_dependencies: 'Bağımlılıkları Gizle',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Mini Haritayı Göster',
+                hide_minimap: 'Mini Haritayı Gizle',
             },
             // TODO: Translate
             backup: {
@@ -114,6 +113,13 @@ export const tr: LanguageTranslation = {
         show_less: 'Daha Az Göster',
         copy_to_clipboard: 'Panoya Kopyala',
         copied: 'Kopyalandı!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Tüm Seçenekleri Gör...',
             tables_section: {

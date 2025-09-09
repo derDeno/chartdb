@@ -41,9 +41,8 @@ export const ko_KR: LanguageTranslation = {
                 theme: '테마',
                 show_dependencies: '종속성 보이기',
                 hide_dependencies: '종속성 숨기기',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: '미니 맵 표시',
+                hide_minimap: '미니 맵 숨기기',
             },
             backup: {
                 backup: '백업',
@@ -113,6 +112,12 @@ export const ko_KR: LanguageTranslation = {
         show_less: '간략히',
         copy_to_clipboard: '클립보드에 복사',
         copied: '복사됨!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: '전체 옵션 보기...',

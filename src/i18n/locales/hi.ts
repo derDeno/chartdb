@@ -41,9 +41,8 @@ export const hi: LanguageTranslation = {
                 theme: 'थीम',
                 show_dependencies: 'निर्भरता दिखाएँ',
                 hide_dependencies: 'निर्भरता छिपाएँ',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'मिनी मानचित्र दिखाएं',
+                hide_minimap: 'मिनी मानचित्र छिपाएं',
             },
             backup: {
                 backup: 'बैकअप',
@@ -114,6 +113,12 @@ export const hi: LanguageTranslation = {
         // TODO: Translate
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'सभी विकल्प देखें...',

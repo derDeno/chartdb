@@ -41,9 +41,8 @@ export const ne: LanguageTranslation = {
                 theme: 'थिम',
                 show_dependencies: 'डिपेन्डेन्सीहरू देखाउनुहोस्',
                 hide_dependencies: 'डिपेन्डेन्सीहरू लुकाउनुहोस्',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'मिनी नक्शा देखाउनुहोस्',
+                hide_minimap: 'मिनी नक्शा लुकाउनुहोस्',
             },
             // TODO: Translate
             backup: {
@@ -114,6 +113,12 @@ export const ne: LanguageTranslation = {
         show_less: 'कम देखाउनुहोस्',
         copy_to_clipboard: 'क्लिपबोर्डमा प्रतिलिपि गर्नुहोस्',
         copied: 'प्रतिलिपि गरियो!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'सबै विकल्पहरू हेर्नुहोस्',

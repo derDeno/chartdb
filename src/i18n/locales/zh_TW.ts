@@ -41,9 +41,8 @@ export const zh_TW: LanguageTranslation = {
                 theme: '主題',
                 show_dependencies: '顯示相依性',
                 hide_dependencies: '隱藏相依性',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: '顯示小地圖',
+                hide_minimap: '隱藏小地圖',
             },
             backup: {
                 backup: '備份',
@@ -110,6 +109,12 @@ export const zh_TW: LanguageTranslation = {
         show_less: '顯示較少',
         copy_to_clipboard: '複製到剪貼簿',
         copied: '已複製！',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: '顯示所有選項...',

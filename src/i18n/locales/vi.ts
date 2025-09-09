@@ -41,9 +41,8 @@ export const vi: LanguageTranslation = {
                 theme: 'Chủ đề',
                 show_dependencies: 'Hiển thị các phụ thuộc',
                 hide_dependencies: 'Ẩn các phụ thuộc',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Hiển thị bản đồ nhỏ',
+                hide_minimap: 'Ẩn bản đồ nhỏ',
             },
             backup: {
                 backup: 'Hỗ trợ',
@@ -113,6 +112,12 @@ export const vi: LanguageTranslation = {
         show_less: 'Hiển thị ít hơn',
         copy_to_clipboard: 'Sao chép vào bảng tạm',
         copied: 'Đã sao chép!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'Xem tất cả tùy chọn...',

@@ -42,9 +42,8 @@ export const ja: LanguageTranslation = {
                 // TODO: Translate
                 show_dependencies: 'Show Dependencies',
                 hide_dependencies: 'Hide Dependencies',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'ミニマップを表示',
+                hide_minimap: 'ミニマップを非表示',
             },
             // TODO: Translate
             backup: {
@@ -117,6 +116,12 @@ export const ja: LanguageTranslation = {
         // TODO: Translate
         copy_to_clipboard: 'Copy to Clipboard',
         copied: 'Copied!',
+
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
 
         side_panel: {
             view_all_options: 'すべてのオプションを表示...',
