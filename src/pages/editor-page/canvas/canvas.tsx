@@ -215,6 +215,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         relationships,
         createRelationship,
         createDependency,
+        updateTable,
         updateTablesState,
         removeRelationships,
         removeDependencies,
@@ -303,9 +304,13 @@ export const Canvas: React.FC<CanvasProps> = ({
             const node = getNode(tableId);
             if (node) {
                 focusOnTable(tableId, { select: false });
+                const tableNode = node as TableNodeType;
+                if (!tableNode.data.table.expanded) {
+                    updateTable(tableId, { expanded: true });
+                }
             }
         }
-    }, [clean, tableId, nodes, focusOnTable, getNode]);
+    }, [clean, tableId, nodes, focusOnTable, getNode, updateTable]);
 
     useEffect(() => {
         const targetIndexes: Record<string, number> = relationships.reduce(
