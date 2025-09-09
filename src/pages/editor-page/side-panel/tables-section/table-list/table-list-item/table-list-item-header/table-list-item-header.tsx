@@ -10,7 +10,6 @@ import {
     Check,
     Group,
     Copy,
-    Share2,
 } from 'lucide-react';
 import { ListItemHeaderButton } from '@/pages/editor-page/side-panel/list-item-header-button/list-item-header-button';
 import type { DBTable } from '@/lib/domain/db-table';
@@ -39,15 +38,6 @@ import { cloneTable } from '@/lib/clone';
 import type { DBSchema } from '@/lib/domain';
 import { defaultSchemas } from '@/lib/data/default-schemas';
 import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-filter';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/dialog/dialog';
-import { Button } from '@/components/button/button';
-import { useToast } from '@/components/toast/use-toast';
 
 export interface TableListItemHeaderProps {
     table: DBTable;
@@ -75,31 +65,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const [tableName, setTableName] = React.useState(table.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const { listeners } = useSortable({ id: table.id });
-    const { toast } = useToast();
-    const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
-    const shareInputRef = React.useRef<HTMLInputElement>(null);
-
-    const shareLink = useMemo(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('clean', 'true');
-        url.searchParams.set('table', table.id);
-        return url.toString();
-    }, [table.id]);
-
-    const openShareDialog = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShareDialogOpen(true);
-    }, []);
-
-    const copyShareLink = useCallback(async () => {
-        shareInputRef.current?.select();
-        try {
-            await navigator.clipboard.writeText(shareLink);
-            toast({ title: t('copied') });
-        } catch {
-            // ignore
-        }
-    }, [shareLink, toast, t]);
 
     const editTableName = useCallback(() => {
         if (!editMode) return;
@@ -285,108 +250,76 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     }, [table.name]);
 
     return (
-        <>
-            <div className="group flex h-11 flex-1 items-center justify-between gap-1 overflow-hidden">
-                {!readonly ? (
-                    <div
-                        className="flex cursor-move items-center justify-center"
-                        {...listeners}
-                    >
-                        <GripVertical className="size-4 text-muted-foreground" />
-                    </div>
-                ) : null}
-                <div className="flex min-w-0 flex-1 px-1">
-                    {editMode ? (
-                        <Input
-                            ref={inputRef}
-                            autoFocus
-                            type="text"
-                            placeholder={table.name}
-                            value={tableName}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setTableName(e.target.value)}
-                            className="h-7 w-full focus-visible:ring-0"
-                        />
-                    ) : !readonly ? (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onDoubleClick={enterEditMode}
-                                    className="text-editable truncate px-2 py-0.5"
-                                >
-                                    {table.name}
-                                    <span className="text-xs text-muted-foreground">
-                                        {schemaToDisplay
-                                            ? ` (${schemaToDisplay})`
-                                            : ''}
-                                    </span>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {t('tool_tips.double_click_to_edit')}
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <div className="truncate px-2 py-0.5">
-                            {table.name}
-                            <span className="text-xs text-muted-foreground">
-                                {schemaToDisplay ? ` (${schemaToDisplay})` : ''}
-                            </span>
-                        </div>
-                    )}
+        <div className="group flex h-11 flex-1 items-center justify-between gap-1 overflow-hidden">
+            {!readonly ? (
+                <div
+                    className="flex cursor-move items-center justify-center"
+                    {...listeners}
+                >
+                    <GripVertical className="size-4 text-muted-foreground" />
                 </div>
-                <div className="flex flex-row-reverse">
-                    {!editMode ? (
-                        <>
-                            {!readonly ? (
-                                <div>{renderDropDownMenu()}</div>
-                            ) : null}
-                            <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
-                                {!readonly ? (
-                                    <ListItemHeaderButton
-                                        onClick={enterEditMode}
-                                    >
-                                        <Pencil />
-                                    </ListItemHeaderButton>
-                                ) : null}
-                                <ListItemHeaderButton
-                                    onClick={handleFocusOnTable}
-                                >
-                                    <CircleDotDashed />
-                                </ListItemHeaderButton>
-                                <ListItemHeaderButton onClick={openShareDialog}>
-                                    <Share2 />
-                                </ListItemHeaderButton>
+            ) : null}
+            <div className="flex min-w-0 flex-1 px-1">
+                {editMode ? (
+                    <Input
+                        ref={inputRef}
+                        autoFocus
+                        type="text"
+                        placeholder={table.name}
+                        value={tableName}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setTableName(e.target.value)}
+                        className="h-7 w-full focus-visible:ring-0"
+                    />
+                ) : !readonly ? (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div
+                                onDoubleClick={enterEditMode}
+                                className="text-editable truncate px-2 py-0.5"
+                            >
+                                {table.name}
+                                <span className="text-xs text-muted-foreground">
+                                    {schemaToDisplay
+                                        ? ` (${schemaToDisplay})`
+                                        : ''}
+                                </span>
                             </div>
-                        </>
-                    ) : (
-                        <ListItemHeaderButton onClick={editTableName}>
-                            <Check />
-                        </ListItemHeaderButton>
-                    )}
-                </div>
-            </div>
-            <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t('share_table_link')}</DialogTitle>
-                        <DialogDescription>
-                            {t('copy_to_clipboard')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-center space-x-2">
-                        <Input
-                            ref={shareInputRef}
-                            value={shareLink}
-                            readOnly
-                            className="flex-1"
-                        />
-                        <Button variant="secondary" onClick={copyShareLink}>
-                            <Copy className="size-4" />
-                        </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {t('tool_tips.double_click_to_edit')}
+                        </TooltipContent>
+                    </Tooltip>
+                ) : (
+                    <div className="truncate px-2 py-0.5">
+                        {table.name}
+                        <span className="text-xs text-muted-foreground">
+                            {schemaToDisplay ? ` (${schemaToDisplay})` : ''}
+                        </span>
                     </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                )}
+            </div>
+            <div className="flex flex-row-reverse">
+                {!editMode ? (
+                    <>
+                        {!readonly ? <div>{renderDropDownMenu()}</div> : null}
+                        <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
+                            {!readonly ? (
+                                <ListItemHeaderButton onClick={enterEditMode}>
+                                    <Pencil />
+                                </ListItemHeaderButton>
+                            ) : null}
+                            <ListItemHeaderButton onClick={handleFocusOnTable}>
+                                <CircleDotDashed />
+                            </ListItemHeaderButton>
+                        </div>
+                    </>
+                ) : (
+                    <ListItemHeaderButton onClick={editTableName}>
+                        <Check />
+                    </ListItemHeaderButton>
+                )}
+            </div>
+        </div>
     );
 };
