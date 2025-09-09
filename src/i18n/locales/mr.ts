@@ -116,6 +116,8 @@ export const mr: LanguageTranslation = {
         copy_to_clipboard: 'Copy to Clipboard',
         // TODO: Add translations
         copied: 'Copied!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'सर्व पर्याय पहा...',

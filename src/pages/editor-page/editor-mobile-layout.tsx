@@ -18,14 +18,26 @@ import { EditorSidebar } from './editor-sidebar/editor-sidebar';
 export interface EditorMobileLayoutProps {
     initialDiagram?: Diagram;
     clean?: boolean;
+    focusedTableId?: string;
 }
 export const EditorMobileLayout: React.FC<EditorMobileLayoutProps> = ({
     initialDiagram,
     clean,
+    focusedTableId,
 }) => {
     const { isSidePanelShowed, hideSidePanel } = useLayout();
     if (clean) {
-        return <Canvas initialTables={initialDiagram?.tables ?? []} clean />;
+        const tables = focusedTableId
+            ? (initialDiagram?.tables?.filter((t) => t.id === focusedTableId) ??
+              [])
+            : (initialDiagram?.tables ?? []);
+        return (
+            <Canvas
+                initialTables={tables}
+                clean
+                focusedTableId={focusedTableId}
+            />
+        );
     }
     return (
         <>

@@ -113,6 +113,8 @@ export const id_ID: LanguageTranslation = {
         show_less: 'Tampilkan Lebih Sedikit',
         copy_to_clipboard: 'Salin ke Clipboard',
         copied: 'Tersalin!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'Tampilkan Semua Pilihan...',

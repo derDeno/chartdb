@@ -114,6 +114,8 @@ export const te: LanguageTranslation = {
         show_less: 'తక్కువ చూపించు',
         copy_to_clipboard: 'క్లిప్బోర్డుకు కాపీ చేయండి',
         copied: 'కాపీ చేయబడింది!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'అన్ని ఎంపికలను చూడండి...',

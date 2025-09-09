@@ -112,6 +112,8 @@ export const uk: LanguageTranslation = {
         show_less: 'Показати менше',
         copy_to_clipboard: 'Копіювати в буфер обміну',
         copied: 'Скопійовано!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'Переглянути всі параметри…',

@@ -112,6 +112,8 @@ export const hr: LanguageTranslation = {
         show_less: 'Prikaži manje',
         copy_to_clipboard: 'Kopiraj u međuspremnik',
         copied: 'Kopirano!',
+        share: 'Share',
+        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'Prikaži sve opcije...',
