@@ -14,6 +14,11 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/input/input';
 import { Button } from '@/components/button/button';
 import { Copy } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/tooltip/tooltip';
 import { useToast } from '@/components/toast/use-toast';
 
 export interface ShareTableDialogProps extends BaseDialogProps {
@@ -63,7 +68,7 @@ export const ShareTableDialog: React.FC<ShareTableDialogProps> = ({
                 }
             }}
         >
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>{t('share_table_dialog.title')}</DialogTitle>
                     <DialogDescription>
@@ -75,16 +80,22 @@ export const ShareTableDialog: React.FC<ShareTableDialogProps> = ({
                         ref={inputRef}
                         value={shareUrl}
                         readOnly
-                        className="flex-1"
+                        className="min-w-[400px] flex-1"
                     />
-                    <Button
-                        variant="secondary"
-                        onClick={handleCopy}
-                        className="shrink-0"
-                    >
-                        <Copy className="mr-2 size-4" />
-                        {t('copy_to_clipboard')}
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="secondary"
+                                onClick={handleCopy}
+                                className="shrink-0 p-2"
+                            >
+                                <Copy className="size-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {t('copy_to_clipboard')}
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
                 <DialogFooter className="sm:justify-end">
                     <DialogClose asChild>
