@@ -114,8 +114,6 @@ export const tr: LanguageTranslation = {
         show_less: 'Daha Az Göster',
         copy_to_clipboard: 'Panoya Kopyala',
         copied: 'Kopyalandı!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
         side_panel: {
             view_all_options: 'Tüm Seçenekleri Gör...',
             tables_section: {

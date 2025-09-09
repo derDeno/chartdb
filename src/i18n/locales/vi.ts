@@ -113,8 +113,6 @@ export const vi: LanguageTranslation = {
         show_less: 'Hiển thị ít hơn',
         copy_to_clipboard: 'Sao chép vào bảng tạm',
         copied: 'Đã sao chép!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: 'Xem tất cả tùy chọn...',

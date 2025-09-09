@@ -113,8 +113,6 @@ export const ko_KR: LanguageTranslation = {
         show_less: '간략히',
         copy_to_clipboard: '클립보드에 복사',
         copied: '복사됨!',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: '전체 옵션 보기...',

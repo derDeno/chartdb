@@ -113,8 +113,6 @@ export const ar: LanguageTranslation = {
         show_less: 'عرض أقل',
         copy_to_clipboard: 'نسخ إلى الحافظة',
         copied: '!تم النسخ',
-        share: 'Share',
-        share_table_link: 'Share Table Link',
 
         side_panel: {
             view_all_options: '...عرض جميع الخيارات',
