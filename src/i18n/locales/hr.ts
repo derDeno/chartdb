@@ -113,6 +113,12 @@ export const hr: LanguageTranslation = {
         copy_to_clipboard: 'Kopiraj u međuspremnik',
         copied: 'Kopirano!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Prikaži sve opcije...',
             tables_section: {

@@ -114,6 +114,12 @@ export const ar: LanguageTranslation = {
         copy_to_clipboard: 'نسخ إلى الحافظة',
         copied: '!تم النسخ',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: '...عرض جميع الخيارات',
             tables_section: {
