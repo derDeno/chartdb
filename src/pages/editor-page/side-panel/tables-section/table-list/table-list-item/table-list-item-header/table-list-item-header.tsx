@@ -10,6 +10,7 @@ import {
     Check,
     Group,
     Copy,
+    Share2,
 } from 'lucide-react';
 import { ListItemHeaderButton } from '@/pages/editor-page/side-panel/list-item-header-button/list-item-header-button';
 import type { DBTable } from '@/lib/domain/db-table';
@@ -58,7 +59,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
         readonly,
     } = useChartDB();
     const { schemasDisplayed } = useDiagramFilter();
-    const { openTableSchemaDialog } = useDialog();
+    const { openTableSchemaDialog, openShareTableDialog } = useDialog();
     const { t } = useTranslation();
     const { focusOnTable } = useFocusOn();
     const [editMode, setEditMode] = React.useState(false);
@@ -95,6 +96,14 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             focusOnTable(table.id);
         },
         [focusOnTable, table.id]
+    );
+
+    const handleShareTable = useCallback(
+        (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+            event.stopPropagation();
+            openShareTableDialog({ tableId: table.id });
+        },
+        [openShareTableDialog, table.id]
     );
 
     const deleteTableHandler = useCallback(() => {
@@ -311,6 +320,9 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                             ) : null}
                             <ListItemHeaderButton onClick={handleFocusOnTable}>
                                 <CircleDotDashed />
+                            </ListItemHeaderButton>
+                            <ListItemHeaderButton onClick={handleShareTable}>
+                                <Share2 />
                             </ListItemHeaderButton>
                         </div>
                     </>
