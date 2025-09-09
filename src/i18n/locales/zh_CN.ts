@@ -111,6 +111,12 @@ export const zh_CN: LanguageTranslation = {
         copy_to_clipboard: '复制到剪切板',
         copied: '复制了！',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: '查看所有选项...',
             tables_section: {

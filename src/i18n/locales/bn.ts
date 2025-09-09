@@ -115,6 +115,12 @@ export const bn: LanguageTranslation = {
         copy_to_clipboard: 'ক্লিপবোর্ডে অনুলিপি করুন',
         copied: 'অনুলিপি সম্পন্ন!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'সমস্ত বিকল্প দেখুন...',
             tables_section: {

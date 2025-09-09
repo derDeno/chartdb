@@ -114,6 +114,12 @@ export const vi: LanguageTranslation = {
         copy_to_clipboard: 'Sao chép vào bảng tạm',
         copied: 'Đã sao chép!',
 
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the link below to share this table.',
+            close: 'Close',
+        },
+
         side_panel: {
             view_all_options: 'Xem tất cả tùy chọn...',
             tables_section: {
