@@ -287,40 +287,25 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (clean && tableId) {
-            let exists = false;
-            setNodes((nds) => {
-                exists = nds.some((n) => n.id === tableId);
-                return exists
-                    ? nds.map((node) => ({
-                          ...node,
-                          hidden: node.id !== tableId,
-                      }))
-                    : nds;
-            });
-            if (exists) {
-                setEdges((eds) =>
-                    eds.map((edge) => ({ ...edge, hidden: true }))
-                );
-            }
+        if (!isInitialLoadingNodes && !(clean && tableId)) {
+            debounce(() => {
+                fitView({
+                    duration: 200,
+                    padding: 0.1,
+                    maxZoom: 0.8,
+                });
+            }, 500)();
         }
-    }, [clean, tableId, setNodes, setEdges]);
+    }, [isInitialLoadingNodes, fitView, clean, tableId]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
-            if (clean && tableId) {
+        if (clean && tableId) {
+            const node = getNode(tableId);
+            if (node) {
                 focusOnTable(tableId, { select: false });
-            } else {
-                debounce(() => {
-                    fitView({
-                        duration: 200,
-                        padding: 0.1,
-                        maxZoom: 0.8,
-                    });
-                }, 500)();
             }
         }
-    }, [isInitialLoadingNodes, fitView, clean, tableId, focusOnTable]);
+    }, [clean, tableId, nodes, focusOnTable, getNode]);
 
     useEffect(() => {
         const targetIndexes: Record<string, number> = relationships.reduce(
@@ -351,6 +336,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_ID_PREFIX}${targetIndexes[`${relationship.targetTableId}${relationship.targetFieldId}`]++}_${relationship.targetFieldId}`,
                     type: 'relationship-edge',
                     data: { relationship },
+                    hidden: clean && !!tableId,
                 })
             ),
             ...dependencies.map(
@@ -362,11 +348,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_DEP_PREFIX}${targetDepIndexes[dep.tableId]++}_${dep.tableId}`,
                     type: 'dependency-edge',
                     data: { dependency: dep },
-                    hidden: !showDBViews,
+                    hidden: clean && !!tableId ? true : !showDBViews,
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, clean, tableId]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -487,16 +473,23 @@ export const Canvas: React.FC<CanvasProps> = ({
                             highlightOverlappingTables,
                             hasHighlightedCustomType,
                         },
+                        hidden:
+                            clean && tableId
+                                ? node.id !== tableId
+                                : node.hidden,
                     };
                 }),
-                ...areas.map((area) =>
-                    areaToAreaNode(area, {
+                ...areas.map((area) => {
+                    const areaNode = areaToAreaNode(area, {
                         tables,
                         filter,
                         databaseType,
                         filterLoading,
-                    })
-                ),
+                    });
+                    return clean && tableId
+                        ? { ...areaNode, hidden: true }
+                        : areaNode;
+                }),
             ];
 
             // Check if nodes actually changed
@@ -518,6 +511,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
