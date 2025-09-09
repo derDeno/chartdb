@@ -41,10 +41,12 @@ export const EditorMobileLayoutLazy = React.lazy(
 
 interface EditorPageComponentProps {
     clean?: boolean;
+    tableId?: string;
 }
 
 const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
     clean = false,
+    tableId,
 }) => {
     const { diagramName, currentDiagram } = useChartDB();
     const { openStarUsDialog } = useDialog();
@@ -107,11 +109,13 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
                         <EditorDesktopLayoutLazy
                             initialDiagram={initialDiagram}
                             clean={clean}
+                            focusedTableId={tableId}
                         />
                     ) : (
                         <EditorMobileLayoutLazy
                             initialDiagram={initialDiagram}
                             clean={clean}
+                            focusedTableId={tableId}
                         />
                     )}
                 </Suspense>
@@ -124,6 +128,9 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
 export const EditorPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const clean = searchParams.get('clean') === 'true';
+    const tableId = clean
+        ? (searchParams.get('table') ?? undefined)
+        : undefined;
 
     return (
         <LocalConfigProvider>
@@ -146,6 +153,9 @@ export const EditorPage: React.FC = () => {
                                                                             <EditorPageComponent
                                                                                 clean={
                                                                                     clean
+                                                                                }
+                                                                                tableId={
+                                                                                    tableId
                                                                                 }
                                                                             />
                                                                         </KeyboardShortcutsProvider>

@@ -115,6 +115,8 @@ export const de: LanguageTranslation = {
         show_less: 'Weniger anzeigen',
         copy_to_clipboard: 'In die Zwischenablage kopieren',
         copied: 'Kopiert!',
+        share: 'Teilen',
+        share_table_link: 'Tabellenlink teilen',
 
         side_panel: {
             view_all_options: 'Alle Optionen anzeigen...',
