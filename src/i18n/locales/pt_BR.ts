@@ -41,9 +41,8 @@ export const pt_BR: LanguageTranslation = {
                 theme: 'Tema',
                 show_dependencies: 'Mostrar Dependências',
                 hide_dependencies: 'Ocultar Dependências',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Mostrar Mini Mapa',
+                hide_minimap: 'Ocultar Mini Mapa',
             },
             // TODO: Translate
             backup: {

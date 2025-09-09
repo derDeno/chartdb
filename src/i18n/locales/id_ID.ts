@@ -41,9 +41,8 @@ export const id_ID: LanguageTranslation = {
                 theme: 'Tema',
                 show_dependencies: 'Tampilkan Dependensi',
                 hide_dependencies: 'Sembunyikan Dependensi',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'Tampilkan Peta Mini',
+                hide_minimap: 'Sembunyikan Peta Mini',
             },
             backup: {
                 backup: 'Cadangan',

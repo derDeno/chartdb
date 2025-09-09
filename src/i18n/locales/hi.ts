@@ -41,9 +41,8 @@ export const hi: LanguageTranslation = {
                 theme: 'थीम',
                 show_dependencies: 'निर्भरता दिखाएँ',
                 hide_dependencies: 'निर्भरता छिपाएँ',
-                // TODO: Translate
-                show_minimap: 'Show Mini Map',
-                hide_minimap: 'Hide Mini Map',
+                show_minimap: 'मिनी मानचित्र दिखाएं',
+                hide_minimap: 'मिनी मानचित्र छिपाएं',
             },
             backup: {
                 backup: 'बैकअप',
