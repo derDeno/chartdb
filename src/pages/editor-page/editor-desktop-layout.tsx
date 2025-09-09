@@ -16,23 +16,15 @@ import { TopNavbar } from './top-navbar/top-navbar';
 export interface EditorDesktopLayoutProps {
     initialDiagram?: Diagram;
     clean?: boolean;
-    tableId?: string;
 }
 export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
     initialDiagram,
     clean,
-    tableId,
 }) => {
     const { isSidePanelShowed } = useLayout();
 
     if (clean) {
-        return (
-            <Canvas
-                initialTables={initialDiagram?.tables ?? []}
-                clean
-                tableId={tableId}
-            />
-        );
+        return <Canvas initialTables={initialDiagram?.tables ?? []} clean />;
     }
 
     return (
@@ -60,10 +52,7 @@ export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
                         className={!isSidePanelShowed ? 'hidden' : ''}
                     />
                     <ResizablePanel defaultSize={75}>
-                        <Canvas
-                            initialTables={initialDiagram?.tables ?? []}
-                            tableId={tableId}
-                        />
+                        <Canvas initialTables={initialDiagram?.tables ?? []} />
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </SidebarProvider>

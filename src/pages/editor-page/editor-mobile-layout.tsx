@@ -18,22 +18,14 @@ import { EditorSidebar } from './editor-sidebar/editor-sidebar';
 export interface EditorMobileLayoutProps {
     initialDiagram?: Diagram;
     clean?: boolean;
-    tableId?: string;
 }
 export const EditorMobileLayout: React.FC<EditorMobileLayoutProps> = ({
     initialDiagram,
     clean,
-    tableId,
 }) => {
     const { isSidePanelShowed, hideSidePanel } = useLayout();
     if (clean) {
-        return (
-            <Canvas
-                initialTables={initialDiagram?.tables ?? []}
-                clean
-                tableId={tableId}
-            />
-        );
+        return <Canvas initialTables={initialDiagram?.tables ?? []} clean />;
     }
     return (
         <>
@@ -59,10 +51,7 @@ export const EditorMobileLayout: React.FC<EditorMobileLayoutProps> = ({
                         <SidePanel data-vaul-no-drag />
                     </DrawerContent>
                 </Drawer>
-                <Canvas
-                    initialTables={initialDiagram?.tables ?? []}
-                    tableId={tableId}
-                />
+                <Canvas initialTables={initialDiagram?.tables ?? []} />
             </SidebarProvider>
         </>
     );
