@@ -313,6 +313,9 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                     <>
                         {!readonly ? <div>{renderDropDownMenu()}</div> : null}
                         <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
+                            <ListItemHeaderButton onClick={handleShareTable}>
+                                <Share2 />
+                            </ListItemHeaderButton>
                             {!readonly ? (
                                 <ListItemHeaderButton onClick={enterEditMode}>
                                     <Pencil />
@@ -320,9 +323,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                             ) : null}
                             <ListItemHeaderButton onClick={handleFocusOnTable}>
                                 <CircleDotDashed />
-                            </ListItemHeaderButton>
-                            <ListItemHeaderButton onClick={handleShareTable}>
-                                <Share2 />
                             </ListItemHeaderButton>
                         </div>
                     </>
