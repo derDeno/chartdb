@@ -2,7 +2,10 @@ name: custom docker build
 
 on:
   push:
-    branches: [dev]
+    branches:
+      - dev
+      - 'feat-*'
+      - main
     tags:
       - docker-run-*
   workflow_dispatch:
@@ -30,9 +33,28 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build and push (main)
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
+
+      - name: Build and push (dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+
+      - name: Build and push (feat-* branches)
+        if: startsWith(github.ref, 'refs/heads/feat-')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:nightly

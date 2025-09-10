@@ -58,6 +58,7 @@ import {
 import { MarkerDefinitions } from './marker-definitions';
 import { CanvasContextMenu } from './canvas-context-menu';
 import { areFieldTypesCompatible } from '@/lib/data/data-types/data-types';
+import { useFocusOn } from '@/hooks/use-focus-on';
 import {
     calcTableHeight,
     findOverlappingTables,
@@ -192,11 +193,13 @@ const areaToAreaNode = (
 export interface CanvasProps {
     initialTables: DBTable[];
     clean?: boolean;
+    tableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     clean = false,
+    tableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -212,6 +215,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         relationships,
         createRelationship,
         createDependency,
+        updateTable,
         updateTablesState,
         removeRelationships,
         removeDependencies,
@@ -239,6 +243,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         setShowFilter,
     } = useCanvas();
     const { filter, loading: filterLoading } = useDiagramFilter();
+    const { focusOnTable } = useFocusOn();
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
@@ -283,7 +288,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     ]);
 
     useEffect(() => {
-        if (!isInitialLoadingNodes) {
+        if (!isInitialLoadingNodes && !(clean && tableId)) {
             debounce(() => {
                 fitView({
                     duration: 200,
@@ -292,7 +297,20 @@ export const Canvas: React.FC<CanvasProps> = ({
                 });
             }, 500)();
         }
-    }, [isInitialLoadingNodes, fitView]);
+    }, [isInitialLoadingNodes, fitView, clean, tableId]);
+
+    useEffect(() => {
+        if (clean && tableId) {
+            const node = getNode(tableId);
+            if (node) {
+                focusOnTable(tableId, { select: false });
+                const tableNode = node as TableNodeType;
+                if (!tableNode.data.table.expanded) {
+                    updateTable(tableId, { expanded: true });
+                }
+            }
+        }
+    }, [clean, tableId, nodes, focusOnTable, getNode, updateTable]);
 
     useEffect(() => {
         const targetIndexes: Record<string, number> = relationships.reduce(
@@ -323,6 +341,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_ID_PREFIX}${targetIndexes[`${relationship.targetTableId}${relationship.targetFieldId}`]++}_${relationship.targetFieldId}`,
                     type: 'relationship-edge',
                     data: { relationship },
+                    hidden: clean && !!tableId,
                 })
             ),
             ...dependencies.map(
@@ -334,11 +353,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                     targetHandle: `${TARGET_DEP_PREFIX}${targetDepIndexes[dep.tableId]++}_${dep.tableId}`,
                     type: 'dependency-edge',
                     data: { dependency: dep },
-                    hidden: !showDBViews,
+                    hidden: clean && !!tableId ? true : !showDBViews,
                 })
             ),
         ]);
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, clean, tableId]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -459,16 +478,23 @@ export const Canvas: React.FC<CanvasProps> = ({
                             highlightOverlappingTables,
                             hasHighlightedCustomType,
                         },
+                        hidden:
+                            clean && tableId
+                                ? node.id !== tableId
+                                : node.hidden,
                     };
                 }),
-                ...areas.map((area) =>
-                    areaToAreaNode(area, {
+                ...areas.map((area) => {
+                    const areaNode = areaToAreaNode(area, {
                         tables,
                         filter,
                         databaseType,
                         filterLoading,
-                    })
-                ),
+                    });
+                    return clean && tableId
+                        ? { ...areaNode, hidden: true }
+                        : areaNode;
+                }),
             ];
 
             // Check if nodes actually changed
@@ -490,6 +516,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         highlightedCustomType,
         filterLoading,
         showDBViews,
+        clean,
+        tableId,
     ]);
 
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
@@ -1283,95 +1311,59 @@ export const Canvas: React.FC<CanvasProps> = ({
                                                 <span>
                                                     <Button
                                                         variant="secondary"
-                                                        className={cn(
-                                                            'size-8 p-1 shadow-none',
-                                                            snapToGridEnabled ||
-                                                                shiftPressed
-                                                                ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
-                                                                : ''
-                                                        )}
+                                                        className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
                                                         onClick={() =>
-                                                            setSnapToGridEnabled(
-                                                                (prev) => !prev
+                                                            highlightCustomTypeId(
+                                                                undefined
                                                             )
                                                         }
                                                     >
-                                                        <Magnet className="size-4" />
+                                                        <Highlighter className="size-4" />
                                                     </Button>
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {t('snap_to_grid_tooltip', {
-                                                    key:
-                                                        operatingSystem ===
-                                                        'mac'
-                                                            ? '⇧'
-                                                            : 'Shift',
-                                                })}
+                                                {t(
+                                                    'toolbar.custom_type_highlight_tooltip',
+                                                    {
+                                                        typeName:
+                                                            highlightedCustomType.name,
+                                                    }
+                                                )}
                                             </TooltipContent>
                                         </Tooltip>
-                                        {highlightedCustomType ? (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <span>
-                                                        <Button
-                                                            variant="secondary"
-                                                            className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
-                                                            onClick={() =>
-                                                                highlightCustomTypeId(
-                                                                    undefined
-                                                                )
-                                                            }
-                                                        >
-                                                            <Highlighter className="size-4" />
-                                                        </Button>
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    {t(
-                                                        'toolbar.custom_type_highlight_tooltip',
-                                                        {
-                                                            typeName:
-                                                                highlightedCustomType.name,
-                                                        }
-                                                    )}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        ) : null}
-                                    </>
-                                ) : null}
+                                    ) : null}
+                                </>
+                            ) : null}
 
-                                <div
-                                    className={`transition-opacity duration-300 ease-in-out ${
-                                        hasOverlappingTables
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                    }`}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span>
-                                                <Button
-                                                    variant="default"
-                                                    className="size-8 p-1 shadow-none"
-                                                    onClick={
-                                                        pulseOverlappingTables
-                                                    }
-                                                >
-                                                    <AlertTriangle className="size-4 text-white" />
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t(
-                                                'toolbar.highlight_overlapping_tables'
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
+                            <div
+                                className={`transition-opacity duration-300 ease-in-out ${
+                                    hasOverlappingTables
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                }`}
+                            >
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                variant="default"
+                                                className="size-8 p-1 shadow-none"
+                                                onClick={pulseOverlappingTables}
+                                            >
+                                                <AlertTriangle className="size-4 text-white" />
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {t(
+                                            'toolbar.highlight_overlapping_tables'
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
-                        </Controls>
-                    )}
+                        </div>
+                    </Controls>
                     {!clean && isLoadingDOM ? (
                         <Controls
                             position="top-center"
