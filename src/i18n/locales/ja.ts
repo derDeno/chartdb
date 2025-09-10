@@ -324,7 +324,7 @@ export const ja: LanguageTranslation = {
                 tables_count: 'テーブル数',
             },
             cancel: 'キャンセル',
-            start_new: 'Start with a new diagram',
+            start_new: '新しいダイアグラムで開始',
             open: '開く',
 
             diagram_actions: {

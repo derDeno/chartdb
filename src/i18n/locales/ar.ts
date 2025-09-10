@@ -321,7 +321,7 @@ export const ar: LanguageTranslation = {
                 tables_count: 'الجداول',
             },
             cancel: 'إلغاء',
-            start_new: 'Start with a new diagram',
+            start_new: 'ابدأ بمخطط جديد',
             open: 'فتح',
 
             diagram_actions: {

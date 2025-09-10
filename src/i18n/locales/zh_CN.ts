@@ -315,7 +315,7 @@ export const zh_CN: LanguageTranslation = {
                 tables_count: '表数量',
             },
             cancel: '取消',
-            start_new: 'Start with a new diagram',
+            start_new: '从新图表开始',
             open: '打开',
 
             diagram_actions: {

@@ -324,7 +324,7 @@ export const mr: LanguageTranslation = {
                 tables_count: 'टेबल्स',
             },
             cancel: 'रद्द करा',
-            start_new: 'Start with a new diagram',
+            start_new: 'नवीन आरेखासह प्रारंभ करा',
             open: 'उघडा',
 
             diagram_actions: {

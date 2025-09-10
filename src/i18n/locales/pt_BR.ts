@@ -323,7 +323,7 @@ export const pt_BR: LanguageTranslation = {
                 tables_count: 'Tabelas',
             },
             cancel: 'Cancelar',
-            start_new: 'Start with a new diagram',
+            start_new: 'Começar com um novo diagrama',
             open: 'Abrir',
 
             diagram_actions: {

@@ -325,7 +325,7 @@ export const de: LanguageTranslation = {
                 tables_count: 'Tabellen',
             },
             cancel: 'Abbrechen',
-            start_new: 'Start with a new diagram',
+            start_new: 'Mit einem neuen Diagramm starten',
             open: 'Öffnen',
 
             diagram_actions: {

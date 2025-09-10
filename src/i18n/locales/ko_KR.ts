@@ -321,7 +321,7 @@ export const ko_KR: LanguageTranslation = {
                 tables_count: '테이블 갯수',
             },
             cancel: '취소',
-            start_new: 'Start with a new diagram',
+            start_new: '새 다이어그램으로 시작',
             open: '열기',
 
             diagram_actions: {

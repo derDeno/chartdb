@@ -321,7 +321,7 @@ export const ru: LanguageTranslation = {
                 tables_count: 'Таблицы',
             },
             cancel: 'Отмена',
-            start_new: 'Start with a new diagram',
+            start_new: 'Начать с новой диаграммы',
             open: 'Открыть',
 
             diagram_actions: {

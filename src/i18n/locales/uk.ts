@@ -326,7 +326,7 @@ export const uk: LanguageTranslation = {
                 tables_count: 'Таблиці',
             },
             cancel: 'Скасувати',
-            start_new: 'Start with a new diagram',
+            start_new: 'Почати з нової діаграми',
             open: 'Відкрити',
 
             diagram_actions: {
