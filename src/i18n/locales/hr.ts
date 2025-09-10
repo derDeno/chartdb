@@ -327,7 +327,7 @@ export const hr: LanguageTranslation = {
                 tables_count: 'Tablice',
             },
             cancel: 'Odustani',
-            start_new: 'Start with a new diagram',
+            start_new: 'Započni s novim dijagramom',
             open: 'Otvori',
 
             diagram_actions: {

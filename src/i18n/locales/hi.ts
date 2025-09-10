@@ -322,7 +322,7 @@ export const hi: LanguageTranslation = {
                 tables_count: 'तालिकाएँ',
             },
             cancel: 'रद्द करें',
-            start_new: 'Start with a new diagram',
+            start_new: 'एक नए आरेख से शुरू करें',
             open: 'खोलें',
 
             diagram_actions: {

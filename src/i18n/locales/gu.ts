@@ -324,7 +324,7 @@ export const gu: LanguageTranslation = {
                 tables_count: 'ટેબલ્સ',
             },
             cancel: 'રદ કરો',
-            start_new: 'Start with a new diagram',
+            start_new: 'નવા આલેખ સાથે પ્રારંભ કરો',
             open: 'ખોલો',
 
             diagram_actions: {

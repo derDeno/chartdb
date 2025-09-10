@@ -324,7 +324,7 @@ export const ne: LanguageTranslation = {
                 tables_count: 'तालिकाहरू',
             },
             cancel: 'रद्द गर्नुहोस्',
-            start_new: 'Start with a new diagram',
+            start_new: 'नयाँ डायाग्रामबाट सुरु गर्नुहोस्',
             open: 'खोल्नुहोस्',
 
             diagram_actions: {

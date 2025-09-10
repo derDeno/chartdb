@@ -323,7 +323,7 @@ export const te: LanguageTranslation = {
                 tables_count: 'పట్టికలు',
             },
             cancel: 'రద్దు',
-            start_new: 'Start with a new diagram',
+            start_new: 'కొత్త డయాగ్రామ్‌తో ప్రారంభించండి',
             open: 'తెరవు',
 
             diagram_actions: {

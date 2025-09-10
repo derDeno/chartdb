@@ -323,7 +323,7 @@ export const vi: LanguageTranslation = {
                 tables_count: 'Số bảng',
             },
             cancel: 'Hủy',
-            start_new: 'Start with a new diagram',
+            start_new: 'Bắt đầu với sơ đồ mới',
             open: 'Mở',
 
             diagram_actions: {
