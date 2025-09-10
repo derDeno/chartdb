@@ -266,6 +266,7 @@ export const zh_CN: LanguageTranslation = {
             undo: '撤销',
             redo: '重做',
             reorder_diagram: '自动排列关系图',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

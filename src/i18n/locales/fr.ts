@@ -273,6 +273,7 @@ export const fr: LanguageTranslation = {
             undo: 'Annuler',
             redo: 'Rétablir',
             reorder_diagram: 'Organiser Automatiquement le Diagramme',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

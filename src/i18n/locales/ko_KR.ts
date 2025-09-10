@@ -271,6 +271,7 @@ export const ko_KR: LanguageTranslation = {
             undo: '실행 취소',
             redo: '다시 실행',
             reorder_diagram: '다이어그램 자동 정렬',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

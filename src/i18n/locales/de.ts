@@ -275,6 +275,8 @@ export const de: LanguageTranslation = {
             undo: 'Rückgängig',
             redo: 'Wiederholen',
             reorder_diagram: 'Diagramm automatisch anordnen',
+
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

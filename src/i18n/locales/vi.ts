@@ -273,6 +273,7 @@ export const vi: LanguageTranslation = {
             undo: 'Hoàn tác',
             redo: 'Làm lại',
             reorder_diagram: 'Tự động sắp xếp sơ đồ',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

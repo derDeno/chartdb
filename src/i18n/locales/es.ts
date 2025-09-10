@@ -262,7 +262,8 @@ export const es: LanguageTranslation = {
             undo: 'Deshacer',
             redo: 'Rehacer',
             reorder_diagram: 'Organizar Diagrama Automáticamente',
-            clear_custom_type_highlight: 'Borrar resaltado para "{{typeName}}"',
+            // TODO: Translate
+            clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Resaltado "{{typeName}}" - Haga clic para borrar',
             highlight_overlapping_tables: 'Resaltar tablas superpuestas',

@@ -275,6 +275,7 @@ export const uk: LanguageTranslation = {
             undo: 'Скасувати',
             redo: 'Повторити',
             reorder_diagram: 'Автоматичне розміщення діаграми',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

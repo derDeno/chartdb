@@ -275,6 +275,7 @@ export const ja: LanguageTranslation = {
             undo: '元に戻す',
             redo: 'やり直し',
             reorder_diagram: 'ダイアグラムを自動配置',
+            // TODO: Translate
             highlight_overlapping_tables: 'Highlight Overlapping Tables',
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

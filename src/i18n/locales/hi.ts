@@ -272,6 +272,7 @@ export const hi: LanguageTranslation = {
             undo: 'पूर्ववत करें',
             redo: 'पुनः करें',
             reorder_diagram: 'आरेख स्वचालित व्यवस्थित करें',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',

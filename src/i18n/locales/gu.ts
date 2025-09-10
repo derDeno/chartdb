@@ -275,6 +275,7 @@ export const gu: LanguageTranslation = {
             undo: 'અનડુ',
             redo: 'રીડુ',
             reorder_diagram: 'ડાયાગ્રામ ઑટોમેટિક ગોઠવો',
+            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
