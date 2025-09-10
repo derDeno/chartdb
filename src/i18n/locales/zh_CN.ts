@@ -111,9 +111,9 @@ export const zh_CN: LanguageTranslation = {
         copied: '复制了！',
 
         share_table_dialog: {
-            title: 'Share Table',
-            description: 'Copy the link below to share this table.',
-            close: 'Close',
+            title: '共享表',
+            description: '复制下面的链接以共享此表。',
+            close: '关闭',
         },
 
         side_panel: {
@@ -124,12 +124,10 @@ export const zh_CN: LanguageTranslation = {
                 add_view: '添加视图',
                 filter: '筛选',
                 collapse: '全部折叠',
-                // TODO: Translate
-                clear: 'Clear Filter',
-                no_results: 'No tables found matching your filter.',
-                // TODO: Translate
-                show_list: 'Show Table List',
-                show_dbml: 'Show DBML Editor',
+                clear: '清除过滤器',
+                no_results: '找不到与您的过滤器匹配的桌子。',
+                show_list: '显示表列表',
+                show_dbml: '显示DBML编辑器',
 
                 table: {
                     fields: '字段',
@@ -151,10 +149,8 @@ export const zh_CN: LanguageTranslation = {
                         comments: '注释',
                         no_comments: '空',
                         delete_field: '删除字段',
-                        // TODO: Translate
                         default_value: 'Default Value',
                         no_default: 'No default',
-                        // TODO: Translate
                         character_length: 'Max Length',
                         precision: '精度',
                         scale: '小数位',
@@ -171,7 +167,7 @@ export const zh_CN: LanguageTranslation = {
                         change_schema: '更改模式',
                         add_field: '添加字段',
                         add_index: '添加索引',
-                        duplicate_table: 'Duplicate Table', // TODO: Translate
+                        duplicate_table: '复制表',
                         delete_table: '删除表',
                     },
                 },
@@ -213,55 +209,51 @@ export const zh_CN: LanguageTranslation = {
                     description: '创建关系以开始',
                 },
             },
-
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: '区域',
+                add_area: '添加区域',
+                filter: '筛选',
+                clear: '清除过滤器',
+                no_results: '没有发现与您的过滤器相匹配的区域。',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: '区域行动',
+                        edit_name: '编辑名称',
+                        delete_area: '删除区域',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: '没有区域',
+                    description: '创建一个开始的区域',
                 },
             },
-            // TODO: Translate
             custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+                custom_types: '自定义类型',
+                filter: '筛选',
+                clear: '清除过滤器',
+                no_results: '没有发现与您的过滤器匹配的自定义类型。',
                 empty_state: {
-                    title: 'No custom types',
-                    description:
-                        'Custom types will appear here when they are available in your database',
+                    title: '没有自定义类型',
+                    description: '自定义类型将在您的数据库中可用时出现在此处',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: '种类',
+                    enum_values: '枚举值',
+                    composite_fields: '字段',
+                    no_fields: '没有定义字段',
                     no_values: '没有定义枚举值',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: '字段名称',
+                    field_type_placeholder: '选择类型',
+                    add_field: '添加字段',
+                    no_fields_tooltip: '该自定义类型没有定义的字段',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: '动作',
+                        highlight_fields: '突出显示字段',
+                        delete_custom_type: '删除',
+                        clear_field_highlight: '清晰的亮点',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: '删除类型',
                 },
             },
         },
@@ -274,12 +266,10 @@ export const zh_CN: LanguageTranslation = {
             undo: '撤销',
             redo: '重做',
             reorder_diagram: '自动排列关系图',
-            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
             highlight_overlapping_tables: '突出显示重叠的表',
-            // TODO: Translate
             filter: 'Filter Tables',
         },
 
@@ -301,7 +291,6 @@ export const zh_CN: LanguageTranslation = {
                     button_text: 'SSMS 说明',
                     title: '说明',
                     step_1: '前往 工具 > 选项 > 查询结果 > SQL Server。',
-                    // TODO: Add translations
                     step_2: '如果您使用“Result to Grid”功能，请将非 XML 数据的最大提取字符数更改为 9999999。',
                 },
                 instructions_link: '需要帮助？看看如何操作',
@@ -326,7 +315,7 @@ export const zh_CN: LanguageTranslation = {
                 tables_count: '表数量',
             },
             cancel: '取消',
-            start_new: 'Start with a new diagram',
+            start_new: '从新图表开始',
             open: '打开',
 
             diagram_actions: {
@@ -396,7 +385,6 @@ export const zh_CN: LanguageTranslation = {
             scale_4x: '4x',
             cancel: '取消',
             export: '导出',
-            // TODO: Translate
             advanced_options: 'Advanced Options',
             pattern: 'Include background pattern',
             pattern_description: 'Add subtle grid pattern to background.',
@@ -437,7 +425,6 @@ export const zh_CN: LanguageTranslation = {
             format_json: 'JSON',
             cancel: '取消',
             export: '导出',
-            // TODO: translate
             error: {
                 title: 'Error exporting diagram',
                 description:
@@ -456,7 +443,6 @@ export const zh_CN: LanguageTranslation = {
                     '关系图 JSON 无效，请检查 JSON 后重试。需要帮助？ 联系 support@chartdb.io',
             },
         },
-        // TODO: Translate
         import_dbml_dialog: {
             example_title: 'Import Example DBML',
             title: 'Import DBML',
@@ -481,15 +467,14 @@ export const zh_CN: LanguageTranslation = {
             new_table: '新建表',
             new_view: '新建视图',
             new_relationship: '新建关系',
-            // TODO: Translate
             new_area: 'New Area',
         },
 
         table_node_context_menu: {
             edit_table: '编辑表',
-            duplicate_table: 'Duplicate Table', // TODO: Translate
+            duplicate_table: '复制表',
             delete_table: '删除表',
-            add_relationship: 'Add Relationship', // TODO: Translate
+            add_relationship: '添加关系',
         },
 
         snap_to_grid_tooltip: '对齐到网格（按住 {{key}}）',

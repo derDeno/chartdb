@@ -114,9 +114,9 @@ export const ar: LanguageTranslation = {
         copied: '!تم النسخ',
 
         share_table_dialog: {
-            title: 'Share Table',
-            description: 'Copy the link below to share this table.',
-            close: 'Close',
+            title: 'جدول مشاركة',
+            description: 'انسخ الرابط أدناه لمشاركة هذا الجدول.',
+            close: 'يغلق',
         },
 
         side_panel: {
@@ -127,12 +127,10 @@ export const ar: LanguageTranslation = {
                 add_view: 'إضافة عرض',
                 filter: 'تصفية',
                 collapse: 'طي الكل',
-                // TODO: Translate
-                clear: 'Clear Filter',
-                no_results: 'No tables found matching your filter.',
-                // TODO: Translate
-                show_list: 'Show Table List',
-                show_dbml: 'Show DBML Editor',
+                clear: 'مرشح واضح',
+                no_results: 'لم يتم العثور على جداول مطابقة المرشح الخاص بك.',
+                show_list: 'عرض قائمة الجدول',
+                show_dbml: 'عرض محرر DBML',
 
                 table: {
                     fields: 'الحقول',
@@ -154,7 +152,6 @@ export const ar: LanguageTranslation = {
                         comments: 'تعليقات',
                         no_comments: 'لا يوجد تعليقات',
                         delete_field: 'حذف الحقل',
-                        // TODO: Translate
                         character_length: 'Max Length',
                         precision: 'الدقة',
                         scale: 'النطاق',
@@ -215,56 +212,53 @@ export const ar: LanguageTranslation = {
                     description: 'إنشاء علاقة للبدء',
                 },
             },
-
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: 'المناطق',
+                add_area: 'إضافة المنطقة',
+                filter: 'فلتر',
+                clear: 'مرشح واضح',
+                no_results: 'لم يتم العثور على مناطق مطابقة المرشح الخاص بك.',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: 'إجراءات المنطقة',
+                        edit_name: 'تحرير الاسم',
+                        delete_area: 'حذف المنطقة',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: 'لا مناطق',
+                    description: 'إنشاء منطقة للبدء',
                 },
             },
-
-            // TODO: Translate
             custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+                custom_types: 'أنواع مخصصة',
+                filter: 'فلتر',
+                clear: 'مرشح واضح',
+                no_results:
+                    'لم يتم العثور على أنواع مخصصة مطابقة المرشح الخاص بك.',
                 empty_state: {
-                    title: 'No custom types',
+                    title: 'لا أنواع مخصصة',
                     description:
-                        'Custom types will appear here when they are available in your database',
+                        'ستظهر أنواع مخصصة هنا عندما تكون متوفرة في قاعدة البيانات الخاصة بك',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: 'عطوف',
+                    enum_values: 'قيم التعداد',
+                    composite_fields: 'الحقول',
+                    no_fields: 'لا توجد حقول محددة',
                     no_values: 'لم يتم تحديد قيم التعداد',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: 'اسم الحقل',
+                    field_type_placeholder: 'حدد النوع',
+                    add_field: 'إضافة الحقل',
+                    no_fields_tooltip: 'لا توجد حقول محددة لهذا النوع المخصص',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: 'الإجراءات',
+                        highlight_fields: 'تسليط الضوء على الحقول',
+                        delete_custom_type: 'يمسح',
+                        clear_field_highlight: 'تسليط الضوء واضح',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: 'حذف النوع',
                 },
             },
         },
@@ -278,7 +272,6 @@ export const ar: LanguageTranslation = {
             redo: 'إعادة',
             reorder_diagram: 'ترتيب تلقائي للرسم البياني',
             highlight_overlapping_tables: 'تمييز الجداول المتداخلة',
-            // TODO: Translate
             filter: 'Filter Tables',
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
@@ -328,7 +321,7 @@ export const ar: LanguageTranslation = {
                 tables_count: 'الجداول',
             },
             cancel: 'إلغاء',
-            start_new: 'Start with a new diagram',
+            start_new: 'ابدأ بمخطط جديد',
             open: 'فتح',
 
             diagram_actions: {
@@ -399,7 +392,6 @@ export const ar: LanguageTranslation = {
             scale_4x: '4x',
             cancel: 'إلغاء',
             export: 'تصدير',
-            // TODO: Translate
             advanced_options: 'Advanced Options',
             pattern: 'Include background pattern',
             pattern_description: 'Add subtle grid pattern to background.',
@@ -459,7 +451,6 @@ export const ar: LanguageTranslation = {
             },
         },
         import_dbml_dialog: {
-            // TODO: Translate
             title: 'Import DBML',
             example_title: 'Import Example DBML',
             description: 'Import a database schema from DBML format.',
@@ -483,7 +474,6 @@ export const ar: LanguageTranslation = {
             new_table: 'جدول جديد',
             new_view: 'عرض جديد',
             new_relationship: 'علاقة جديدة',
-            // TODO: Translate
             new_area: 'New Area',
         },
 
@@ -491,7 +481,7 @@ export const ar: LanguageTranslation = {
             edit_table: 'تعديل الجدول',
             duplicate_table: 'نسخ الجدول',
             delete_table: 'حذف الجدول',
-            add_relationship: 'Add Relationship', // TODO: Translate
+            add_relationship: 'أضف العلاقة',
         },
 
         snap_to_grid_tooltip: '({{key}} مغنظة الشبكة (اضغط مع الاستمرار على',

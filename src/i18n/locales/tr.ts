@@ -44,7 +44,6 @@ export const tr: LanguageTranslation = {
                 show_minimap: 'Mini Haritayı Göster',
                 hide_minimap: 'Mini Haritayı Gizle',
             },
-            // TODO: Translate
             backup: {
                 backup: 'Backup',
                 export_diagram: 'Export Diagram',
@@ -115,9 +114,10 @@ export const tr: LanguageTranslation = {
         copied: 'Kopyalandı!',
 
         share_table_dialog: {
-            title: 'Share Table',
-            description: 'Copy the link below to share this table.',
-            close: 'Close',
+            title: 'Paylaşım Tablosu',
+            description:
+                'Bu tabloyu paylaşmak için aşağıdaki bağlantıyı kopyalayın.',
+            close: 'Kapalı',
         },
 
         side_panel: {
@@ -128,12 +128,10 @@ export const tr: LanguageTranslation = {
                 add_view: 'Görünüm Ekle',
                 filter: 'Filtrele',
                 collapse: 'Hepsini Daralt',
-                // TODO: Translate
-                clear: 'Clear Filter',
-                no_results: 'No tables found matching your filter.',
-                // TODO: Translate
-                show_list: 'Show Table List',
-                show_dbml: 'Show DBML Editor',
+                clear: 'Filtre temizlemek',
+                no_results: 'Filtrenizi eşleştiren hiçbir tablo bulunamadı.',
+                show_list: 'Tablo listesini göster',
+                show_dbml: 'Dbml editörünü göster',
 
                 table: {
                     fields: 'Alanlar',
@@ -155,10 +153,8 @@ export const tr: LanguageTranslation = {
                         comments: 'Yorumlar',
                         no_comments: 'Yorum yok',
                         delete_field: 'Alanı Sil',
-                        // TODO: Translate
                         default_value: 'Default Value',
                         no_default: 'No default',
-                        // TODO: Translate
                         character_length: 'Max Length',
                         precision: 'Hassasiyet',
                         scale: 'Ölçek',
@@ -175,8 +171,7 @@ export const tr: LanguageTranslation = {
                         change_schema: 'Şemayı Değiştir',
                         add_field: 'Alan Ekle',
                         add_index: 'İndeks Ekle',
-                        // TODO: Translate
-                        duplicate_table: 'Duplicate Table',
+                        duplicate_table: 'Yinelenen tablo',
                         delete_table: 'Tabloyu Sil',
                     },
                 },
@@ -218,55 +213,52 @@ export const tr: LanguageTranslation = {
                     description: 'Başlamak için bir ilişki oluşturun',
                 },
             },
-
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: 'Alanlar',
+                add_area: 'Alan ekle',
+                filter: 'Filtre',
+                clear: 'Filtre temizlemek',
+                no_results: 'Filtrenizle eşleşen hiçbir alan bulunamadı.',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: 'Alan eylemleri',
+                        edit_name: 'Adı Düzenle',
+                        delete_area: 'Alanı Sil',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: 'Alan yok',
+                    description: 'Başlamak için bir alan oluşturun',
                 },
             },
-            // TODO: Translate
             custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+                custom_types: 'Özel türler',
+                filter: 'Filtre',
+                clear: 'Filtre temizlemek',
+                no_results: 'Filtrenizle eşleşen özel tür bulunmadı.',
                 empty_state: {
-                    title: 'No custom types',
+                    title: 'Özel Tür yok',
                     description:
-                        'Custom types will appear here when they are available in your database',
+                        'Özel türler, veritabanınızda mevcut olduklarında burada görünecektir',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: 'Tür',
+                    enum_values: 'Enum değerleri',
+                    composite_fields: 'Alanlar',
+                    no_fields: 'Alan tanımlanmadı',
                     no_values: 'Tanımlanmış enum değeri yok',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: 'Saha adı',
+                    field_type_placeholder: 'Türü seçin',
+                    add_field: 'Alan ekle',
+                    no_fields_tooltip: 'Bu özel tür için tanımlanmadı',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: 'Eylem',
+                        highlight_fields: 'Alanları Vurgulamak',
+                        delete_custom_type: 'Silmek',
+                        clear_field_highlight: 'Net vurgu',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: 'Sil Tür',
                 },
             },
         },
@@ -278,12 +270,10 @@ export const tr: LanguageTranslation = {
             undo: 'Geri Al',
             redo: 'Yinele',
             reorder_diagram: 'Diyagramı Otomatik Düzenle',
-            // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
             highlight_overlapping_tables: 'Çakışan Tabloları Vurgula',
-            // TODO: Translate
             filter: 'Filter Tables',
         },
         new_diagram_dialog: {
@@ -310,7 +300,6 @@ export const tr: LanguageTranslation = {
                     'Yardıma mı ihtiyacınız var? İzlemek için tıklayın',
                 check_script_result: 'Komut Dosyası Sonucunu Kontrol Et',
             },
-            // TODO: Translate
             import_from_file: 'Import from File',
             cancel: 'İptal',
             back: 'Geri',
@@ -328,7 +317,7 @@ export const tr: LanguageTranslation = {
                 tables_count: 'Tablolar',
             },
             cancel: 'İptal',
-            start_new: 'Start with a new diagram',
+            start_new: 'Yeni bir diyagramla başlayın',
             open: 'Aç',
 
             diagram_actions: {
@@ -396,7 +385,6 @@ export const tr: LanguageTranslation = {
             scale_4x: '4x',
             cancel: 'İptal',
             export: 'Dışa Aktar',
-            // TODO: Translate
             advanced_options: 'Advanced Options',
             pattern: 'Include background pattern',
             pattern_description: 'Add subtle grid pattern to background.',
@@ -431,7 +419,6 @@ export const tr: LanguageTranslation = {
             close: 'Şimdi Değil',
             confirm: 'Tabii ki!',
         },
-        // TODO: Translate
         export_diagram_dialog: {
             title: 'Export Diagram',
             description: 'Choose the format for export:',
@@ -444,19 +431,16 @@ export const tr: LanguageTranslation = {
                     'Something went wrong. Need help? support@chartdb.io',
             },
         },
-        // TODO: Translate
         import_diagram_dialog: {
-            title: 'Import Diagram',
+            title: 'İthalat Şeması',
             description: 'Paste the diagram JSON below:',
             cancel: 'Cancel',
             import: 'Import',
             error: {
-                title: 'Error importing diagram',
-                description:
-                    'The diagram JSON is invalid. Please check the JSON and try again. Need help? support@chartdb.io',
+                title: 'Diyagramı İçe Aktarma Hatası',
+                description: 'JSON diyagramı geçersiz. ',
             },
         },
-        // TODO: Translate
         import_dbml_dialog: {
             example_title: 'Import Example DBML',
             title: 'Import DBML',
@@ -480,20 +464,15 @@ export const tr: LanguageTranslation = {
             new_table: 'Yeni Tablo',
             new_view: 'Yeni Görünüm',
             new_relationship: 'Yeni İlişki',
-            // TODO: Translate
             new_area: 'New Area',
         },
         table_node_context_menu: {
             edit_table: 'Tabloyu Düzenle',
             delete_table: 'Tabloyu Sil',
-            duplicate_table: 'Duplicate Table', // TODO: Translate
-            add_relationship: 'Add Relationship', // TODO: Translate
+            duplicate_table: 'Yinelenen tablo',
+            add_relationship: 'İlişki eklemek',
         },
-
-        // TODO: Translate
         snap_to_grid_tooltip: 'Snap to Grid (Hold {{key}})',
-
-        // TODO: Translate
         tool_tips: {
             double_click_to_edit: 'Double-click to edit',
         },
