@@ -22,13 +22,17 @@ RUN echo "VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}" > .env && \
 
 RUN npm run build
 
-FROM nginx:stable-alpine AS production
+FROM node:24-alpine AS production
 
-COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
-COPY ./default.conf.template /etc/nginx/conf.d/default.conf.template
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+ENV PORT=80
+ENV CHARTDB_DATA_DIR=/data
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/server ./server
 
 EXPOSE 80
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "server/index.js"]
