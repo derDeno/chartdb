@@ -27,6 +27,7 @@ import { DiffProvider } from '@/context/diff-context/diff-provider';
 import { TopNavbarMock } from './top-navbar/top-navbar-mock';
 import { DiagramFilterProvider } from '@/context/diagram-filter-context/diagram-filter-provider';
 import { useConfig } from '@/hooks/use-config';
+import { useCleanMode } from '@/hooks/use-clean-mode';
 
 const OPEN_STAR_US_AFTER_SECONDS = 30;
 const SHOW_STAR_US_AGAIN_AFTER_DAYS = 1;
@@ -39,7 +40,13 @@ export const EditorMobileLayoutLazy = React.lazy(
     () => import('./editor-mobile-layout')
 );
 
-const EditorPageComponent: React.FC = () => {
+export interface EditorPageComponentProps {
+    cleanMode?: boolean;
+}
+
+const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
+    cleanMode = false,
+}) => {
     const { diagramName, currentDiagram } = useChartDB();
     const { openStarUsDialog } = useDialog();
     const { isMd: isDesktop } = useBreakpoint('md');
@@ -50,7 +57,7 @@ const EditorPageComponent: React.FC = () => {
     const appName = config?.appName?.trim() || 'ChartDB';
 
     useEffect(() => {
-        if (HIDE_CHARTDB_CLOUD) {
+        if (HIDE_CHARTDB_CLOUD || cleanMode) {
             return;
         }
 
@@ -67,6 +74,7 @@ const EditorPageComponent: React.FC = () => {
             setTimeout(openStarUsDialog, OPEN_STAR_US_AFTER_SECONDS * 1000);
         }
     }, [
+        cleanMode,
         currentDiagram?.id,
         githubRepoOpened,
         openStarUsDialog,
@@ -89,7 +97,7 @@ const EditorPageComponent: React.FC = () => {
                 <Suspense
                     fallback={
                         <>
-                            <TopNavbarMock />
+                            {cleanMode ? null : <TopNavbarMock />}
                             <div className="flex flex-1 items-center justify-center">
                                 <Spinner
                                     size={isDesktop ? 'large' : 'medium'}
@@ -101,53 +109,67 @@ const EditorPageComponent: React.FC = () => {
                     {isDesktop ? (
                         <EditorDesktopLayoutLazy
                             initialDiagram={initialDiagram}
+                            cleanMode={cleanMode}
                         />
                     ) : (
                         <EditorMobileLayoutLazy
                             initialDiagram={initialDiagram}
+                            cleanMode={cleanMode}
                         />
                     )}
                 </Suspense>
             </section>
-            <Toaster />
+            {cleanMode ? null : <Toaster />}
         </>
     );
 };
 
-export const EditorPage: React.FC = () => (
-    <LocalConfigProvider>
-        <ThemeProvider>
-            <FullScreenLoaderProvider>
-                <LayoutProvider>
-                    <StorageProvider>
-                        <ConfigProvider>
-                            <RedoUndoStackProvider>
-                                <DiffProvider>
-                                    <ChartDBProvider>
-                                        <DiagramFilterProvider>
-                                            <HistoryProvider>
-                                                <ReactFlowProvider>
-                                                    <CanvasProvider>
-                                                        <ExportImageProvider>
-                                                            <AlertProvider>
-                                                                <DialogProvider>
-                                                                    <KeyboardShortcutsProvider>
-                                                                        <EditorPageComponent />
-                                                                    </KeyboardShortcutsProvider>
-                                                                </DialogProvider>
-                                                            </AlertProvider>
-                                                        </ExportImageProvider>
-                                                    </CanvasProvider>
-                                                </ReactFlowProvider>
-                                            </HistoryProvider>
-                                        </DiagramFilterProvider>
-                                    </ChartDBProvider>
-                                </DiffProvider>
-                            </RedoUndoStackProvider>
-                        </ConfigProvider>
-                    </StorageProvider>
-                </LayoutProvider>
-            </FullScreenLoaderProvider>
-        </ThemeProvider>
-    </LocalConfigProvider>
-);
+export const EditorPage: React.FC = () => {
+    const cleanMode = useCleanMode();
+
+    return (
+        <LocalConfigProvider>
+            <ThemeProvider disableHotkeys={cleanMode}>
+                <FullScreenLoaderProvider>
+                    <LayoutProvider>
+                        <StorageProvider>
+                            <ConfigProvider>
+                                <RedoUndoStackProvider>
+                                    <DiffProvider>
+                                        <ChartDBProvider readonly={cleanMode}>
+                                            <DiagramFilterProvider>
+                                                <HistoryProvider>
+                                                    <ReactFlowProvider>
+                                                        <CanvasProvider>
+                                                            <ExportImageProvider>
+                                                                <AlertProvider>
+                                                                    <DialogProvider>
+                                                                        <KeyboardShortcutsProvider
+                                                                            enabled={
+                                                                                !cleanMode
+                                                                            }
+                                                                        >
+                                                                            <EditorPageComponent
+                                                                                cleanMode={
+                                                                                    cleanMode
+                                                                                }
+                                                                            />
+                                                                        </KeyboardShortcutsProvider>
+                                                                    </DialogProvider>
+                                                                </AlertProvider>
+                                                            </ExportImageProvider>
+                                                        </CanvasProvider>
+                                                    </ReactFlowProvider>
+                                                </HistoryProvider>
+                                            </DiagramFilterProvider>
+                                        </ChartDBProvider>
+                                    </DiffProvider>
+                                </RedoUndoStackProvider>
+                            </ConfigProvider>
+                        </StorageProvider>
+                    </LayoutProvider>
+                </FullScreenLoaderProvider>
+            </ThemeProvider>
+        </LocalConfigProvider>
+    );
+};
