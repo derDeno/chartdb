@@ -45,7 +45,9 @@ const resolveStaticPath = (urlPath) => {
 
 const serveStatic = async (req, res) => {
     const urlPath = req.url ?? '/';
-    const filePath = resolveStaticPath(urlPath === '/' ? '/index.html' : urlPath);
+    const filePath = resolveStaticPath(
+        urlPath === '/' ? '/index.html' : urlPath
+    );
 
     try {
         const stat = await fs.stat(filePath);

@@ -186,7 +186,10 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
             const cachedId = index.get(entityId);
             if (cachedId) return cachedId;
 
-            for (const [diagramId, entry] of diagramCacheRef.current.entries()) {
+            for (const [
+                diagramId,
+                entry,
+            ] of diagramCacheRef.current.entries()) {
                 if (!entry.isFull) continue;
                 const collection = entry.diagram[key] as
                     | { id: string }[]
@@ -479,7 +482,12 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 await saveDiagram(diagram);
             });
         },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
+        [
+            enqueueDiagramTask,
+            getFullDiagram,
+            resolveDiagramIdForEntity,
+            saveDiagram,
+        ]
     );
 
     const putTable: StorageContext['putTable'] = useCallback(
@@ -509,7 +517,9 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 if (deletedDiagramsRef.current.has(diagramId)) return;
                 const diagram = await getFullDiagram(diagramId);
                 if (!diagram?.tables) return;
-                diagram.tables = diagram.tables.filter((table) => table.id !== id);
+                diagram.tables = diagram.tables.filter(
+                    (table) => table.id !== id
+                );
                 tableIndexRef.current.delete(id);
                 await saveDiagram(diagram);
             });
@@ -563,45 +573,57 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
         [getFullDiagram]
     );
 
-    const updateRelationship: StorageContext['updateRelationship'] = useCallback(
-        async ({ id, attributes }) => {
-            const diagramId = resolveDiagramIdForEntity(
-                id,
-                relationshipIndexRef.current,
-                'relationships'
-            );
-            if (!diagramId) return;
-
-            await enqueueDiagramTask(diagramId, async () => {
-                if (deletedDiagramsRef.current.has(diagramId)) return;
-                const diagram = await getFullDiagram(diagramId);
-                if (!diagram?.relationships) return;
-                const relationships = [...diagram.relationships];
-                const index = relationships.findIndex((rel) => rel.id === id);
-                if (index === -1) return;
-                relationships[index] = { ...relationships[index], ...attributes };
-                diagram.relationships = relationships;
-                await saveDiagram(diagram);
-            });
-        },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
-    );
-
-    const deleteRelationship: StorageContext['deleteRelationship'] = useCallback(
-        async ({ id, diagramId }) => {
-            await enqueueDiagramTask(diagramId, async () => {
-                if (deletedDiagramsRef.current.has(diagramId)) return;
-                const diagram = await getFullDiagram(diagramId);
-                if (!diagram?.relationships) return;
-                diagram.relationships = diagram.relationships.filter(
-                    (rel) => rel.id !== id
+    const updateRelationship: StorageContext['updateRelationship'] =
+        useCallback(
+            async ({ id, attributes }) => {
+                const diagramId = resolveDiagramIdForEntity(
+                    id,
+                    relationshipIndexRef.current,
+                    'relationships'
                 );
-                relationshipIndexRef.current.delete(id);
-                await saveDiagram(diagram);
-            });
-        },
-        [enqueueDiagramTask, getFullDiagram, saveDiagram]
-    );
+                if (!diagramId) return;
+
+                await enqueueDiagramTask(diagramId, async () => {
+                    if (deletedDiagramsRef.current.has(diagramId)) return;
+                    const diagram = await getFullDiagram(diagramId);
+                    if (!diagram?.relationships) return;
+                    const relationships = [...diagram.relationships];
+                    const index = relationships.findIndex(
+                        (rel) => rel.id === id
+                    );
+                    if (index === -1) return;
+                    relationships[index] = {
+                        ...relationships[index],
+                        ...attributes,
+                    };
+                    diagram.relationships = relationships;
+                    await saveDiagram(diagram);
+                });
+            },
+            [
+                enqueueDiagramTask,
+                getFullDiagram,
+                resolveDiagramIdForEntity,
+                saveDiagram,
+            ]
+        );
+
+    const deleteRelationship: StorageContext['deleteRelationship'] =
+        useCallback(
+            async ({ id, diagramId }) => {
+                await enqueueDiagramTask(diagramId, async () => {
+                    if (deletedDiagramsRef.current.has(diagramId)) return;
+                    const diagram = await getFullDiagram(diagramId);
+                    if (!diagram?.relationships) return;
+                    diagram.relationships = diagram.relationships.filter(
+                        (rel) => rel.id !== id
+                    );
+                    relationshipIndexRef.current.delete(id);
+                    await saveDiagram(diagram);
+                });
+            },
+            [enqueueDiagramTask, getFullDiagram, saveDiagram]
+        );
 
     const listRelationships: StorageContext['listRelationships'] = useCallback(
         async (diagramId) => {
@@ -631,7 +653,9 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
     const getDependency: StorageContext['getDependency'] = useCallback(
         async ({ diagramId, id }) => {
             const diagram = await getFullDiagram(diagramId);
-            return diagram?.dependencies?.find((dependency) => dependency.id === id);
+            return diagram?.dependencies?.find(
+                (dependency) => dependency.id === id
+            );
         },
         [getFullDiagram]
     );
@@ -659,7 +683,12 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 await saveDiagram(diagram);
             });
         },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
+        [
+            enqueueDiagramTask,
+            getFullDiagram,
+            resolveDiagramIdForEntity,
+            saveDiagram,
+        ]
     );
 
     const deleteDependency: StorageContext['deleteDependency'] = useCallback(
@@ -745,7 +774,12 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 await saveDiagram(diagram);
             });
         },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
+        [
+            enqueueDiagramTask,
+            getFullDiagram,
+            resolveDiagramIdForEntity,
+            saveDiagram,
+        ]
     );
 
     const deleteArea: StorageContext['deleteArea'] = useCallback(
@@ -770,19 +804,20 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
         [getFullDiagram]
     );
 
-    const deleteDiagramAreas: StorageContext['deleteDiagramAreas'] = useCallback(
-        async (diagramId) => {
-            await enqueueDiagramTask(diagramId, async () => {
-                if (deletedDiagramsRef.current.has(diagramId)) return;
-                const diagram = await getFullDiagram(diagramId);
-                if (!diagram) return;
-                diagram.areas = [];
-                indexDiagram(diagram);
-                await saveDiagram(diagram);
-            });
-        },
-        [enqueueDiagramTask, getFullDiagram, indexDiagram, saveDiagram]
-    );
+    const deleteDiagramAreas: StorageContext['deleteDiagramAreas'] =
+        useCallback(
+            async (diagramId) => {
+                await enqueueDiagramTask(diagramId, async () => {
+                    if (deletedDiagramsRef.current.has(diagramId)) return;
+                    const diagram = await getFullDiagram(diagramId);
+                    if (!diagram) return;
+                    diagram.areas = [];
+                    indexDiagram(diagram);
+                    await saveDiagram(diagram);
+                });
+            },
+            [enqueueDiagramTask, getFullDiagram, indexDiagram, saveDiagram]
+        );
 
     const addCustomType: StorageContext['addCustomType'] = useCallback(
         async ({ diagramId, customType }) => {
@@ -802,7 +837,9 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
     const getCustomType: StorageContext['getCustomType'] = useCallback(
         async ({ diagramId, id }) => {
             const diagram = await getFullDiagram(diagramId);
-            return diagram?.customTypes?.find((customType) => customType.id === id);
+            return diagram?.customTypes?.find(
+                (customType) => customType.id === id
+            );
         },
         [getFullDiagram]
     );
@@ -830,7 +867,12 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 await saveDiagram(diagram);
             });
         },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
+        [
+            enqueueDiagramTask,
+            getFullDiagram,
+            resolveDiagramIdForEntity,
+            saveDiagram,
+        ]
     );
 
     const deleteCustomType: StorageContext['deleteCustomType'] = useCallback(
@@ -918,7 +960,12 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
                 await saveDiagram(diagram);
             });
         },
-        [enqueueDiagramTask, getFullDiagram, resolveDiagramIdForEntity, saveDiagram]
+        [
+            enqueueDiagramTask,
+            getFullDiagram,
+            resolveDiagramIdForEntity,
+            saveDiagram,
+        ]
     );
 
     const deleteNote: StorageContext['deleteNote'] = useCallback(
@@ -943,19 +990,20 @@ export const StorageProvider: React.FC<React.PropsWithChildren> = ({
         [getFullDiagram]
     );
 
-    const deleteDiagramNotes: StorageContext['deleteDiagramNotes'] = useCallback(
-        async (diagramId) => {
-            await enqueueDiagramTask(diagramId, async () => {
-                if (deletedDiagramsRef.current.has(diagramId)) return;
-                const diagram = await getFullDiagram(diagramId);
-                if (!diagram) return;
-                diagram.notes = [];
-                indexDiagram(diagram);
-                await saveDiagram(diagram);
-            });
-        },
-        [enqueueDiagramTask, getFullDiagram, indexDiagram, saveDiagram]
-    );
+    const deleteDiagramNotes: StorageContext['deleteDiagramNotes'] =
+        useCallback(
+            async (diagramId) => {
+                await enqueueDiagramTask(diagramId, async () => {
+                    if (deletedDiagramsRef.current.has(diagramId)) return;
+                    const diagram = await getFullDiagram(diagramId);
+                    if (!diagram) return;
+                    diagram.notes = [];
+                    indexDiagram(diagram);
+                    await saveDiagram(diagram);
+                });
+            },
+            [enqueueDiagramTask, getFullDiagram, indexDiagram, saveDiagram]
+        );
 
     return (
         <storageContext.Provider
