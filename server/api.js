@@ -3,6 +3,15 @@ import path from 'node:path';
 
 const jsonContentType = { 'Content-Type': 'application/json; charset=utf-8' };
 const defaultConfig = { defaultDiagramId: '' };
+const assetContentTypes = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
+    '.ico': 'image/x-icon',
+};
 const includeKeys = [
     'tables',
     'relationships',
@@ -69,6 +78,22 @@ const sendJson = (res, statusCode, data) => {
 const sendEmpty = (res, statusCode) => {
     res.statusCode = statusCode;
     res.end();
+};
+
+const sendFile = (res, data, contentType) => {
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+};
+
+const resolveSafePath = (baseDir, targetPath) => {
+    if (!targetPath) return null;
+    const base = path.resolve(baseDir);
+    const resolved = path.resolve(baseDir, targetPath);
+    if (resolved === base) return resolved;
+    if (!resolved.startsWith(base + path.sep)) {
+        return null;
+    }
+    return resolved;
 };
 
 const isSafeId = (value) => {
@@ -151,6 +176,35 @@ export const createApiHandler = ({ dataDir = resolveDataDir() } = {}) => {
                     }
                     await writeJsonAtomic(configPath, data);
                     sendEmpty(res, 204);
+                    return true;
+                }
+            }
+
+            if (url.pathname.startsWith('/api/config/assets/')) {
+                if (req.method === 'GET') {
+                    const assetPath = decodeURIComponent(
+                        url.pathname.replace('/api/config/assets/', '')
+                    );
+                    const resolvedPath = resolveSafePath(dataDir, assetPath);
+                    if (!resolvedPath) {
+                        sendEmpty(res, 404);
+                        return true;
+                    }
+
+                    try {
+                        const data = await fs.readFile(resolvedPath);
+                        const ext = path.extname(resolvedPath).toLowerCase();
+                        const contentType =
+                            assetContentTypes[ext] ??
+                            'application/octet-stream';
+                        sendFile(res, data, contentType);
+                    } catch (error) {
+                        if (error?.code === 'ENOENT') {
+                            sendEmpty(res, 404);
+                        } else {
+                            throw error;
+                        }
+                    }
                     return true;
                 }
             }

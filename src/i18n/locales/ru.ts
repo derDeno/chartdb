@@ -43,6 +43,8 @@ export const ru: LanguageTranslation = {
                 hide_dependencies: 'Скрыть зависимости',
                 show_minimap: 'Показать мини-карту',
                 hide_minimap: 'Скрыть мини-карту',
+                expand_all_tables: 'Expand All Tables',
+                collapse_all_tables: 'Collapse All Tables',
             },
             backup: {
                 backup: 'Бэкап',

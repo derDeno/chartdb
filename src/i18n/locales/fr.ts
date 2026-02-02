@@ -43,6 +43,8 @@ export const fr: LanguageTranslation = {
                 hide_dependencies: 'Masquer les Dépendances',
                 show_minimap: 'Afficher la Mini Carte',
                 hide_minimap: 'Masquer la Mini Carte',
+                expand_all_tables: 'Expand All Tables',
+                collapse_all_tables: 'Collapse All Tables',
             },
             backup: {
                 backup: 'Sauvegarde',
