@@ -1,7 +1,11 @@
 import { dbIndexSchema, type DBIndex } from './db-index';
 import { dbFieldSchema, type DBField } from './db-field';
 import type { DBRelationship } from './db-relationship';
-import { deepCopy } from '../utils';
+import {
+    dbCheckConstraintSchema,
+    type DBCheckConstraint,
+} from './db-check-constraint';
+import { deepCopy, findContainingArea } from '../utils';
 import { schemaNameToDomainSchemaName } from './db-schema';
 import { z } from 'zod';
 import type { Area } from './area';
@@ -19,6 +23,7 @@ export interface DBTable {
     y: number;
     fields: DBField[];
     indexes: DBIndex[];
+    checkConstraints?: DBCheckConstraint[] | null;
     color: string;
     isView: boolean;
     isMaterializedView?: boolean | null;
@@ -38,6 +43,7 @@ export const dbTableSchema: z.ZodType<DBTable> = z.object({
     y: z.number(),
     fields: z.array(dbFieldSchema),
     indexes: z.array(dbIndexSchema),
+    checkConstraints: z.array(dbCheckConstraintSchema).or(z.null()).optional(),
     color: z.string(),
     isView: z.boolean(),
     isMaterializedView: z.boolean().or(z.null()).optional(),
@@ -77,6 +83,13 @@ export const adjustTablePositions = ({
     if (areas.length === 0) {
         return adjustTablePositionsWithoutAreas(tables, relationships, mode);
     }
+
+    // Update parentAreaId based on geometric containment before grouping
+    // This ensures tables that are visually inside an area get assigned to it
+    tables.forEach((table) => {
+        const containingArea = findContainingArea(table, areas);
+        table.parentAreaId = containingArea?.id || null;
+    });
 
     // Group tables by their parent area
     const tablesByArea = new Map<string | null, DBTable[]>();

@@ -2,10 +2,12 @@ import type { DBTable } from '@/lib/domain/db-table';
 import type { ChartDBContext } from '../chartdb-context/chartdb-context';
 import type { DBField } from '@/lib/domain/db-field';
 import type { DBIndex } from '@/lib/domain/db-index';
+import type { DBCheckConstraint } from '@/lib/domain/db-check-constraint';
 import type { DBRelationship } from '@/lib/domain/db-relationship';
 import type { DBDependency } from '@/lib/domain/db-dependency';
 import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
+import type { Note } from '@/lib/domain/note';
 
 type Action = keyof ChartDBContext;
 
@@ -89,6 +91,32 @@ type RedoUndoActionUpdateIndex = RedoUndoActionBase<
     { tableId: string; indexId: string; index: Partial<DBIndex> }
 >;
 
+type RedoUndoActionAddCheckConstraint = RedoUndoActionBase<
+    'addCheckConstraint',
+    { tableId: string; constraint: DBCheckConstraint },
+    { tableId: string; constraintId: string }
+>;
+
+type RedoUndoActionRemoveCheckConstraint = RedoUndoActionBase<
+    'removeCheckConstraint',
+    { tableId: string; constraintId: string },
+    { tableId: string; constraint: DBCheckConstraint }
+>;
+
+type RedoUndoActionUpdateCheckConstraint = RedoUndoActionBase<
+    'updateCheckConstraint',
+    {
+        tableId: string;
+        constraintId: string;
+        constraint: Partial<DBCheckConstraint>;
+    },
+    {
+        tableId: string;
+        constraintId: string;
+        constraint: Partial<DBCheckConstraint>;
+    }
+>;
+
 type RedoUndoActionAddRelationships = RedoUndoActionBase<
     'addRelationships',
     { relationships: DBRelationship[] },
@@ -161,6 +189,24 @@ type RedoUndoActionRemoveCustomTypes = RedoUndoActionBase<
     { customTypes: DBCustomType[] }
 >;
 
+type RedoUndoActionAddNotes = RedoUndoActionBase<
+    'addNotes',
+    { notes: Note[] },
+    { noteIds: string[] }
+>;
+
+type RedoUndoActionUpdateNote = RedoUndoActionBase<
+    'updateNote',
+    { noteId: string; note: Partial<Note> },
+    { noteId: string; note: Partial<Note> }
+>;
+
+type RedoUndoActionRemoveNotes = RedoUndoActionBase<
+    'removeNotes',
+    { noteIds: string[] },
+    { notes: Note[] }
+>;
+
 export type RedoUndoAction =
     | RedoUndoActionAddTables
     | RedoUndoActionRemoveTables
@@ -173,6 +219,9 @@ export type RedoUndoAction =
     | RedoUndoActionAddIndex
     | RedoUndoActionRemoveIndex
     | RedoUndoActionUpdateIndex
+    | RedoUndoActionAddCheckConstraint
+    | RedoUndoActionRemoveCheckConstraint
+    | RedoUndoActionUpdateCheckConstraint
     | RedoUndoActionAddRelationships
     | RedoUndoActionUpdateRelationship
     | RedoUndoActionRemoveRelationships
@@ -184,7 +233,10 @@ export type RedoUndoAction =
     | RedoUndoActionRemoveAreas
     | RedoUndoActionAddCustomTypes
     | RedoUndoActionUpdateCustomType
-    | RedoUndoActionRemoveCustomTypes;
+    | RedoUndoActionRemoveCustomTypes
+    | RedoUndoActionAddNotes
+    | RedoUndoActionUpdateNote
+    | RedoUndoActionRemoveNotes;
 
 export type RedoActionData<T extends Action> = Extract<
     RedoUndoAction,

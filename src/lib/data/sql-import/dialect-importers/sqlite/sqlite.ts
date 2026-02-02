@@ -5,6 +5,7 @@ import type {
     SQLIndex,
     SQLForeignKey,
     SQLASTNode,
+    SQLCheckConstraint,
 } from '../../common';
 import type {
     TableReference,
@@ -122,10 +123,68 @@ export async function fromSQLite(sqlContent: string): Promise<SQLParserResult> {
             return isValidForeignKeyRelationship(rel, tables);
         });
 
+        // Extract check constraints and add to tables
+        addCheckConstraintsToTables(sqlContent, tables);
+
         return { tables, relationships: validRelationships };
     } catch (error) {
         console.error('Error parsing SQLite SQL:', error);
         throw error;
+    }
+}
+
+/**
+ * Extract check constraints from SQL and add them to existing tables
+ */
+function addCheckConstraintsToTables(
+    sqlContent: string,
+    tables: SQLTable[]
+): void {
+    // Find all CREATE TABLE statements and extract check constraints
+    const createTableRegex =
+        /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:"([^"]+)"|([^\s(]+))\s*\(([\s\S]+?)\)(?:\s*;|\s*$)/gi;
+
+    let match;
+    while ((match = createTableRegex.exec(sqlContent)) !== null) {
+        const tableName = match[1] || match[2];
+        const tableBody = match[3];
+
+        // Find the table in our tables array
+        const table = tables.find(
+            (t) => t.name.toLowerCase() === tableName.toLowerCase()
+        );
+        if (!table) continue;
+
+        // Extract check constraints from this table body
+        const checkPattern =
+            /(?:CONSTRAINT\s+(?:"[^"]+"|[^\s]+)\s+)?CHECK\s*\(/gi;
+        let checkMatch;
+
+        const constraints: SQLCheckConstraint[] = [];
+
+        while ((checkMatch = checkPattern.exec(tableBody)) !== null) {
+            const startIdx = checkMatch.index + checkMatch[0].length;
+            let depth = 1;
+            let endIdx = startIdx;
+
+            // Find the matching closing parenthesis
+            for (let i = startIdx; i < tableBody.length && depth > 0; i++) {
+                if (tableBody[i] === '(') depth++;
+                else if (tableBody[i] === ')') depth--;
+                endIdx = i;
+            }
+
+            if (depth === 0) {
+                const expression = tableBody.substring(startIdx, endIdx).trim();
+                if (expression) {
+                    constraints.push({ expression });
+                }
+            }
+        }
+
+        if (constraints.length > 0) {
+            table.checkConstraints = constraints;
+        }
     }
 }
 
@@ -139,6 +198,7 @@ function parseCreateTableStatements(sqlContent: string): {
     const tables: {
         name: string;
         columns: SQLColumn[];
+        primaryKeyColumns?: string[];
     }[] = [];
 
     // Remove comments before processing
@@ -162,9 +222,14 @@ function parseCreateTableStatements(sqlContent: string): {
         const tableName = match[1];
         const tableBody = match[2].trim();
 
-        const table: { name: string; columns: SQLColumn[] } = {
+        const table: {
+            name: string;
+            columns: SQLColumn[];
+            primaryKeyColumns?: string[];
+        } = {
             name: tableName,
             columns: [],
+            primaryKeyColumns: [],
         };
 
         // Special case: sqlite_sequence or tables with columns but no types
@@ -215,14 +280,31 @@ function parseCreateTableStatements(sqlContent: string): {
 
             for (const columnDef of columnDefs) {
                 const line = columnDef.trim();
+                const upperLine = line.toUpperCase();
 
-                // Skip constraints
+                // Handle table-level PRIMARY KEY constraint
+                // Matches: PRIMARY KEY (col1, col2) or CONSTRAINT name PRIMARY KEY (col1, col2)
                 if (
-                    line.toUpperCase().startsWith('FOREIGN KEY') ||
-                    line.toUpperCase().startsWith('PRIMARY KEY') ||
-                    line.toUpperCase().startsWith('UNIQUE') ||
-                    line.toUpperCase().startsWith('CHECK') ||
-                    line.toUpperCase().startsWith('CONSTRAINT')
+                    upperLine.startsWith('PRIMARY KEY') ||
+                    (upperLine.startsWith('CONSTRAINT') &&
+                        upperLine.includes('PRIMARY KEY'))
+                ) {
+                    const pkMatch = line.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i);
+                    if (pkMatch) {
+                        const pkCols = pkMatch[1]
+                            .split(',')
+                            .map((c) => c.trim().replace(/["'`]/g, ''));
+                        table.primaryKeyColumns = pkCols;
+                    }
+                    continue;
+                }
+
+                // Skip other constraints
+                if (
+                    upperLine.startsWith('FOREIGN KEY') ||
+                    upperLine.startsWith('UNIQUE') ||
+                    upperLine.startsWith('CHECK') ||
+                    upperLine.startsWith('CONSTRAINT')
                 ) {
                     continue;
                 }
@@ -310,6 +392,24 @@ function parseCreateTableStatements(sqlContent: string): {
                             isAutoIncrement &&
                             columnType === 'INTEGER',
                     });
+                }
+            }
+        }
+
+        // Apply table-level PRIMARY KEY constraint to columns
+        if (table.primaryKeyColumns && table.primaryKeyColumns.length > 0) {
+            const isSingleColumnPK = table.primaryKeyColumns.length === 1;
+            for (const col of table.columns) {
+                if (table.primaryKeyColumns.includes(col.name)) {
+                    col.primaryKey = true;
+                    // Only mark as unique if single-column PK
+                    if (isSingleColumnPK) {
+                        col.unique = true;
+                    }
+                    // In SQLite, INTEGER PRIMARY KEY is auto-incrementing
+                    if (col.type.toLowerCase() === 'integer') {
+                        col.increment = true;
+                    }
                 }
             }
         }
@@ -482,12 +582,16 @@ function processCreateTableStatement(
                 // Process constraint definition
                 const constraintDef = def as ConstraintDefinition;
 
+                // Get columns from either columns or definition.columns
+                const constraintColumns =
+                    constraintDef.columns || constraintDef.definition?.columns;
+
                 // Process PRIMARY KEY constraint
                 if (
                     constraintDef.constraint_type === 'primary key' &&
-                    constraintDef.columns
+                    constraintColumns
                 ) {
-                    primaryKeyColumns = constraintDef.columns
+                    primaryKeyColumns = constraintColumns
                         .map(extractColumnName)
                         .filter(Boolean);
                 }
@@ -495,9 +599,9 @@ function processCreateTableStatement(
                 // Process UNIQUE constraint
                 if (
                     constraintDef.constraint_type === 'unique' &&
-                    constraintDef.columns
+                    constraintColumns
                 ) {
-                    const uniqueColumns = constraintDef.columns
+                    const uniqueColumns = constraintColumns
                         .map(extractColumnName)
                         .filter(Boolean);
 
@@ -519,9 +623,15 @@ function processCreateTableStatement(
 
     // Update primary key flags in columns
     if (primaryKeyColumns.length > 0) {
+        const isSingleColumnPK = primaryKeyColumns.length === 1;
         columns.forEach((column) => {
             if (primaryKeyColumns.includes(column.name)) {
                 column.primaryKey = true;
+
+                // Only mark as unique if single-column PK
+                if (isSingleColumnPK) {
+                    column.unique = true;
+                }
 
                 // In SQLite, INTEGER PRIMARY KEY is automatically an alias for ROWID (auto-incrementing)
                 if (column.type.toLowerCase() === 'integer') {

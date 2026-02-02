@@ -2,9 +2,10 @@ import { z } from 'zod';
 import {
     dataTypeSchema,
     findDataTypeDataById,
+    supportsArrayDataType,
     type DataType,
 } from '../data/data-types/data-types';
-import type { DatabaseType } from './database-type';
+import { DatabaseType } from './database-type';
 
 export interface DBField {
     id: string;
@@ -14,6 +15,7 @@ export interface DBField {
     unique: boolean;
     nullable: boolean;
     increment?: boolean | null;
+    isArray?: boolean | null;
     createdAt: number;
     characterMaximumLength?: string | null;
     precision?: number | null;
@@ -21,6 +23,7 @@ export interface DBField {
     default?: string | null;
     collation?: string | null;
     comments?: string | null;
+    check?: string | null;
 }
 
 export const dbFieldSchema: z.ZodType<DBField> = z.object({
@@ -31,6 +34,7 @@ export const dbFieldSchema: z.ZodType<DBField> = z.object({
     unique: z.boolean(),
     nullable: z.boolean(),
     increment: z.boolean().or(z.null()).optional(),
+    isArray: z.boolean().or(z.null()).optional(),
     createdAt: z.number(),
     characterMaximumLength: z.string().or(z.null()).optional(),
     precision: z.number().or(z.null()).optional(),
@@ -38,6 +42,7 @@ export const dbFieldSchema: z.ZodType<DBField> = z.object({
     default: z.string().or(z.null()).optional(),
     collation: z.string().or(z.null()).optional(),
     comments: z.string().or(z.null()).optional(),
+    check: z.string().or(z.null()).optional(),
 });
 
 export const generateDBFieldSuffix = (
@@ -52,11 +57,26 @@ export const generateDBFieldSuffix = (
         typeId?: string;
     } = {}
 ): string => {
+    let suffix = '';
+
     if (databaseType && forceExtended && typeId) {
-        return generateExtendedSuffix(field, databaseType, typeId);
+        suffix = generateExtendedSuffix(field, databaseType, typeId);
+    } else {
+        suffix = generateStandardSuffix(field);
     }
 
-    return generateStandardSuffix(field);
+    // Add array notation if field is an array
+    if (
+        field.isArray &&
+        supportsArrayDataType(
+            typeId ?? field.type.id,
+            databaseType ?? DatabaseType.GENERIC
+        )
+    ) {
+        suffix += '[]';
+    }
+
+    return suffix;
 };
 
 const generateExtendedSuffix = (

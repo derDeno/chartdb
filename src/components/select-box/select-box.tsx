@@ -58,6 +58,8 @@ export interface SelectBoxProps {
     footerButtons?: React.ReactNode;
     commandOnMouseDown?: (e: React.MouseEvent) => void;
     commandOnClick?: (e: React.MouseEvent) => void;
+    onSearchChange?: (search: string) => void;
+    modal?: boolean;
 }
 
 export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
@@ -87,6 +89,8 @@ export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
             footerButtons,
             commandOnMouseDown,
             commandOnClick,
+            onSearchChange,
+            modal = true,
         },
         ref
     ) => {
@@ -240,7 +244,11 @@ export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
                     <CommandItem
                         className="flex items-center"
                         key={option.value}
-                        keywords={option.regex ? [option.regex] : undefined}
+                        value={option.label}
+                        keywords={[
+                            ...(option.regex ? [option.regex] : []),
+                            ...(option.description ? [option.description] : []),
+                        ]}
                         onSelect={() =>
                             handleSelect(
                                 option.value,
@@ -306,7 +314,7 @@ export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
         );
 
         return (
-            <Popover open={isOpen} onOpenChange={onOpenChange} modal={true}>
+            <Popover open={isOpen} onOpenChange={onOpenChange} modal={modal}>
                 <PopoverTrigger asChild tabIndex={0} onKeyDown={handleKeyDown}>
                     <div
                         className={cn(
@@ -385,18 +393,22 @@ export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
                 >
                     <Command
                         filter={(value, search, keywords) => {
+                            const searchLower = search.toLowerCase();
+
                             if (
                                 keywords?.length &&
-                                keywords.some((keyword) =>
-                                    new RegExp(keyword).test(search)
+                                keywords.some(
+                                    (keyword) =>
+                                        keyword
+                                            .toLowerCase()
+                                            .includes(searchLower) ||
+                                        new RegExp(keyword).test(search)
                                 )
                             ) {
                                 return 1;
                             }
 
-                            return value
-                                .toLowerCase()
-                                .includes(search.toLowerCase())
+                            return value.toLowerCase().includes(searchLower)
                                 ? 1
                                 : 0;
                         }}
@@ -404,7 +416,10 @@ export const SelectBox = React.forwardRef<HTMLInputElement, SelectBoxProps>(
                         <div className="relative">
                             <CommandInput
                                 value={searchTerm}
-                                onValueChange={(e) => setSearchTerm(e)}
+                                onValueChange={(e) => {
+                                    setSearchTerm(e);
+                                    onSearchChange?.(e);
+                                }}
                                 ref={ref}
                                 placeholder={inputPlaceholder ?? 'Search...'}
                                 className="h-9"

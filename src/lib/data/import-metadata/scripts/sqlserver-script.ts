@@ -1,8 +1,8 @@
 import { DatabaseEdition } from '@/lib/domain/database-edition';
 
-const withExtras = false;
+const withDefault = true;
 
-const withDefault = `'"' + STRING_ESCAPE(COALESCE(REPLACE(CAST(cols.COLUMN_DEFAULT AS NVARCHAR(MAX)), '"', '\\"'), ''), 'json') + '"'`;
+const withDefaultExpr = `'"' + STRING_ESCAPE(COALESCE(REPLACE(CAST(cols.COLUMN_DEFAULT AS NVARCHAR(MAX)), '"', '\\"'), ''), 'json') + '"'`;
 const withoutDefault = `'""'`;
 
 const sqlServerQuery = `${`/* SQL Server 2017 and above edition (14.0, 15.0, 16.0, 17.0)*/`}
@@ -86,10 +86,15 @@ cols AS (
                                 ELSE 'null'
                             END +
                         ', "nullable": ' + CASE WHEN cols.IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END +
-                        ', "default": ' + ${withExtras ? withDefault : withoutDefault} +
+                        ', "default": ' + ${withDefault ? withDefaultExpr : withoutDefault} +
                         ', "collation": ' + CASE
                             WHEN cols.COLLATION_NAME IS NULL THEN 'null'
                             ELSE '"' + STRING_ESCAPE(cols.COLLATION_NAME, 'json') + '"'
+                        END +
+                        ', "is_identity": ' + CASE 
+                            WHEN COLUMNPROPERTY(OBJECT_ID(cols.TABLE_SCHEMA + '.' + cols.TABLE_NAME), cols.COLUMN_NAME, 'IsIdentity') = 1 
+                            THEN 'true' 
+                            ELSE 'false' 
                         END +
                     N'}') COLLATE DATABASE_DEFAULT
                 ), N','
@@ -179,6 +184,24 @@ views AS (
     CROSS APPLY
         (SELECT CONVERT(VARBINARY(MAX), m.definition) AS DefinitionBinary) AS bin
     WHERE s.name LIKE '%'
+),
+check_constraints AS (
+    SELECT
+        JSON_QUERY(
+            N'[' + STRING_AGG(
+                CONVERT(nvarchar(max),
+                    JSON_QUERY(N'{
+                        "schema": "' + STRING_ESCAPE(COALESCE(REPLACE(s.name, '"', ''), ''), 'json') +
+                        '", "table": "' + STRING_ESCAPE(COALESCE(REPLACE(t.name, '"', ''), ''), 'json') +
+                        '", "expression": "' + STRING_ESCAPE(COALESCE(REPLACE(REPLACE(cc.definition, '"', '\\"'), CHAR(10), ' '), ''), 'json') +
+                    '"}') COLLATE DATABASE_DEFAULT
+                ), N','
+            ) + N']'
+        ) AS all_check_constraints_json
+    FROM sys.check_constraints cc
+    JOIN sys.tables t ON cc.parent_object_id = t.object_id
+    JOIN sys.schemas s ON t.schema_id = s.schema_id
+    WHERE s.name LIKE '%'
 )
 SELECT JSON_QUERY(
     N'{
@@ -188,6 +211,7 @@ SELECT JSON_QUERY(
         ', "indexes": ' + ISNULL((SELECT cast(all_indexes_json as nvarchar(max)) FROM indexes), N'[]') +
         ', "tables": ' + ISNULL((SELECT cast(all_tables_json as nvarchar(max)) FROM tbls), N'[]') +
         ', "views": ' + ISNULL((SELECT cast(all_views_json as nvarchar(max)) FROM views), N'[]') +
+        ', "check_constraints": ' + ISNULL((SELECT cast(all_check_constraints_json as nvarchar(max)) FROM check_constraints), N'[]') +
         ', "database_name": "' + STRING_ESCAPE(DB_NAME(), 'json') +
         '", "version": ""
     }'
@@ -279,7 +303,7 @@ cols AS (
                                         ELSE 'null'
                                     END +
                                 ', "nullable": ' + CASE WHEN cols.IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END +
-                                ', "default": ' + ${withExtras ? withDefault : withoutDefault} +
+                                ', "default": ' + ${withDefault ? withDefaultExpr : withoutDefault} +
                                 ', "collation": ' +
                                     CASE
                                         WHEN cols.COLLATION_NAME IS NULL THEN 'null'
@@ -391,6 +415,26 @@ views AS (
                             s.name LIKE '%'
                         FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '')
         ) + ']' AS all_views_json
+),
+check_constraints AS (
+    SELECT
+        '[' + ISNULL(
+            STUFF((
+                SELECT ',' +
+                    CONVERT(nvarchar(max),
+                    JSON_QUERY(N'{
+                        "schema": "' + STRING_ESCAPE(COALESCE(REPLACE(s.name, '"', ''), ''), 'json') +
+                        '", "table": "' + STRING_ESCAPE(COALESCE(REPLACE(t.name, '"', ''), ''), 'json') +
+                        '", "expression": "' + STRING_ESCAPE(COALESCE(REPLACE(REPLACE(cc.definition, '"', '\\"'), CHAR(10), ' '), ''), 'json') +
+                    '"}') COLLATE DATABASE_DEFAULT
+                )
+                FROM sys.check_constraints cc
+                JOIN sys.tables t ON cc.parent_object_id = t.object_id
+                JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name LIKE '%'
+                FOR XML PATH('')
+            ), 1, 1, ''), '')
+        + N']' AS all_check_constraints_json
 )
 SELECT JSON_QUERY(
     N'{
@@ -400,6 +444,7 @@ SELECT JSON_QUERY(
         ', "indexes": ' + ISNULL((SELECT cast(all_indexes_json as nvarchar(max)) FROM indexes), N'[]') +
         ', "tables": ' + ISNULL((SELECT cast(all_objects_json as nvarchar(max)) FROM tbls), N'[]') +
         ', "views": ' + ISNULL((SELECT cast(all_views_json as nvarchar(max)) FROM views), N'[]') +
+        ', "check_constraints": ' + ISNULL((SELECT cast(all_check_constraints_json as nvarchar(max)) FROM check_constraints), N'[]') +
         ', "database_name": "' + DB_NAME() + '"' +
         ', "version": ""
     }'

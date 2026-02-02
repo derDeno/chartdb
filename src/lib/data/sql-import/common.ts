@@ -4,12 +4,17 @@ import type { DBTable } from '@/lib/domain/db-table';
 import type { Cardinality, DBRelationship } from '@/lib/domain/db-relationship';
 import type { DBField } from '@/lib/domain/db-field';
 import type { DBIndex } from '@/lib/domain/db-index';
-import type { DataType } from '@/lib/data/data-types/data-types';
+import type { DBCheckConstraint } from '@/lib/domain/db-check-constraint';
+import {
+    getPreferredSynonym,
+    type DataType,
+} from '@/lib/data/data-types/data-types';
 import { genericDataTypes } from '@/lib/data/data-types/generic-data-types';
-import { defaultTableColor } from '@/lib/colors';
+import { defaultTableColor, viewColor } from '@/lib/colors';
 import { DatabaseType } from '@/lib/domain/database-type';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import { DBCustomTypeKind } from '@/lib/domain/db-custom-type';
+import { supportsCustomTypes } from '@/lib/domain/database-capabilities';
 
 // Common interfaces for SQL entities
 export interface SQLColumn {
@@ -31,20 +36,27 @@ export interface SQLColumn {
     increment?: boolean;
 }
 
+export interface SQLCheckConstraint {
+    expression: string;
+}
+
 export interface SQLTable {
     id: string;
     name: string;
     schema?: string;
     columns: SQLColumn[];
     indexes: SQLIndex[];
+    checkConstraints?: SQLCheckConstraint[];
     comment?: string;
     order: number;
+    isView?: boolean;
 }
 
 export interface SQLIndex {
     name: string;
     columns: string[];
     unique: boolean;
+    type?: string; // Index type (btree, hash, gin, gist, etc.)
 }
 
 export interface SQLForeignKey {
@@ -419,6 +431,10 @@ export const typeAffinity: Record<string, Record<string, string>> = {
         int2: 'smallint',
         bigint: 'bigint',
         int8: 'bigint',
+        // Serial types - map to themselves (they're valid PostgreSQL types)
+        serial: 'serial',
+        smallserial: 'smallserial',
+        bigserial: 'bigserial',
         decimal: 'decimal',
         numeric: 'numeric',
         real: 'real',
@@ -536,13 +552,40 @@ export const typeAffinity: Record<string, Record<string, string>> = {
     },
     [DatabaseType.ORACLE]: {
         // Oracle data types (all lowercase for consistency)
+        // Character types
         varchar2: 'varchar',
         nvarchar2: 'varchar',
+        char: 'char',
+        nchar: 'char',
+        clob: 'text',
+        nclob: 'text',
+        long: 'text',
+        // Numeric types
         number: 'numeric',
+        integer: 'integer',
+        int: 'integer',
+        smallint: 'smallint',
+        float: 'float',
+        real: 'real',
+        binary_float: 'float',
+        binary_double: 'double',
+        // Date/Time types
         date: 'date',
         timestamp: 'timestamp',
-        clob: 'text',
+        'timestamp with time zone': 'timestamp',
+        'timestamp with local time zone': 'timestamp',
+        interval: 'interval',
+        // Binary types
         blob: 'blob',
+        raw: 'blob',
+        'long raw': 'blob',
+        bfile: 'blob',
+        // Other types
+        rowid: 'varchar',
+        urowid: 'varchar',
+        xmltype: 'text',
+        json: 'json',
+        boolean: 'boolean',
     },
     [DatabaseType.GENERIC]: {
         // Generic fallback types (all lowercase for consistency)
@@ -572,6 +615,9 @@ export const typeAffinity: Record<string, Record<string, string>> = {
     },
 };
 
+// CockroachDB uses PostgreSQL-compatible types - reference dynamically
+typeAffinity[DatabaseType.COCKROACHDB] = typeAffinity[DatabaseType.POSTGRESQL];
+
 // Convert SQLParserResult to ChartDB Diagram structure
 export function convertToChartDBDiagram(
     parserResult: SQLParserResult,
@@ -594,9 +640,18 @@ export function convertToChartDBDiagram(
             // Use special case handling for specific database types to ensure correct mapping
             let mappedType: DataType;
 
+            // Detect and handle array types (e.g., int[], text[], varchar[])
+            const isArrayType = column.type.endsWith('[]');
+            const baseColumnType = isArrayType
+                ? column.type.slice(0, -2)
+                : column.type;
+
+            // Create a modified column object with the base type for mapping
+            const columnForMapping = { ...column, type: baseColumnType };
+
             // SQLite-specific handling for numeric types
             if (sourceDatabaseType === DatabaseType.SQLITE) {
-                const normalizedType = column.type.toLowerCase();
+                const normalizedType = columnForMapping.type.toLowerCase();
 
                 if (normalizedType === 'integer' || normalizedType === 'int') {
                     // Ensure integer types are preserved
@@ -616,7 +671,7 @@ export function convertToChartDBDiagram(
                 } else {
                     // Use the standard mapping for other types
                     mappedType = mapSQLTypeToGenericType(
-                        column.type,
+                        columnForMapping.type,
                         sourceDatabaseType
                     );
                 }
@@ -626,7 +681,7 @@ export function convertToChartDBDiagram(
                 sourceDatabaseType === DatabaseType.MYSQL ||
                 sourceDatabaseType === DatabaseType.MARIADB
             ) {
-                const normalizedType = column.type
+                const normalizedType = columnForMapping.type
                     .toLowerCase()
                     .replace(/\(\d+\)/, '')
                     .trim();
@@ -648,39 +703,70 @@ export function convertToChartDBDiagram(
                 } else {
                     // Use the standard mapping for other types
                     mappedType = mapSQLTypeToGenericType(
-                        column.type,
+                        columnForMapping.type,
                         sourceDatabaseType
                     );
                 }
             }
-            // Handle PostgreSQL integer type specifically
+            // Handle PostgreSQL/CockroachDB integer type specifically
             else if (
-                sourceDatabaseType === DatabaseType.POSTGRESQL &&
-                (column.type.toLowerCase() === 'integer' ||
-                    column.type.toLowerCase() === 'int' ||
-                    column.type.toLowerCase() === 'int4')
+                (sourceDatabaseType === DatabaseType.POSTGRESQL ||
+                    sourceDatabaseType === DatabaseType.COCKROACHDB) &&
+                (columnForMapping.type.toLowerCase() === 'integer' ||
+                    columnForMapping.type.toLowerCase() === 'int' ||
+                    columnForMapping.type.toLowerCase() === 'int4')
             ) {
                 // Ensure integer types are preserved
                 mappedType = { id: 'integer', name: 'integer' };
             } else if (
-                sourceDatabaseType === DatabaseType.POSTGRESQL &&
+                supportsCustomTypes(sourceDatabaseType) &&
                 parserResult.enums &&
                 parserResult.enums.some(
-                    (e) => e.name.toLowerCase() === column.type.toLowerCase()
+                    (e) =>
+                        e.name.toLowerCase() ===
+                        columnForMapping.type.toLowerCase()
                 )
             ) {
                 // If the column type matches a custom enum type, preserve it
                 mappedType = {
-                    id: column.type.toLowerCase(),
-                    name: column.type,
+                    id: columnForMapping.type.toLowerCase(),
+                    name: columnForMapping.type,
                 };
+            }
+            // Handle PostgreSQL/CockroachDB-specific types (not in genericDataTypes)
+            else if (
+                (sourceDatabaseType === DatabaseType.POSTGRESQL ||
+                    sourceDatabaseType === DatabaseType.COCKROACHDB) &&
+                (targetDatabaseType === DatabaseType.POSTGRESQL ||
+                    targetDatabaseType === DatabaseType.COCKROACHDB)
+            ) {
+                const normalizedType = columnForMapping.type.toLowerCase();
+
+                // Preserve PostgreSQL-specific types that don't exist in genericDataTypes
+                // Serial types are PostgreSQL-specific syntax (not true data types)
+                if (
+                    normalizedType === 'serial' ||
+                    normalizedType === 'smallserial' ||
+                    normalizedType === 'bigserial' ||
+                    normalizedType === 'jsonb' ||
+                    normalizedType === 'timestamptz' ||
+                    normalizedType === 'timetz'
+                ) {
+                    mappedType = { id: normalizedType, name: normalizedType };
+                } else {
+                    // Use the standard mapping for other types
+                    mappedType = mapSQLTypeToGenericType(
+                        columnForMapping.type,
+                        sourceDatabaseType
+                    );
+                }
             }
             // Handle SQL Server types specifically
             else if (
                 sourceDatabaseType === DatabaseType.SQL_SERVER &&
                 targetDatabaseType === DatabaseType.SQL_SERVER
             ) {
-                const normalizedType = column.type.toLowerCase();
+                const normalizedType = columnForMapping.type.toLowerCase();
 
                 // Preserve SQL Server specific types when target is also SQL Server
                 if (
@@ -702,28 +788,40 @@ export function convertToChartDBDiagram(
                 } else {
                     // Use the standard mapping for other types
                     mappedType = mapSQLTypeToGenericType(
-                        column.type,
+                        columnForMapping.type,
                         sourceDatabaseType
                     );
                 }
             } else {
                 // Use the standard mapping for other types
                 mappedType = mapSQLTypeToGenericType(
-                    column.type,
+                    columnForMapping.type,
                     sourceDatabaseType
                 );
             }
 
+            // Check if there's a preferred synonym for this type
+            const preferredType = getPreferredSynonym(
+                mappedType.name,
+                targetDatabaseType
+            );
+
+            // Use the preferred synonym if it exists, otherwise use the mapped type
+            const finalType = preferredType
+                ? { id: preferredType.id, name: preferredType.name }
+                : mappedType;
+
             const field: DBField = {
                 id: generateId(),
                 name: column.name,
-                type: mappedType,
+                type: finalType,
                 nullable: column.nullable,
                 primaryKey: column.primaryKey,
                 unique: column.unique,
                 default: column.default || '',
                 createdAt: Date.now(),
                 increment: column.increment,
+                isArray: isArrayType || undefined,
             };
 
             // Add type arguments if present
@@ -820,15 +918,32 @@ export function convertToChartDBDiagram(
                     return null;
                 }
 
-                return {
+                const index: DBIndex = {
                     id: generateId(),
                     name: sqlIndex.name,
                     fieldIds,
                     unique: sqlIndex.unique,
                     createdAt: Date.now(),
                 };
+
+                // Add type if specified (for GIN, HASH, etc.)
+                if (sqlIndex.type) {
+                    index.type = sqlIndex.type as DBIndex['type'];
+                }
+
+                return index;
             })
             .filter((idx): idx is DBIndex => idx !== null);
+
+        // Convert check constraints
+        const checkConstraints: DBCheckConstraint[] | undefined =
+            table.checkConstraints && table.checkConstraints.length > 0
+                ? table.checkConstraints.map((c) => ({
+                      id: generateId(),
+                      expression: c.expression,
+                      createdAt: Date.now(),
+                  }))
+                : undefined;
 
         return {
             id: newId,
@@ -837,10 +952,11 @@ export function convertToChartDBDiagram(
             order: index,
             fields,
             indexes,
+            checkConstraints,
             x: col * tableSpacing,
             y: row * tableSpacing,
-            color: defaultTableColor,
-            isView: false,
+            color: table.isView ? viewColor : defaultTableColor,
+            isView: table.isView ?? false,
             createdAt: Date.now(),
         } satisfies DBTable;
     });
@@ -902,22 +1018,25 @@ export function convertToChartDBDiagram(
         }
 
         // Use the cardinality from the SQL parser if available, otherwise determine it
+        // Note: In SQLForeignKey, source = table with FK, target = referenced table
+        // In DBRelationship, we want source = referenced table (PK), target = FK table
+        // So we swap them here
         const sourceCardinality =
-            rel.sourceCardinality ||
-            (sourceField.unique || sourceField.primaryKey ? 'one' : 'many');
-        const targetCardinality =
             rel.targetCardinality ||
             (targetField.unique || targetField.primaryKey ? 'one' : 'many');
+        const targetCardinality =
+            rel.sourceCardinality ||
+            (sourceField.unique || sourceField.primaryKey ? 'one' : 'many');
 
         relationships.push({
             id: generateId(),
             name: rel.name,
-            sourceSchema: sourceTable.schema,
-            targetSchema: targetTable.schema,
-            sourceTableId: sourceTableId,
-            targetTableId: targetTableId,
-            sourceFieldId: sourceField.id,
-            targetFieldId: targetField.id,
+            sourceSchema: targetTable.schema,
+            targetSchema: sourceTable.schema,
+            sourceTableId: targetTableId,
+            targetTableId: sourceTableId,
+            sourceFieldId: targetField.id,
+            targetFieldId: sourceField.id,
             sourceCardinality,
             targetCardinality,
             createdAt: Date.now(),

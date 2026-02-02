@@ -1,5 +1,123 @@
 # Changelog
 
+## [1.19.0](https://github.com/chartdb/chartdb/compare/v1.18.1...v1.19.0) (2025-12-09)
+
+
+### Features
+
+* add canvas relationship editor with inline controls ([#996](https://github.com/chartdb/chartdb/issues/996)) ([beeb6c0](https://github.com/chartdb/chartdb/commit/beeb6c0ae5978d73b0d516914b400eaedd578e4b))
+
+
+### Bug Fixes
+
+* add actions to empty state ([#986](https://github.com/chartdb/chartdb/issues/986)) ([de5f172](https://github.com/chartdb/chartdb/commit/de5f17266d384ae2decdf556cd8581e3436bc689))
+* add automatic data type synonym resolution for PostgreSQL imports ([#994](https://github.com/chartdb/chartdb/issues/994)) ([fbd04e9](https://github.com/chartdb/chartdb/commit/fbd04e9d5eb15dda90541ba8b4a0670b54aa0382))
+* add field comments indicators with tooltips ([#989](https://github.com/chartdb/chartdb/issues/989)) ([41c05c0](https://github.com/chartdb/chartdb/commit/41c05c067f8a9d5037ff6d1017f6f9b1949143af))
+* highlight FK columns in blue on canvas tables ([#990](https://github.com/chartdb/chartdb/issues/990)) ([07632e5](https://github.com/chartdb/chartdb/commit/07632e554324f6c5844f4316bf4eb709111500c3))
+* overlapping indication with hidden views ([#988](https://github.com/chartdb/chartdb/issues/988)) ([7428f46](https://github.com/chartdb/chartdb/commit/7428f46f328f02e5fa808c5256ebda8693d4ed03))
+* port 80 bind permission error ([#1000](https://github.com/chartdb/chartdb/issues/1000)) ([5b79c56](https://github.com/chartdb/chartdb/commit/5b79c564968e3dc04474b1a4a40db9cd7fe7ed99))
+* preserve index names when applying DBML changes ([#997](https://github.com/chartdb/chartdb/issues/997)) ([be26154](https://github.com/chartdb/chartdb/commit/be26154cc552db2d2fb3f88821c98495ffd4193d))
+* shift key for canvas selection + cursor indicator ([#993](https://github.com/chartdb/chartdb/issues/993)) ([1d6f4cd](https://github.com/chartdb/chartdb/commit/1d6f4cdda4a2e949496376e118f52bdc08cd7253))
+* style nullable indicators ([#992](https://github.com/chartdb/chartdb/issues/992)) ([3f53ab5](https://github.com/chartdb/chartdb/commit/3f53ab52da1c4769af49d9725b87d7b0dac46818))
+* support Delete key in addition to Backspace for canvas deletion ([#991](https://github.com/chartdb/chartdb/issues/991)) ([94d7d3f](https://github.com/chartdb/chartdb/commit/94d7d3f52243eaa6abca9de738565b94bb23b0f8))
+
+## [1.18.1](https://github.com/chartdb/chartdb/compare/v1.18.0...v1.18.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* docker image ([#982](https://github.com/chartdb/chartdb/issues/982)) ([03af4f8](https://github.com/chartdb/chartdb/commit/03af4f8ea4e579dbc804bf64b6142ed04c86c37f))
+
+## [1.18.0](https://github.com/chartdb/chartdb/compare/v1.17.0...v1.18.0) (2025-11-25)
+
+
+### Features
+
+* add markdown support to sticky notes ([#971](https://github.com/chartdb/chartdb/issues/971)) ([a4674a2](https://github.com/chartdb/chartdb/commit/a4674a2bf8adf988f2e67e7d99abaa293aeb3686))
+* add sticky notes ([#967](https://github.com/chartdb/chartdb/issues/967)) ([6d38ebe](https://github.com/chartdb/chartdb/commit/6d38ebe3ecd271b80c33db7e2731594a39b004d5))
+
+
+### Bug Fixes
+
+* add postgres array type support for import and export ([#958](https://github.com/chartdb/chartdb/issues/958)) ([68412f9](https://github.com/chartdb/chartdb/commit/68412f90a7d4466946b5f20b1b31ae64708d2031))
+* Add Transactional/Analytical database categorization tabs ([#965](https://github.com/chartdb/chartdb/issues/965)) ([07dc4ea](https://github.com/chartdb/chartdb/commit/07dc4eace087d72efce88b80f8311828004f813f))
+* adjust relationship edge offset when cardinality is visible ([#973](https://github.com/chartdb/chartdb/issues/973)) ([0afa71e](https://github.com/chartdb/chartdb/commit/0afa71efccdc424930ee5615d50fe209db98151a))
+* clean vulnerabilities ([#981](https://github.com/chartdb/chartdb/issues/981)) ([9a36e5e](https://github.com/chartdb/chartdb/commit/9a36e5e47b2e62c1ffd02620d10e2f5dd7b34313))
+* dbml with notes ([#968](https://github.com/chartdb/chartdb/issues/968)) ([973b766](https://github.com/chartdb/chartdb/commit/973b7663b14fd0ba97e3358db9c6621663dec62c))
+* disable dragging on edit node content ([#972](https://github.com/chartdb/chartdb/issues/972)) ([69d4e8d](https://github.com/chartdb/chartdb/commit/69d4e8dca65682327b8654f58f11cf2c9a8f62cb))
+* note markdown empty note ([#974](https://github.com/chartdb/chartdb/issues/974)) ([c8b8277](https://github.com/chartdb/chartdb/commit/c8b827764c162fb440d2d410fd6b1b50dd032531))
+* note markdown empty note ([#975](https://github.com/chartdb/chartdb/issues/975)) ([9baecea](https://github.com/chartdb/chartdb/commit/9baecea4abcd39b1a584b6a4526a61261c4a68b9))
+* notes colors ([#970](https://github.com/chartdb/chartdb/issues/970)) ([4fd940a](https://github.com/chartdb/chartdb/commit/4fd940afbb33cb3306566e73c5640c6305c08a72))
+* notes with readonly ([#969](https://github.com/chartdb/chartdb/issues/969)) ([3d85bcc](https://github.com/chartdb/chartdb/commit/3d85bcc6ab862cc0a2ef6b29ae905afde88b9821))
+* preserve MySQL column notes in DBML export ([#979](https://github.com/chartdb/chartdb/issues/979)) ([39eebe5](https://github.com/chartdb/chartdb/commit/39eebe5e2ae9179490743224cc40d16599dccd61))
+
+## [1.17.0](https://github.com/chartdb/chartdb/compare/v1.16.0...v1.17.0) (2025-10-27)
+
+
+### Features
+
+* create relationships on canvas modal ([#946](https://github.com/chartdb/chartdb/issues/946)) ([34475ad](https://github.com/chartdb/chartdb/commit/34475add32f11323589ef092ccf2a8e9152ff272))
+
+
+### Bug Fixes
+
+* add auto-increment field detection in smart-query import ([#935](https://github.com/chartdb/chartdb/issues/935)) ([57b3b87](https://github.com/chartdb/chartdb/commit/57b3b8777fd0a445abf0ba6603faab612d469d5c))
+* add open table in editor from canvas edit ([#952](https://github.com/chartdb/chartdb/issues/952)) ([7d811de](https://github.com/chartdb/chartdb/commit/7d811de097eb11e51012772fa6bf586fd0b16c62))
+* add rels export dbml ([#937](https://github.com/chartdb/chartdb/issues/937)) ([c3c646b](https://github.com/chartdb/chartdb/commit/c3c646bf7cbb1328f4b2eb85c9a7e929f0fcd3b9))
+* add support for arrays ([#949](https://github.com/chartdb/chartdb/issues/949)) ([49328d8](https://github.com/chartdb/chartdb/commit/49328d8fbd7786f6c0c04cd5605d43a24cbf10ea))
+* add support for parsing default values in DBML ([#948](https://github.com/chartdb/chartdb/issues/948)) ([459698b](https://github.com/chartdb/chartdb/commit/459698b5d0a1ff23a3719c2e55e4ab2e2384c4fe))
+* add timestampz and int as datatypes to postgres ([#940](https://github.com/chartdb/chartdb/issues/940)) ([b15bc94](https://github.com/chartdb/chartdb/commit/b15bc945acb96d7cb3832b3b1b607dfcaef9e5ca))
+* auto-enter edit mode when creating new tables from canvas ([#943](https://github.com/chartdb/chartdb/issues/943)) ([bcd8aa9](https://github.com/chartdb/chartdb/commit/bcd8aa9378aa563f40a2b6802cc503be4c882356))
+* dbml diff fields types preview ([#934](https://github.com/chartdb/chartdb/issues/934)) ([bb03309](https://github.com/chartdb/chartdb/commit/bb033091b1f64b888822be1423a80f16f5314f6b))
+* exit table edit on area click ([#945](https://github.com/chartdb/chartdb/issues/945)) ([38fedce](https://github.com/chartdb/chartdb/commit/38fedcec0c10ea2b3f0b7fc92ca1f5ac9e540389))
+* import array fields ([#961](https://github.com/chartdb/chartdb/issues/961)) ([91e713c](https://github.com/chartdb/chartdb/commit/91e713c30a44f1ba7a767ca7816079610136fcb8))
+* manipulate schema directly from the canvas ([#947](https://github.com/chartdb/chartdb/issues/947)) ([7ad0e77](https://github.com/chartdb/chartdb/commit/7ad0e7712de975a23b2a337dc0a4a7fb4b122bd1))
+* preserve multi-word types in DBML export/import ([#956](https://github.com/chartdb/chartdb/issues/956)) ([9ed27cf](https://github.com/chartdb/chartdb/commit/9ed27cf30cca1312713e80e525138f0c27154936))
+* prevent text input glitch when editing table field names ([#944](https://github.com/chartdb/chartdb/issues/944)) ([498655e](https://github.com/chartdb/chartdb/commit/498655e7b77e57eaf641ba86263ce1ef60b93e16))
+* resolve canvas filter tree state issues ([#953](https://github.com/chartdb/chartdb/issues/953)) ([ccb29e0](https://github.com/chartdb/chartdb/commit/ccb29e0a574dfa4cfdf0ebf242a4c4aaa48cc37b))
+* resolve dbml increment & nullable attributes issue ([#954](https://github.com/chartdb/chartdb/issues/954)) ([2c4b344](https://github.com/chartdb/chartdb/commit/2c4b344efb24041e7f607fc6124e109b69aaa457))
+* show SQL Script option conditionally for databases without DDL support ([#960](https://github.com/chartdb/chartdb/issues/960)) ([acf6d4b](https://github.com/chartdb/chartdb/commit/acf6d4b3654d8868b8a8ebf717c608d9749b71da))
+* use flag for custom types ([#951](https://github.com/chartdb/chartdb/issues/951)) ([62dec48](https://github.com/chartdb/chartdb/commit/62dec4857211b705a8039691da1772263ea986fe))
+
+## [1.16.0](https://github.com/chartdb/chartdb/compare/v1.15.1...v1.16.0) (2025-09-24)
+
+
+### Features
+
+* add area context menu and UI improvements ([#918](https://github.com/chartdb/chartdb/issues/918)) ([d09379e](https://github.com/chartdb/chartdb/commit/d09379e8be0fa3c83ca77ff62ae815fe4db9869b))
+* add quick table mode on canvas ([#915](https://github.com/chartdb/chartdb/issues/915)) ([8954d89](https://github.com/chartdb/chartdb/commit/8954d893bbfee45bb311380115fb14ebbf3a3133))
+* add zoom navigation buttons to canvas filter for tables and areas ([#903](https://github.com/chartdb/chartdb/issues/903)) ([a0fb1ed](https://github.com/chartdb/chartdb/commit/a0fb1ed08ba18b66354fa3498d610097a83d4afc))
+* **import-db:** add DBML syntax to import database dialog ([#768](https://github.com/chartdb/chartdb/issues/768)) ([af3638d](https://github.com/chartdb/chartdb/commit/af3638da7a9b70f281ceaddbc2f712a713d90cda))
+
+
+### Bug Fixes
+
+* add areas width and height + table width to diff check ([#931](https://github.com/chartdb/chartdb/issues/931)) ([98f6edd](https://github.com/chartdb/chartdb/commit/98f6edd5c8a8e9130e892b2d841744e0cf63a7bf))
+* add diff x,y ([#928](https://github.com/chartdb/chartdb/issues/928)) ([e4c4a3b](https://github.com/chartdb/chartdb/commit/e4c4a3b35484d9ece955a5aec577603dde73d634))
+* add support for ALTER TABLE ADD COLUMN in PostgreSQL importer ([#892](https://github.com/chartdb/chartdb/issues/892)) ([ec6e46f](https://github.com/chartdb/chartdb/commit/ec6e46fe81ea1806c179c50a4c5779d8596008aa))
+* add tests for diff ([#930](https://github.com/chartdb/chartdb/issues/930)) ([47a7a73](https://github.com/chartdb/chartdb/commit/47a7a73a137b87dfa6e67aff5f939cf64ccf4601))
+* dbml edit mode glitch ([#925](https://github.com/chartdb/chartdb/issues/925)) ([93d72a8](https://github.com/chartdb/chartdb/commit/93d72a896bab9aa79d8ea2f876126887e432214c))
+* dbml export default time bug ([#922](https://github.com/chartdb/chartdb/issues/922)) ([bc82f9d](https://github.com/chartdb/chartdb/commit/bc82f9d6a8fe4de2f7e0fc465e0a20c5dbf8f41d))
+* dbml export renaming fields bug ([#921](https://github.com/chartdb/chartdb/issues/921)) ([26dc299](https://github.com/chartdb/chartdb/commit/26dc299cd28e9890d191c13f84a15ac38ae48b11))
+* **dbml:** export array fields without quotes ([#911](https://github.com/chartdb/chartdb/issues/911)) ([5e81c18](https://github.com/chartdb/chartdb/commit/5e81c1848aaa911990e1e881d62525f5254d6d34))
+* diff logic ([#927](https://github.com/chartdb/chartdb/issues/927)) ([1b8d51b](https://github.com/chartdb/chartdb/commit/1b8d51b73c4ed4b7c5929adcb17a44927c7defca))
+* export dbml issues after upgrade version ([#883](https://github.com/chartdb/chartdb/issues/883)) ([07937a2](https://github.com/chartdb/chartdb/commit/07937a2f51708b1c10b45c2bd1f9a9acf5c3f708))
+* export sql + import metadata lib ([#902](https://github.com/chartdb/chartdb/issues/902)) ([ffddcdc](https://github.com/chartdb/chartdb/commit/ffddcdcc987bacb0e0d7e8dea27d08d3a8c5a8c8))
+* handle bidirectional relationships in DBML export ([#924](https://github.com/chartdb/chartdb/issues/924)) ([9991077](https://github.com/chartdb/chartdb/commit/99910779789a9c6ef113d06bc3de31e35b9b04d1))
+* import dbml set pk field unique ([#920](https://github.com/chartdb/chartdb/issues/920)) ([d6ba4a4](https://github.com/chartdb/chartdb/commit/d6ba4a40749d85d2703f120600df4345dab3c561))
+* improve SQL default value parsing for PostgreSQL, MySQL, and SQL Server with proper type handling and casting support ([#900](https://github.com/chartdb/chartdb/issues/900)) ([fe9ef27](https://github.com/chartdb/chartdb/commit/fe9ef275b8619dcfd7e57541a62a6237a16d29a8))
+* move area utils ([#932](https://github.com/chartdb/chartdb/issues/932)) ([2dc1a6f](https://github.com/chartdb/chartdb/commit/2dc1a6fc7519e0a455b0e1306601195deb156c96))
+* move auto arrange to toolbar ([#904](https://github.com/chartdb/chartdb/issues/904)) ([b016a70](https://github.com/chartdb/chartdb/commit/b016a70691bc22af5720b4de683e8c9353994fcc))
+* remove general db creation ([#901](https://github.com/chartdb/chartdb/issues/901)) ([df89f0b](https://github.com/chartdb/chartdb/commit/df89f0b6b9ba3fcc8b05bae4f60c0dc4ad1d2215))
+* remove many to many rel option ([#933](https://github.com/chartdb/chartdb/issues/933)) ([c567c0a](https://github.com/chartdb/chartdb/commit/c567c0a5f39157b2c430e92192b6750304d7a834))
+* reset increment and default when change field ([#896](https://github.com/chartdb/chartdb/issues/896)) ([e5e1d59](https://github.com/chartdb/chartdb/commit/e5e1d5932762422ea63acfd6cf9fe4f03aa822f7))
+* **sql-import:** handle SQL Server DDL with multiple tables, inline foreign keys, and case-insensitive field matching ([#897](https://github.com/chartdb/chartdb/issues/897)) ([2a64dee](https://github.com/chartdb/chartdb/commit/2a64deebb87a11ee3892024c3273d682bb86f7ef))
+* **sql-import:** support ALTER TABLE ALTER COLUMN TYPE in PostgreSQL importer ([#895](https://github.com/chartdb/chartdb/issues/895)) ([aa29061](https://github.com/chartdb/chartdb/commit/aa290615caf806d7d0374c848d50b4636fde7e96))
+* **sqlite:** improve parser to handle tables without column types and fix column detection ([#914](https://github.com/chartdb/chartdb/issues/914)) ([d3dbf41](https://github.com/chartdb/chartdb/commit/d3dbf41894d74f0ffce9afe3bd810f065aa53017))
+* trigger edit table on canvas from context menu ([#919](https://github.com/chartdb/chartdb/issues/919)) ([bdc41c0](https://github.com/chartdb/chartdb/commit/bdc41c0b74d9d9918e7b6cd2152fa07c0c58ce60))
+* update deps vulns ([#909](https://github.com/chartdb/chartdb/issues/909)) ([2bd9ca2](https://github.com/chartdb/chartdb/commit/2bd9ca25b2c7b1f053ff4fdc8c5cfc1b0e65901d))
+* upgrade dbml lib ([#880](https://github.com/chartdb/chartdb/issues/880)) ([d8e0bc7](https://github.com/chartdb/chartdb/commit/d8e0bc7db8881971ddaea7177bcebee13cc865f6))
+
 ## [1.15.1](https://github.com/chartdb/chartdb/compare/v1.15.0...v1.15.1) (2025-08-27)
 
 

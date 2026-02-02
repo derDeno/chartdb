@@ -64,8 +64,9 @@ export const getPostgresQuery = (
     `;
 
     const withExtras = false;
+    const withDefault = true;
 
-    const withDefault = `COALESCE(replace(replace(cols.column_default, '"', '\\"'), '\\x', '\\\\x'), '')`;
+    const withDefaultExpr = `CASE WHEN cols.column_default IS NOT NULL AND cols.column_default LIKE 'nextval(%' THEN '' ELSE COALESCE(replace(replace(cols.column_default, '"', '\\"'), '\\x', '\\\\x'), '') END`;
     const withoutDefault = `null`;
 
     const withComments = `COALESCE(replace(replace(dsc.description, '"', '\\"'), '\\x', '\\\\x'), '')`;
@@ -78,9 +79,9 @@ WITH fk_info${databaseEdition ? '_' + databaseEdition : ''} AS (
                                             ',"table":"', replace(table_name::text, '"', ''), '"',
                                             ',"column":"', replace(fk_column::text, '"', ''), '"',
                                             ',"foreign_key_name":"', foreign_key_name, '"',
-                                            ',"reference_schema":"', COALESCE(reference_schema, 'public'), '"',
-                                            ',"reference_table":"', reference_table, '"',
-                                            ',"reference_column":"', reference_column, '"',
+                                            ',"reference_schema":"', COALESCE(replace(reference_schema, '"', ''), 'public'), '"',
+                                            ',"reference_table":"', replace(reference_table, '"', ''), '"',
+                                            ',"reference_column":"', replace(reference_column, '"', ''), '"',
                                             ',"fk_def":"', replace(fk_def, '"', ''),
                                             '"}')), ',') as fk_metadata
     FROM (
@@ -181,7 +182,20 @@ cols AS (
                                             '","table":"', cols.table_name,
                                             '","name":"', cols.column_name,
                                             '","ordinal_position":', cols.ordinal_position,
-                                            ',"type":"', case when LOWER(replace(cols.data_type, '"', '')) = 'user-defined' then pg_type.typname else LOWER(replace(cols.data_type, '"', '')) end,
+                                            ',"type":"', CASE WHEN cols.column_default IS NOT NULL AND cols.column_default LIKE 'nextval(%' THEN
+                                                                CASE
+                                                                    WHEN LOWER(replace(cols.data_type, '"', '')) = 'smallint' THEN 'smallserial'
+                                                                    WHEN LOWER(replace(cols.data_type, '"', '')) = 'integer' THEN 'serial'
+                                                                    WHEN LOWER(replace(cols.data_type, '"', '')) = 'bigint' THEN 'bigserial'
+                                                                    ELSE LOWER(replace(cols.data_type, '"', ''))
+                                                                END
+                                                            WHEN cols.data_type = 'ARRAY' THEN
+                                                                format_type(pg_type.typelem, NULL)
+                                                            WHEN LOWER(replace(cols.data_type, '"', '')) = 'user-defined' THEN
+                                                                format_type(pg_type.oid, NULL)
+                                                            ELSE
+                                                                LOWER(replace(cols.data_type, '"', ''))
+                                                        END,
                                             '","character_maximum_length":"', COALESCE(cols.character_maximum_length::text, 'null'),
                                             '","precision":',
                                                 CASE
@@ -191,10 +205,19 @@ cols AS (
                                                     ELSE 'null'
                                                 END,
                                             ',"nullable":', CASE WHEN (cols.IS_NULLABLE = 'YES') THEN 'true' ELSE 'false' END,
-                                            ',"default":"', ${withExtras ? withDefault : withoutDefault},
+                                            ',"default":"', ${withDefault ? withDefaultExpr : withoutDefault},
                                             '","collation":"', COALESCE(cols.COLLATION_NAME, ''),
                                             '","comment":"', ${withExtras ? withComments : withoutComments},
-                                            '"}')), ',') AS cols_metadata
+                                            '","is_identity":', CASE
+                                                WHEN cols.is_identity = 'YES' THEN 'true'
+                                                WHEN cols.column_default IS NOT NULL AND cols.column_default LIKE 'nextval(%' THEN 'true'
+                                                ELSE 'false'
+                                            END,
+                                            ',"is_array":', CASE
+                                                WHEN cols.data_type = 'ARRAY' OR pg_type.typelem > 0 THEN 'true'
+                                                ELSE 'false'
+                                            END,
+                                            '}')), ',') AS cols_metadata
     FROM information_schema.columns cols
     LEFT JOIN pg_catalog.pg_class c
         ON c.relname = cols.table_name
@@ -206,6 +229,8 @@ cols AS (
         ON attr.attrelid = c.oid AND attr.attname = cols.column_name
     LEFT JOIN pg_catalog.pg_type
         ON pg_type.oid = attr.atttypid
+    LEFT JOIN pg_catalog.pg_type AS elem_type
+        ON elem_type.oid = pg_type.typelem
     WHERE cols.table_schema NOT IN ('information_schema', 'pg_catalog')${
         databaseEdition === DatabaseEdition.POSTGRESQL_TIMESCALE
             ? timescaleColFilter
@@ -319,7 +344,7 @@ cols AS (
             JOIN pg_class c ON c.oid = t.typrelid
             JOIN pg_attribute a ON a.attrelid = c.oid
             WHERE t.typtype = 'c'
-              AND c.relkind = 'c'  -- ✅ Only user-defined composite types
+              AND c.relkind = 'c'  -- Only user-defined composite types
               AND a.attnum > 0 AND NOT a.attisdropped
               AND n.nspname NOT IN ('pg_catalog', 'information_schema') ${
                   databaseEdition === DatabaseEdition.POSTGRESQL_TIMESCALE
@@ -331,6 +356,32 @@ cols AS (
             GROUP BY n.nspname, t.typname
         ) AS comp
     ) AS all_types
+), check_constraints AS (
+    SELECT array_to_string(array_agg(CONCAT('{"schema":"', replace(schema_name, '"', ''), '"',
+                                            ',"table":"', replace(table_name, '"', ''), '"',
+                                            ',"expression":"', replace(replace(check_expr, '"', '\\"'), E'\\n', ' '),
+                                            '"}')), ',') AS check_constraints_metadata
+    FROM (
+        SELECT
+            n.nspname AS schema_name,
+            CASE
+                WHEN position('.' in c.conrelid::regclass::text) > 0
+                THEN split_part(c.conrelid::regclass::text, '.', 2)
+                ELSE c.conrelid::regclass::text
+            END AS table_name,
+            substring(pg_get_constraintdef(c.oid) FROM 'CHECK \\((.*)\\)') AS check_expr
+        FROM pg_constraint c
+        JOIN pg_class cl ON cl.oid = c.conrelid
+        JOIN pg_namespace n ON n.oid = cl.relnamespace
+        WHERE c.contype = 'c'
+          AND n.nspname NOT IN ('information_schema', 'pg_catalog')${
+              databaseEdition === DatabaseEdition.POSTGRESQL_TIMESCALE
+                  ? timescaleFilters
+                  : databaseEdition === DatabaseEdition.POSTGRESQL_SUPABASE
+                    ? supabaseFilters
+                    : ''
+          }
+    ) AS chk
 )
 SELECT CONCAT('{    "fk_info": [', COALESCE(fk_metadata, ''),
                     '], "pk_info": [', COALESCE(pk_metadata, ''),
@@ -338,10 +389,11 @@ SELECT CONCAT('{    "fk_info": [', COALESCE(fk_metadata, ''),
                     '], "indexes": [', COALESCE(indexes_metadata, ''),
                     '], "tables":[', COALESCE(tbls_metadata, ''),
                     '], "views":[', COALESCE(views_metadata, ''),
+                    '], "check_constraints": [', COALESCE(check_constraints_metadata, ''),
                     '], "custom_types": [', COALESCE(custom_types_metadata, ''),
                     '], "database_name": "', CURRENT_DATABASE(), '', '", "version": "', '',
               '"}') AS metadata_json_to_import
-FROM fk_info${databaseEdition ? '_' + databaseEdition : ''}, pk_info, cols, indexes_metadata, tbls, config, views, custom_types;
+FROM fk_info${databaseEdition ? '_' + databaseEdition : ''}, pk_info, cols, indexes_metadata, tbls, config, views, check_constraints, custom_types;
     `;
 
     const psqlPreCommand = `# *** Remember to change! (HOST_NAME, PORT, USER_NAME, DATABASE_NAME) *** \n`;

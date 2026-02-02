@@ -251,39 +251,31 @@ export function exportSQLite({
                     }
 
                     // Determine which table should have the foreign key based on cardinality
+                    // - FK goes on the "many" side when cardinalities differ
+                    // - FK goes on target when cardinalities are the same (one:one, many:many)
                     let fkTable, fkField, refTable, refField;
 
                     if (
-                        r.sourceCardinality === 'one' &&
+                        r.sourceCardinality === 'many' &&
                         r.targetCardinality === 'many'
                     ) {
-                        // FK goes on target table
-                        fkTable = targetTable;
-                        fkField = targetField;
-                        refTable = sourceTable;
-                        refField = sourceField;
+                        // Many-to-many relationships need a junction table, skip
+                        return;
                     } else if (
                         r.sourceCardinality === 'many' &&
                         r.targetCardinality === 'one'
                     ) {
-                        // FK goes on source table
-                        fkTable = sourceTable;
-                        fkField = sourceField;
-                        refTable = targetTable;
-                        refField = targetField;
-                    } else if (
-                        r.sourceCardinality === 'one' &&
-                        r.targetCardinality === 'one'
-                    ) {
-                        // For 1:1, FK can go on either side, but typically goes on the table that references the other
-                        // We'll keep the current behavior for 1:1
+                        // FK goes on source table (the many side)
                         fkTable = sourceTable;
                         fkField = sourceField;
                         refTable = targetTable;
                         refField = targetField;
                     } else {
-                        // Many-to-many relationships need a junction table, skip for now
-                        return;
+                        // All other cases: FK goes on target table
+                        fkTable = targetTable;
+                        fkField = targetField;
+                        refTable = sourceTable;
+                        refField = sourceField;
                     }
 
                     // If this foreign key belongs to the current table, add it
@@ -394,6 +386,21 @@ export function exportSQLite({
                               .join(', ')})`
                         : ''
                 }${
+                    // Add check constraints (filter out empty expressions)
+                    (() => {
+                        const validChecks = (
+                            table.checkConstraints ?? []
+                        ).filter((c) => c.expression && c.expression.trim());
+                        return validChecks.length > 0
+                            ? validChecks
+                                  .map(
+                                      (constraint) =>
+                                          `,\n    CHECK (${constraint.expression})`
+                                  )
+                                  .join('')
+                            : '';
+                    })()
+                }${
                     // Add foreign key constraints
                     tableForeignKeys.length > 0
                         ? ',\n' + tableForeignKeys.join(',\n')
@@ -444,7 +451,8 @@ export function exportSQLite({
                                     ? `CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX IF NOT EXISTS "${safeIndexName}"\nON ${tableName} (${indexFieldNames.join(', ')});`
                                     : '';
                             })
-                            .filter(Boolean);
+                            .filter(Boolean)
+                            .sort((a, b) => a.localeCompare(b)); // Sort for consistent output
 
                         return validIndexes.length > 0
                             ? `\n-- Indexes\n${validIndexes.join('\n')}`

@@ -4,18 +4,18 @@ export const ar: LanguageTranslation = {
     translation: {
         editor_sidebar: {
             new_diagram: 'جديد',
-            browse: 'تصفح',
+            browse: 'فتح',
             tables: 'الجداول',
             refs: 'المراجع',
-            areas: 'المناطق',
             dependencies: 'التبعيات',
             custom_types: 'الأنواع المخصصة',
+            visuals: 'مرئيات',
         },
         menu: {
             actions: {
                 actions: 'الإجراءات',
                 new: 'جديد...',
-                browse: 'تصفح...',
+                browse: 'جميع قواعد البيانات...',
                 save: 'حفظ',
                 import: 'استيراد قاعدة بيانات',
                 export_sql: 'SQL تصدير',
@@ -128,16 +128,20 @@ export const ar: LanguageTranslation = {
                 // TODO: Translate
                 show_list: 'Show Table List',
                 show_dbml: 'Show DBML Editor',
+                all_hidden: 'جميع الجداول مخفية',
+                show_all: 'عرض الكل',
 
                 table: {
                     fields: 'الحقول',
                     nullable: 'يمكن ان يكون فارغاً؟',
                     primary_key: 'المفتاح الأساسي',
                     indexes: 'الفهارس',
+                    check_constraints: 'قيود التحقق',
                     comments: 'تعليقات',
                     no_comments: 'لا توجد تعليقات',
                     add_field: 'إضافة حقل',
                     add_index: 'إضافة فهرس',
+                    add_check: 'إضافة تحقق',
                     index_select_fields: 'حدد الحقول',
                     no_types_found: 'لا يوجد أنواع',
                     field_name: 'الإسم',
@@ -162,6 +166,11 @@ export const ar: LanguageTranslation = {
                         unique: 'فريد',
                         index_type: 'نوع الفهرس',
                         delete_index: 'حذف الفهرس',
+                    },
+                    check_constraint_actions: {
+                        title: 'قيد التحقق',
+                        expression: 'التعبير',
+                        delete: 'حذف قيد التحقق',
                     },
                     table_actions: {
                         title: 'إجراءات الجدول',
@@ -190,6 +199,7 @@ export const ar: LanguageTranslation = {
                     foreign: 'الجدول المرتبط',
                     cardinality: 'الكاردينالية',
                     delete_relationship: 'حذف',
+                    switch_tables: 'تبديل الجداول',
                     relationship_actions: {
                         title: 'إجراءات',
                         delete_relationship: 'حذف',
@@ -211,55 +221,81 @@ export const ar: LanguageTranslation = {
                 },
             },
 
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: 'المناطق',
+                add_area: 'إضافة منطقة',
+                filter: 'تصفية',
+                clear: 'مسح التصفية',
+                no_results: 'لم يتم العثور على مناطق مطابقة للتصفية.',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: 'إجراءات المنطقة',
+                        edit_name: 'تحرير الاسم',
+                        delete_area: 'حذف المنطقة',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: 'لا توجد مناطق',
+                    description: 'أنشئ منطقة للبدء',
                 },
             },
 
-            // TODO: Translate
-            custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+            visuals_section: {
+                visuals: 'مرئيات',
+                tabs: {
+                    areas: 'المناطق',
+                    notes: 'ملاحظات',
+                },
+            },
+
+            notes_section: {
+                filter: 'تصفية',
+                add_note: 'إضافة ملاحظة',
+                no_results: 'لم يتم العثور على ملاحظات',
+                clear: 'مسح التصفية',
                 empty_state: {
-                    title: 'No custom types',
+                    title: 'لا توجد ملاحظات',
+                    description: 'أنشئ ملاحظة لإضافة تعليقات نصية على اللوحة',
+                },
+                note: {
+                    empty_note: 'ملاحظة فارغة',
+                    note_actions: {
+                        title: 'إجراءات الملاحظة',
+                        edit_content: 'تحرير المحتوى',
+                        delete_note: 'حذف الملاحظة',
+                    },
+                },
+            },
+
+            custom_types_section: {
+                custom_types: 'الأنواع المخصصة',
+                filter: 'تصفية',
+                clear: 'مسح التصفية',
+                no_results: 'لم يتم العثور على أنواع مخصصة مطابقة للتصفية.',
+                new_type: 'نوع جديد',
+                empty_state: {
+                    title: 'لا توجد أنواع مخصصة',
                     description:
-                        'Custom types will appear here when they are available in your database',
+                        'ستظهر الأنواع المخصصة هنا عندما تكون متاحة في قاعدة البيانات الخاصة بك',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: 'النوع',
+                    enum_values: 'قيم التعداد',
+                    composite_fields: 'الحقول',
+                    no_fields: 'لم يتم تحديد حقول',
                     no_values: 'لم يتم تحديد قيم التعداد',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: 'اسم الحقل',
+                    field_type_placeholder: 'اختر النوع',
+                    add_field: 'إضافة حقل',
+                    no_fields_tooltip: 'لم يتم تحديد حقول لهذا النوع المخصص',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: 'إجراءات',
+                        highlight_fields: 'تمييز الحقول',
+                        delete_custom_type: 'حذف',
+                        clear_field_highlight: 'إزالة التمييز',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: 'حذف النوع',
                 },
             },
         },
@@ -273,8 +309,7 @@ export const ar: LanguageTranslation = {
             redo: 'إعادة',
             reorder_diagram: 'ترتيب تلقائي للرسم البياني',
             highlight_overlapping_tables: 'تمييز الجداول المتداخلة',
-            // TODO: Translate
-            filter: 'Filter Tables',
+            filter: 'تصفية الجداول',
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
@@ -308,7 +343,7 @@ export const ar: LanguageTranslation = {
             cancel: 'إلغاء',
             import_from_file: 'استيراد من ملف',
             back: 'رجوع',
-            empty_diagram: 'مخطط فارغ',
+            empty_diagram: 'قاعدة بيانات فارغة',
             continue: 'متابعة',
             import: 'استيراد',
         },
@@ -324,6 +359,7 @@ export const ar: LanguageTranslation = {
             },
             cancel: 'إلغاء',
             open: 'فتح',
+            new_database: 'قاعدة بيانات جديدة',
 
             diagram_actions: {
                 open: 'فتح',
@@ -387,10 +423,9 @@ export const ar: LanguageTranslation = {
         export_image_dialog: {
             title: 'تصدير الصورة',
             description: ':اختر عامل المقياس للتصدير',
-            scale_1x: '1x عادي',
-            scale_2x: '2x (موصى به)',
-            scale_3x: '3x',
-            scale_4x: '4x',
+            scale_1x: '1x (جودة منخفضة)',
+            scale_2x: '2x (جودة عادية)',
+            scale_4x: '4x (أفضل جودة)',
             cancel: 'إلغاء',
             export: 'تصدير',
             // TODO: Translate
@@ -478,7 +513,8 @@ export const ar: LanguageTranslation = {
             new_view: 'عرض جديد',
             new_relationship: 'علاقة جديدة',
             // TODO: Translate
-            new_area: 'New Area',
+            new_area: 'منطقة جديدة',
+            new_note: 'ملاحظة جديدة',
         },
 
         table_node_context_menu: {
@@ -486,6 +522,22 @@ export const ar: LanguageTranslation = {
             duplicate_table: 'نسخ الجدول',
             delete_table: 'حذف الجدول',
             add_relationship: 'Add Relationship', // TODO: Translate
+        },
+
+        canvas: {
+            all_tables_hidden: 'جميع الجداول مخفية',
+            show_all_tables: 'عرض الكل',
+        },
+
+        canvas_filter: {
+            title: 'تصفية الجداول',
+            search_placeholder: 'البحث في الجداول...',
+            group_by_schema: 'تجميع حسب المخطط',
+            group_by_area: 'تجميع حسب المنطقة',
+            no_tables_found: 'لم يتم العثور على جداول',
+            empty_diagram_description: 'أنشئ جدولاً للبدء',
+            no_tables_description: 'جرب تعديل البحث أو التصفية',
+            clear_filter: 'مسح التصفية',
         },
 
         snap_to_grid_tooltip: '({{key}} مغنظة الشبكة (اضغط مع الاستمرار على',

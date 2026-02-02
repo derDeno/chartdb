@@ -6,6 +6,7 @@ import type {
     SQLIndex,
     SQLForeignKey,
     SQLEnumType,
+    SQLCheckConstraint,
 } from '../../common';
 import { buildSQLFromAST } from '../../common';
 import { DatabaseType } from '@/lib/domain/database-type';
@@ -30,6 +31,7 @@ import {
 interface ParsedStatement {
     type:
         | 'table'
+        | 'view'
         | 'index'
         | 'alter'
         | 'function'
@@ -143,6 +145,13 @@ function preprocessSQL(sqlContent: string): PreprocessResult {
                 statements.push({ type: 'alter', sql: trimmedStmt });
             }
         } else if (
+            upperStmt.startsWith('CREATE VIEW') ||
+            upperStmt.startsWith('CREATE OR REPLACE VIEW') ||
+            upperStmt.includes('CREATE VIEW') ||
+            upperStmt.includes('CREATE OR REPLACE VIEW')
+        ) {
+            statements.push({ type: 'view', sql: trimmedStmt });
+        } else if (
             upperStmt.startsWith('CREATE FUNCTION') ||
             upperStmt.startsWith('CREATE OR REPLACE FUNCTION')
         ) {
@@ -249,69 +258,176 @@ function splitSQLStatements(sql: string): string[] {
 }
 
 /**
- * Normalize PostgreSQL type aliases to standard types
+ * Set of serial type names for O(1) lookup
  */
-function normalizePostgreSQLType(type: string): string {
+const SERIAL_TYPES = new Set([
+    'SERIAL',
+    'SERIAL2',
+    'SERIAL4',
+    'SERIAL8',
+    'BIGSERIAL',
+    'SMALLSERIAL',
+]);
+
+/**
+ * Check if a type is a serial type
+ */
+function isSerialTypeName(typeName: string): boolean {
+    return SERIAL_TYPES.has(typeName.toUpperCase().split('(')[0]);
+}
+
+/**
+ * Check if a specific column has GENERATED AS IDENTITY syntax in the SQL
+ * @param sql The SQL statement containing the column definition
+ * @param columnName The name of the column to check
+ * @returns true if the column has GENERATED AS IDENTITY
+ */
+function hasGeneratedIdentity(sql: string, columnName: string): boolean {
+    // Create a regex pattern to find the column definition
+    // Match the column name (quoted or unquoted) followed by its definition until the next comma or closing paren
+    const escapedName = columnName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+        `["']?${escapedName}["']?\\s+[^,)]*GENERATED\\s+(?:BY\\s+DEFAULT|ALWAYS)\\s+AS\\s+IDENTITY`,
+        'i'
+    );
+    return pattern.test(sql);
+}
+
+/**
+ * Normalize PostgreSQL type syntax to lowercase canonical form.
+ * This function handles parsing-level normalization only - it converts
+ * verbose SQL syntax to the preferred short form that getPreferredSynonym
+ * expects. It preserves semantic types like serial (does NOT convert to integer).
+ *
+ * The optional `length` parameter is used to resolve ambiguous types where
+ * the SQL parser returns a base type with a length modifier (e.g., 'SERIAL'
+ * with length=2 for 'serial2', or 'INT' with length=8 for 'int8').
+ *
+ * Type synonym resolution (e.g., integer→int) is handled by getPreferredSynonym.
+ */
+function normalizePostgreSQLType(
+    type: string,
+    length?: number | undefined
+): string {
     const upperType = type.toUpperCase();
 
-    // Handle types with parameters - more complex regex to handle CHARACTER VARYING
+    // Handle types with parameters (e.g., VARCHAR(255), NUMERIC(10,2))
     const typeMatch = upperType.match(/^([\w\s]+?)(\(.+\))?$/);
-    if (!typeMatch) return type;
+    if (!typeMatch) return type.toLowerCase();
 
     const baseType = typeMatch[1].trim();
     const params = typeMatch[2] || '';
 
     let normalizedBase: string;
     switch (baseType) {
-        // Serial types
+        // Serial types - preserve as-is (they are valid PostgreSQL types)
+        // Handle parser quirk: 'SERIAL' with length=2 means 'serial2' (smallserial)
         case 'SERIAL':
+            if (length === 2) {
+                normalizedBase = 'smallserial';
+            } else if (length === 8) {
+                normalizedBase = 'bigserial';
+            } else {
+                normalizedBase = 'serial';
+            }
+            break;
         case 'SERIAL4':
-            normalizedBase = 'INTEGER';
+            normalizedBase = 'serial';
             break;
         case 'BIGSERIAL':
         case 'SERIAL8':
-            normalizedBase = 'BIGINT';
+            normalizedBase = 'bigserial';
             break;
         case 'SMALLSERIAL':
         case 'SERIAL2':
-            normalizedBase = 'SMALLINT';
+            normalizedBase = 'smallserial';
             break;
-        // Integer aliases
+        // Integer types - normalize to lowercase canonical form
+        // Handle parser quirk: 'INT' with length=2 means 'int2' (smallint)
         case 'INT':
+            if (length === 2) {
+                normalizedBase = 'smallint';
+            } else if (length === 8) {
+                normalizedBase = 'bigint';
+            } else {
+                normalizedBase = 'integer';
+            }
+            break;
         case 'INT4':
-            normalizedBase = 'INTEGER';
+        case 'INTEGER':
+            normalizedBase = 'integer';
             break;
         case 'INT2':
-            normalizedBase = 'SMALLINT';
+        case 'SMALLINT':
+            normalizedBase = 'smallint';
             break;
         case 'INT8':
-            normalizedBase = 'BIGINT';
+        case 'BIGINT':
+            normalizedBase = 'bigint';
             break;
-        // Boolean aliases
+        // Boolean
         case 'BOOL':
-            normalizedBase = 'BOOLEAN';
+        case 'BOOLEAN':
+            normalizedBase = 'boolean';
             break;
-        // Character types - use common names
+        // Character types - normalize verbose forms
         case 'CHARACTER VARYING':
+            normalizedBase = 'varchar';
+            break;
         case 'VARCHAR':
-            normalizedBase = 'VARCHAR';
+            normalizedBase = 'varchar';
             break;
         case 'CHARACTER':
-        case 'CHAR':
-            normalizedBase = 'CHAR';
+            normalizedBase = 'char';
             break;
-        // Timestamp aliases
+        case 'CHAR':
+            normalizedBase = 'char';
+            break;
+        // Timestamp types
         case 'TIMESTAMPTZ':
         case 'TIMESTAMP WITH TIME ZONE':
-            normalizedBase = 'TIMESTAMPTZ';
+            normalizedBase = 'timestamptz';
+            break;
+        case 'TIMESTAMP WITHOUT TIME ZONE':
+        case 'TIMESTAMP':
+            normalizedBase = 'timestamp';
+            break;
+        // Time types
+        case 'TIMETZ':
+        case 'TIME WITH TIME ZONE':
+            normalizedBase = 'timetz';
+            break;
+        case 'TIME WITHOUT TIME ZONE':
+        case 'TIME':
+            normalizedBase = 'time';
+            break;
+        // Floating point
+        case 'FLOAT4':
+        case 'REAL':
+            normalizedBase = 'real';
+            break;
+        case 'FLOAT8':
+        case 'DOUBLE PRECISION':
+            normalizedBase = 'double precision';
+            break;
+        // Bit types
+        case 'BIT VARYING':
+            normalizedBase = 'varbit';
+            break;
+        // Numeric types
+        case 'DECIMAL':
+            normalizedBase = 'numeric';
+            break;
+        case 'NUMERIC':
+            normalizedBase = 'numeric';
             break;
         default:
-            // For unknown types (like enums), preserve original case
-            return type;
+            // For unknown types (like enums, user-defined), preserve original in lowercase
+            return type.toLowerCase();
     }
 
-    // Return normalized type with original parameters preserved
-    return normalizedBase + params;
+    // Return normalized type with parameters preserved (lowercase)
+    return normalizedBase + params.toLowerCase();
 }
 
 /**
@@ -372,17 +488,9 @@ function extractColumnsFromSQL(sql: string): SQLColumn[] {
             }
 
             // Check if it's a serial type for increment flag
-            const upperType = columnType.toUpperCase();
-            const isSerialType = [
-                'SERIAL',
-                'SERIAL2',
-                'SERIAL4',
-                'SERIAL8',
-                'BIGSERIAL',
-                'SMALLSERIAL',
-            ].includes(upperType.split('(')[0]);
+            const isSerialType = isSerialTypeName(columnType);
 
-            // Normalize the type
+            // Normalize the type (preserves serial types)
             columnType = normalizePostgreSQLType(columnType);
 
             // Check for common constraints
@@ -463,6 +571,105 @@ function extractColumnsFromSQL(sql: string): SQLColumn[] {
                     trimmedLine.includes('GENERATED ALWAYS AS IDENTITY') ||
                     trimmedLine.includes('GENERATED BY DEFAULT AS IDENTITY'),
             });
+        }
+    }
+
+    return columns;
+}
+
+/**
+ * Extract columns from a CREATE VIEW statement
+ * Views can have explicit column names or derive them from the SELECT
+ */
+function extractColumnsFromView(sql: string): SQLColumn[] {
+    const columns: SQLColumn[] = [];
+
+    // First, try to extract explicit column list from CREATE VIEW viewname (col1, col2, ...) AS
+    const explicitColumnsMatch = sql.match(
+        /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:"[^"]+"|[^"\s.]+)\.)?(?:"[^"]+"|[^"\s.(]+)\s*\(([^)]+)\)\s*AS/i
+    );
+
+    if (explicitColumnsMatch) {
+        // Parse explicit column list
+        const columnList = explicitColumnsMatch[1];
+        const columnNames = columnList
+            .split(',')
+            .map((col) => col.trim().replace(/^["']|["']$/g, ''));
+
+        for (const colName of columnNames) {
+            if (colName) {
+                columns.push({
+                    name: colName,
+                    type: 'text', // Default type for views since we don't know the actual type
+                    nullable: true,
+                    primaryKey: false,
+                    unique: false,
+                });
+            }
+        }
+
+        return columns;
+    }
+
+    // If no explicit columns, try to extract from SELECT clause
+    // Match: AS SELECT ... FROM (extracting the column references)
+    const selectMatch = sql.match(/\bAS\s+SELECT\s+([\s\S]+?)\s+FROM\s+/i);
+
+    if (selectMatch) {
+        const selectClause = selectMatch[1];
+
+        // Handle SELECT * - we can't determine columns
+        if (selectClause.trim() === '*') {
+            return columns;
+        }
+
+        // Split by comma, but be careful of nested functions/expressions
+        let depth = 0;
+        let currentCol = '';
+        const selectParts: string[] = [];
+
+        for (const char of selectClause) {
+            if (char === '(' || char === '[') depth++;
+            else if (char === ')' || char === ']') depth--;
+            else if (char === ',' && depth === 0) {
+                selectParts.push(currentCol.trim());
+                currentCol = '';
+                continue;
+            }
+            currentCol += char;
+        }
+        if (currentCol.trim()) {
+            selectParts.push(currentCol.trim());
+        }
+
+        for (const part of selectParts) {
+            // Extract column name - handle aliases (AS name), qualified names (table.col), and expressions
+            let columnName = '';
+
+            // Check for alias: ... AS "name" or ... AS name
+            const aliasMatch = part.match(/\s+AS\s+["']?(\w+)["']?\s*$/i);
+            if (aliasMatch) {
+                columnName = aliasMatch[1];
+            } else {
+                // Try to extract the column reference
+                // Handle: col, table.col, "col", table."col"
+                const colRefMatch = part.match(
+                    /(?:[\w"]+\.)?["']?(\w+)["']?\s*$/
+                );
+                if (colRefMatch) {
+                    columnName = colRefMatch[1];
+                }
+            }
+
+            if (columnName && columnName !== '*') {
+                columns.push({
+                    name: columnName,
+                    type: 'text', // Default type for views
+                    nullable: true,
+                    primaryKey: false,
+                    unique: false,
+                });
+            }
         }
     }
 
@@ -628,6 +835,50 @@ function extractForeignKeysFromCreateTable(
 }
 
 /**
+ * Extract CHECK constraints from CREATE TABLE statements
+ * Handles both inline column-level and table-level CHECK constraints
+ */
+function extractCheckConstraintsFromCreateTable(
+    sql: string
+): SQLCheckConstraint[] {
+    const constraints: SQLCheckConstraint[] = [];
+
+    // Extract the table body
+    const tableBodyMatch = sql.match(/\(([\s\S]+)\)/);
+    if (!tableBodyMatch) return constraints;
+
+    const tableBody = tableBodyMatch[1];
+
+    // Pattern for table-level CHECK constraints:
+    // CHECK (expression) or CONSTRAINT name CHECK (expression)
+    // We need to handle nested parentheses in the expression
+    const checkPattern = /(?:CONSTRAINT\s+(?:"[^"]+"|[^\s]+)\s+)?CHECK\s*\(/gi;
+    let match;
+
+    while ((match = checkPattern.exec(tableBody)) !== null) {
+        const startIdx = match.index + match[0].length;
+        let depth = 1;
+        let endIdx = startIdx;
+
+        // Find the matching closing parenthesis
+        for (let i = startIdx; i < tableBody.length && depth > 0; i++) {
+            if (tableBody[i] === '(') depth++;
+            else if (tableBody[i] === ')') depth--;
+            endIdx = i;
+        }
+
+        if (depth === 0) {
+            const expression = tableBody.substring(startIdx, endIdx).trim();
+            if (expression) {
+                constraints.push({ expression });
+            }
+        }
+    }
+
+    return constraints;
+}
+
+/**
  * Parse PostgreSQL SQL with improved error handling and statement filtering
  */
 export async function fromPostgres(
@@ -646,7 +897,7 @@ export async function fromPostgres(
     const { Parser } = await import('node-sql-parser');
     const parser = new Parser();
 
-    // First pass: collect all table names and custom types
+    // First pass: collect all table names, view names, and custom types
     for (const stmt of statements) {
         if (stmt.type === 'table') {
             // Extract just the CREATE TABLE part if there are comments
@@ -671,6 +922,24 @@ export async function fromPostgres(
                 const tableKey = `${schemaName}.${tableName}`;
                 tableMap[tableKey] = generateId();
             }
+        } else if (stmt.type === 'view') {
+            // Extract view name similar to table
+            const createViewIndex = stmt.sql.toUpperCase().indexOf('CREATE');
+            const sqlFromCreate =
+                createViewIndex >= 0
+                    ? stmt.sql.substring(createViewIndex)
+                    : stmt.sql;
+
+            // Matches: CREATE [OR REPLACE] VIEW [schema.]viewname
+            const viewMatch = sqlFromCreate.match(
+                /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:"([^"]+)"|([^"\s.]+))\.)?(?:"([^"]+)"|([^"\s.(]+))/i
+            );
+            if (viewMatch) {
+                const schemaName = viewMatch[1] || viewMatch[2] || 'public';
+                const viewName = viewMatch[3] || viewMatch[4];
+                const viewKey = `${schemaName}.${viewName}`;
+                tableMap[viewKey] = generateId();
+            }
         } else if (stmt.type === 'type') {
             // Extract enum type definition
             const enumType = extractEnumFromSQL(stmt.sql);
@@ -684,6 +953,7 @@ export async function fromPostgres(
     for (const stmt of statements) {
         if (
             stmt.type === 'table' ||
+            stmt.type === 'view' ||
             stmt.type === 'index' ||
             stmt.type === 'alter'
         ) {
@@ -708,8 +978,8 @@ export async function fromPostgres(
                 );
 
                 // Mark the statement as having parse errors but keep it for fallback processing
-                if (stmt.type === 'table') {
-                    stmt.parsed = null; // Mark as failed but still a table
+                if (stmt.type === 'table' || stmt.type === 'view') {
+                    stmt.parsed = null; // Mark as failed but still a table/view
                 }
             }
         }
@@ -820,105 +1090,91 @@ export async function fromPostgres(
                                 }
                             }
 
-                            // First normalize the base type
-                            let normalizedBaseType = rawDataType;
-                            let isSerialType = false;
-
-                            // Check if it's a serial type first
-                            const upperType = rawDataType.toUpperCase();
-                            const typeLength = definition?.length as
+                            // Check if it's a serial type
+                            const isSerialType = isSerialTypeName(rawDataType);
+                            const typeLength = columnDef.definition?.length as
                                 | number
                                 | undefined;
 
-                            if (upperType === 'SERIAL') {
-                                // Use length to determine the actual serial type
-                                if (typeLength === 2) {
-                                    normalizedBaseType = 'SMALLINT';
-                                    isSerialType = true;
-                                } else if (typeLength === 8) {
-                                    normalizedBaseType = 'BIGINT';
-                                    isSerialType = true;
-                                } else {
-                                    // Default serial or serial4
-                                    normalizedBaseType = 'INTEGER';
-                                    isSerialType = true;
-                                }
-                            } else if (upperType === 'INT') {
-                                // Use length to determine the actual int type
-                                if (typeLength === 2) {
-                                    normalizedBaseType = 'SMALLINT';
-                                } else if (typeLength === 8) {
-                                    normalizedBaseType = 'BIGINT';
-                                } else {
-                                    // Default int or int4
-                                    normalizedBaseType = 'INTEGER';
-                                }
-                            } else {
-                                // Apply normalization for other types
-                                normalizedBaseType =
-                                    normalizePostgreSQLType(rawDataType);
-                            }
+                            // Check if this is an array type (node-sql-parser stores this separately)
+                            const arrayInfo = definition?.array as
+                                | { dimension?: number }
+                                | undefined;
+                            const isArrayType =
+                                arrayInfo?.dimension !== undefined ||
+                                rawDataType.endsWith('[]');
 
-                            // Now handle parameters - but skip for integer types that shouldn't have them
-                            let finalDataType = normalizedBaseType;
+                            // Normalize the type (pass length to handle parser quirks like INT with length=8)
+                            let finalDataType = normalizePostgreSQLType(
+                                rawDataType,
+                                typeLength
+                            );
 
-                            // Don't add parameters to INTEGER types that come from int4, int8, etc.
-                            const isNormalizedIntegerType =
-                                ['INTEGER', 'BIGINT', 'SMALLINT'].includes(
-                                    normalizedBaseType
-                                ) &&
-                                (upperType === 'INT' || upperType === 'SERIAL');
-
-                            if (!isSerialType && !isNormalizedIntegerType) {
-                                // Include precision/scale/length in the type string if available
+                            // Add type parameters for non-serial, non-integer types
+                            if (!isSerialType) {
                                 const precision =
                                     columnDef.definition?.precision;
                                 const scale = columnDef.definition?.scale;
-                                const length = columnDef.definition?.length;
-
-                                // Also check if there's a suffix that includes the precision/scale
-                                const definition =
+                                const suffix = (
                                     columnDef.definition as Record<
                                         string,
                                         unknown
-                                    >;
-                                const suffix = definition?.suffix;
+                                    >
+                                )?.suffix;
 
-                                if (
-                                    suffix &&
-                                    Array.isArray(suffix) &&
-                                    suffix.length > 0
-                                ) {
-                                    // The suffix contains the full type parameters like (10,2)
-                                    const params = suffix
-                                        .map((s: unknown) => {
-                                            if (
+                                // Skip adding parameters to integer types (they don't have size params)
+                                const isIntegerType = [
+                                    'integer',
+                                    'bigint',
+                                    'smallint',
+                                ].includes(finalDataType);
+
+                                if (!isIntegerType) {
+                                    if (
+                                        suffix &&
+                                        Array.isArray(suffix) &&
+                                        suffix.length > 0
+                                    ) {
+                                        const params = suffix
+                                            .map((s: unknown) =>
                                                 typeof s === 'object' &&
                                                 s !== null &&
                                                 'value' in s
-                                            ) {
-                                                return String(
-                                                    (s as { value: unknown })
-                                                        .value
-                                                );
-                                            }
-                                            return String(s);
-                                        })
-                                        .join(',');
-                                    finalDataType = `${normalizedBaseType}(${params})`;
-                                } else if (precision !== undefined) {
-                                    if (scale !== undefined) {
-                                        finalDataType = `${normalizedBaseType}(${precision},${scale})`;
-                                    } else {
-                                        finalDataType = `${normalizedBaseType}(${precision})`;
+                                                    ? String(
+                                                          (
+                                                              s as {
+                                                                  value: unknown;
+                                                              }
+                                                          ).value
+                                                      )
+                                                    : String(s)
+                                            )
+                                            .join(',');
+                                        finalDataType = `${finalDataType}(${params})`;
+                                    } else if (precision !== undefined) {
+                                        finalDataType =
+                                            scale !== undefined
+                                                ? `${finalDataType}(${precision},${scale})`
+                                                : `${finalDataType}(${precision})`;
+                                    } else if (
+                                        scale !== undefined &&
+                                        typeLength !== undefined
+                                    ) {
+                                        // For NUMERIC, node-sql-parser stores precision as 'length'
+                                        finalDataType = `${finalDataType}(${typeLength},${scale})`;
+                                    } else if (
+                                        typeLength !== undefined &&
+                                        typeLength !== null
+                                    ) {
+                                        finalDataType = `${finalDataType}(${typeLength})`;
                                     }
-                                } else if (
-                                    length !== undefined &&
-                                    length !== null
-                                ) {
-                                    // For VARCHAR, CHAR, etc.
-                                    finalDataType = `${normalizedBaseType}(${length})`;
                                 }
+                            }
+
+                            // Add array suffix if this is an array type
+                            // (only if not already present from rawDataType)
+                            if (isArrayType && !finalDataType.endsWith('[]')) {
+                                finalDataType = `${finalDataType}[]`;
                             }
 
                             if (columnName) {
@@ -930,11 +1186,12 @@ export async function fromPostgres(
                                 columns.push({
                                     name: columnName,
                                     type: finalDataType,
-                                    nullable: isSerialType
-                                        ? false
-                                        : columnDef.nullable?.type !==
-                                          'not null',
-                                    primaryKey: isPrimaryKey || isSerialType,
+                                    nullable:
+                                        isSerialType || isPrimaryKey
+                                            ? false
+                                            : columnDef.nullable?.type !==
+                                              'not null',
+                                    primaryKey: isPrimaryKey,
                                     unique: columnDef.unique === 'unique',
                                     typeArgs: getTypeArgs(columnDef.definition),
                                     default: isSerialType
@@ -944,13 +1201,11 @@ export async function fromPostgres(
                                         isSerialType ||
                                         columnDef.auto_increment ===
                                             'auto_increment' ||
-                                        // Check if the SQL contains GENERATED IDENTITY for this column
-                                        (stmt.sql
-                                            .toUpperCase()
-                                            .includes('GENERATED') &&
-                                            stmt.sql
-                                                .toUpperCase()
-                                                .includes('IDENTITY')),
+                                        // Check if the SQL contains GENERATED IDENTITY for this specific column
+                                        hasGeneratedIdentity(
+                                            stmt.sql,
+                                            columnName
+                                        ),
                                 });
                             }
                         } else if (def.resource === 'constraint') {
@@ -962,7 +1217,11 @@ export async function fromPostgres(
                             ) {
                                 // Process primary key constraint
                                 if (Array.isArray(constraintDef.definition)) {
-                                    constraintDef.definition.forEach(
+                                    const pkColumns = constraintDef.definition;
+                                    const isSingleColumnPK =
+                                        pkColumns.length === 1;
+
+                                    pkColumns.forEach(
                                         (colDef: ColumnReference) => {
                                             const pkColumnName =
                                                 extractColumnName(colDef);
@@ -972,6 +1231,11 @@ export async function fromPostgres(
                                             );
                                             if (column) {
                                                 column.primaryKey = true;
+                                                // Only mark as unique if it's a single-column primary key
+                                                // Composite primary keys don't guarantee uniqueness of individual columns
+                                                if (isSingleColumnPK) {
+                                                    column.unique = true;
+                                                }
                                             }
                                         }
                                     );
@@ -992,6 +1256,11 @@ export async function fromPostgres(
             );
             relationships.push(...tableFKs);
 
+            // Extract check constraints from the original SQL
+            const checkConstraints = extractCheckConstraintsFromCreateTable(
+                stmt.sql
+            );
+
             // Create table object
             const table: SQLTable = {
                 id: tableId,
@@ -999,6 +1268,8 @@ export async function fromPostgres(
                 schema: schemaName,
                 columns,
                 indexes,
+                checkConstraints:
+                    checkConstraints.length > 0 ? checkConstraints : undefined,
                 order: tables.length,
             };
 
@@ -1044,6 +1315,10 @@ export async function fromPostgres(
                     );
                     relationships.push(...fks);
 
+                    // Extract check constraints
+                    const checkConstraints =
+                        extractCheckConstraintsFromCreateTable(stmt.sql);
+
                     // Create table object
                     const table: SQLTable = {
                         id: tableId,
@@ -1051,6 +1326,10 @@ export async function fromPostgres(
                         schema: schemaName,
                         columns,
                         indexes: [],
+                        checkConstraints:
+                            checkConstraints.length > 0
+                                ? checkConstraints
+                                : undefined,
                         order: tables.length,
                     };
 
@@ -1058,6 +1337,47 @@ export async function fromPostgres(
                     warnings.push(
                         `Table ${tableName} was parsed with limited column information due to complex syntax`
                     );
+                }
+            }
+        }
+    }
+
+    // Third pass (continued): extract view definitions
+    for (const stmt of statements) {
+        if (stmt.type === 'view') {
+            // Extract view name
+            const createViewIndex = stmt.sql.toUpperCase().indexOf('CREATE');
+            const sqlFromCreate =
+                createViewIndex >= 0
+                    ? stmt.sql.substring(createViewIndex)
+                    : stmt.sql;
+
+            const viewMatch = sqlFromCreate.match(
+                /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:"([^"]+)"|([^"\s.]+))\.)?(?:"([^"]+)"|([^"\s.(]+))/i
+            );
+
+            if (viewMatch) {
+                const schemaName = viewMatch[1] || viewMatch[2] || 'public';
+                const viewName = viewMatch[3] || viewMatch[4];
+                const viewKey = `${schemaName}.${viewName}`;
+                const viewId = tableMap[viewKey];
+
+                if (viewId) {
+                    // Extract columns from the view definition
+                    const columns = extractColumnsFromView(stmt.sql);
+
+                    // Create view object (as a table with isView: true)
+                    const view: SQLTable = {
+                        id: viewId,
+                        name: viewName,
+                        schema: schemaName,
+                        columns,
+                        indexes: [], // Views don't have indexes
+                        order: tables.length,
+                        isView: true,
+                    };
+
+                    tables.push(view);
                 }
             }
         }
@@ -1233,81 +1553,61 @@ export async function fromPostgres(
                             const rawDataType = String(
                                 definition?.dataType || 'TEXT'
                             );
-                            // console.log('expr:', JSON.stringify(expr, null, 2));
-
-                            // Normalize the type
-                            let normalizedBaseType =
-                                normalizePostgreSQLType(rawDataType);
 
                             // Check if it's a serial type
-                            const upperType = rawDataType.toUpperCase();
-                            const isSerialType = [
-                                'SERIAL',
-                                'SERIAL2',
-                                'SERIAL4',
-                                'SERIAL8',
-                                'BIGSERIAL',
-                                'SMALLSERIAL',
-                            ].includes(upperType.split('(')[0]);
+                            const isSerialType = isSerialTypeName(rawDataType);
+                            const typeLength = definition?.length as
+                                | number
+                                | undefined;
 
-                            if (isSerialType) {
-                                const typeLength = definition?.length as
-                                    | number
-                                    | undefined;
-                                if (upperType === 'SERIAL') {
-                                    if (typeLength === 2) {
-                                        normalizedBaseType = 'SMALLINT';
-                                    } else if (typeLength === 8) {
-                                        normalizedBaseType = 'BIGINT';
-                                    } else {
-                                        normalizedBaseType = 'INTEGER';
-                                    }
-                                }
-                            }
+                            // Normalize the type (pass length to handle parser quirks)
+                            let finalDataType = normalizePostgreSQLType(
+                                rawDataType,
+                                typeLength
+                            );
 
-                            // Handle type parameters
-                            let finalDataType = normalizedBaseType;
-                            const isNormalizedIntegerType =
-                                ['INTEGER', 'BIGINT', 'SMALLINT'].includes(
-                                    normalizedBaseType
-                                ) &&
-                                (upperType === 'INT' || upperType === 'SERIAL');
-
-                            if (!isSerialType && !isNormalizedIntegerType) {
+                            // Add type parameters for non-serial, non-integer types
+                            if (!isSerialType) {
                                 const precision = definition?.precision;
                                 const scale = definition?.scale;
-                                const length = definition?.length;
                                 const suffix =
                                     (definition?.suffix as unknown[]) || [];
 
-                                if (suffix.length > 0) {
-                                    const params = suffix
-                                        .map((s: unknown) => {
-                                            if (
+                                const isIntegerType = [
+                                    'integer',
+                                    'bigint',
+                                    'smallint',
+                                ].includes(finalDataType);
+
+                                if (!isIntegerType) {
+                                    if (suffix.length > 0) {
+                                        const params = suffix
+                                            .map((s: unknown) =>
                                                 typeof s === 'object' &&
                                                 s !== null &&
                                                 'value' in s
-                                            ) {
-                                                return String(
-                                                    (s as { value: unknown })
-                                                        .value
-                                                );
-                                            }
-                                            return String(s);
-                                        })
-                                        .join(',');
-                                    finalDataType = `${normalizedBaseType}(${params})`;
-                                } else if (precision !== undefined) {
-                                    if (scale !== undefined) {
-                                        finalDataType = `${normalizedBaseType}(${precision},${scale})`;
-                                    } else {
-                                        finalDataType = `${normalizedBaseType}(${precision})`;
+                                                    ? String(
+                                                          (
+                                                              s as {
+                                                                  value: unknown;
+                                                              }
+                                                          ).value
+                                                      )
+                                                    : String(s)
+                                            )
+                                            .join(',');
+                                        finalDataType = `${finalDataType}(${params})`;
+                                    } else if (precision !== undefined) {
+                                        finalDataType =
+                                            scale !== undefined
+                                                ? `${finalDataType}(${precision},${scale})`
+                                                : `${finalDataType}(${precision})`;
+                                    } else if (
+                                        typeLength !== undefined &&
+                                        typeLength !== null
+                                    ) {
+                                        finalDataType = `${finalDataType}(${typeLength})`;
                                     }
-                                } else if (
-                                    length !== undefined &&
-                                    length !== null
-                                ) {
-                                    finalDataType = `${normalizedBaseType}(${length})`;
                                 }
                             }
 
@@ -1352,20 +1652,14 @@ export async function fromPostgres(
                                 nullable: nullable,
                                 primaryKey:
                                     definition?.primary_key === 'primary key' ||
-                                    definition?.constraint === 'primary key' ||
-                                    isSerialType,
+                                    definition?.constraint === 'primary key',
                                 unique: isUnique,
                                 default: defaultValue,
                                 increment:
                                     isSerialType ||
                                     definition?.auto_increment ===
                                         'auto_increment' ||
-                                    (stmt.sql
-                                        .toUpperCase()
-                                        .includes('GENERATED') &&
-                                        stmt.sql
-                                            .toUpperCase()
-                                            .includes('IDENTITY')),
+                                    hasGeneratedIdentity(stmt.sql, columnName),
                             };
 
                             // Add the column to the table if it doesn't already exist
@@ -1403,84 +1697,62 @@ export async function fromPostgres(
                                     definition?.dataType || 'TEXT'
                                 );
 
-                                // Normalize the type
-                                let normalizedBaseType =
-                                    normalizePostgreSQLType(rawDataType);
-
                                 // Check if it's a serial type
-                                const upperType = rawDataType.toUpperCase();
-                                const isSerialType = [
-                                    'SERIAL',
-                                    'SERIAL2',
-                                    'SERIAL4',
-                                    'SERIAL8',
-                                    'BIGSERIAL',
-                                    'SMALLSERIAL',
-                                ].includes(upperType.split('(')[0]);
+                                const isSerialType =
+                                    isSerialTypeName(rawDataType);
+                                const typeLength = definition?.length as
+                                    | number
+                                    | undefined;
 
-                                if (isSerialType) {
-                                    const typeLength = definition?.length as
-                                        | number
-                                        | undefined;
-                                    if (upperType === 'SERIAL') {
-                                        if (typeLength === 2) {
-                                            normalizedBaseType = 'SMALLINT';
-                                        } else if (typeLength === 8) {
-                                            normalizedBaseType = 'BIGINT';
-                                        } else {
-                                            normalizedBaseType = 'INTEGER';
-                                        }
-                                    }
-                                }
+                                // Normalize the type (pass length to handle parser quirks)
+                                let finalDataType = normalizePostgreSQLType(
+                                    rawDataType,
+                                    typeLength
+                                );
 
-                                // Handle type parameters
-                                let finalDataType = normalizedBaseType;
-                                const isNormalizedIntegerType =
-                                    ['INTEGER', 'BIGINT', 'SMALLINT'].includes(
-                                        normalizedBaseType
-                                    ) &&
-                                    (upperType === 'INT' ||
-                                        upperType === 'SERIAL');
-
-                                if (!isSerialType && !isNormalizedIntegerType) {
+                                // Add type parameters for non-serial, non-integer types
+                                if (!isSerialType) {
                                     const precision =
                                         columnDef.definition?.precision;
                                     const scale = columnDef.definition?.scale;
-                                    const length = columnDef.definition?.length;
                                     const suffix =
                                         (definition?.suffix as unknown[]) || [];
 
-                                    if (suffix.length > 0) {
-                                        const params = suffix
-                                            .map((s: unknown) => {
-                                                if (
+                                    const isIntegerType = [
+                                        'integer',
+                                        'bigint',
+                                        'smallint',
+                                    ].includes(finalDataType);
+
+                                    if (!isIntegerType) {
+                                        if (suffix.length > 0) {
+                                            const params = suffix
+                                                .map((s: unknown) =>
                                                     typeof s === 'object' &&
                                                     s !== null &&
                                                     'value' in s
-                                                ) {
-                                                    return String(
-                                                        (
-                                                            s as {
-                                                                value: unknown;
-                                                            }
-                                                        ).value
-                                                    );
-                                                }
-                                                return String(s);
-                                            })
-                                            .join(',');
-                                        finalDataType = `${normalizedBaseType}(${params})`;
-                                    } else if (precision !== undefined) {
-                                        if (scale !== undefined) {
-                                            finalDataType = `${normalizedBaseType}(${precision},${scale})`;
-                                        } else {
-                                            finalDataType = `${normalizedBaseType}(${precision})`;
+                                                        ? String(
+                                                              (
+                                                                  s as {
+                                                                      value: unknown;
+                                                                  }
+                                                              ).value
+                                                          )
+                                                        : String(s)
+                                                )
+                                                .join(',');
+                                            finalDataType = `${finalDataType}(${params})`;
+                                        } else if (precision !== undefined) {
+                                            finalDataType =
+                                                scale !== undefined
+                                                    ? `${finalDataType}(${precision},${scale})`
+                                                    : `${finalDataType}(${precision})`;
+                                        } else if (
+                                            typeLength !== undefined &&
+                                            typeLength !== null
+                                        ) {
+                                            finalDataType = `${finalDataType}(${typeLength})`;
                                         }
-                                    } else if (
-                                        length !== undefined &&
-                                        length !== null
-                                    ) {
-                                        finalDataType = `${normalizedBaseType}(${length})`;
                                     }
                                 }
 
@@ -1496,8 +1768,7 @@ export async function fromPostgres(
                                         columnDef.primary_key ===
                                             'primary key' ||
                                         columnDef.definition?.constraint ===
-                                            'primary key' ||
-                                        isSerialType,
+                                            'primary key',
                                     unique: columnDef.unique === 'unique',
                                     typeArgs: getTypeArgs(columnDef.definition),
                                     default: isSerialType
@@ -1507,12 +1778,10 @@ export async function fromPostgres(
                                         isSerialType ||
                                         columnDef.auto_increment ===
                                             'auto_increment' ||
-                                        (stmt.sql
-                                            .toUpperCase()
-                                            .includes('GENERATED') &&
-                                            stmt.sql
-                                                .toUpperCase()
-                                                .includes('IDENTITY')),
+                                        hasGeneratedIdentity(
+                                            stmt.sql,
+                                            columnName
+                                        ),
                                 };
 
                                 // Add the column to the table if it doesn't already exist
@@ -1915,12 +2184,29 @@ export async function fromPostgres(
                             createIndexStmt.index_name ||
                             `idx_${tableName}_${columns.join('_')}`;
 
+                        // Extract index type from USING clause (e.g., USING GIN, USING HASH)
+                        // The parser may store this in different properties
+                        let indexType: string | undefined;
+                        const indexUsing = createIndexStmt.index_using;
+                        if (typeof indexUsing === 'string') {
+                            indexType = indexUsing.toLowerCase();
+                        } else if (
+                            indexUsing &&
+                            typeof indexUsing === 'object' &&
+                            'type' in indexUsing
+                        ) {
+                            indexType = String(
+                                (indexUsing as { type: unknown }).type
+                            ).toLowerCase();
+                        }
+
                         table.indexes.push({
                             name: indexName,
                             columns,
                             unique:
                                 createIndexStmt.index_type === 'unique' ||
                                 createIndexStmt.unique === true,
+                            type: indexType,
                         });
                     }
                 }

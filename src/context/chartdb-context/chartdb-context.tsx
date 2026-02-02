@@ -4,6 +4,7 @@ import { emptyFn } from '@/lib/utils';
 import { DatabaseType } from '@/lib/domain/database-type';
 import type { DBField } from '@/lib/domain/db-field';
 import type { DBIndex } from '@/lib/domain/db-index';
+import type { DBCheckConstraint } from '@/lib/domain/db-check-constraint';
 import type { DBRelationship } from '@/lib/domain/db-relationship';
 import type { Diagram } from '@/lib/domain/diagram';
 import type { DatabaseEdition } from '@/lib/domain/database-edition';
@@ -12,6 +13,7 @@ import type { DBDependency } from '@/lib/domain/db-dependency';
 import { EventEmitter } from 'ahooks/lib/useEventEmitter';
 import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
+import type { Note } from '@/lib/domain/note';
 
 export type ChartDBEventType =
     | 'add_tables'
@@ -74,6 +76,7 @@ export interface ChartDBContext {
     dependencies: DBDependency[];
     areas: Area[];
     customTypes: DBCustomType[];
+    notes: Note[];
     currentDiagram: Diagram;
     events: EventEmitter<ChartDBEvent>;
     readonly?: boolean;
@@ -172,6 +175,25 @@ export interface ChartDBContext {
         options?: { updateHistory: boolean }
     ) => Promise<void>;
 
+    // Check constraint operations
+    createCheckConstraint: (tableId: string) => Promise<DBCheckConstraint>;
+    addCheckConstraint: (
+        tableId: string,
+        constraint: DBCheckConstraint,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    removeCheckConstraint: (
+        tableId: string,
+        constraintId: string,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    updateCheckConstraint: (
+        tableId: string,
+        constraintId: string,
+        constraint: Partial<DBCheckConstraint>,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+
     // Relationship operations
     createRelationship: (params: {
         sourceTableId: string;
@@ -255,6 +277,31 @@ export interface ChartDBContext {
         options?: { updateHistory: boolean }
     ) => Promise<void>;
 
+    // Note operations
+    createNote: (attributes?: Partial<Omit<Note, 'id'>>) => Promise<Note>;
+    addNote: (
+        note: Note,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    addNotes: (
+        notes: Note[],
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    getNote: (id: string) => Note | null;
+    removeNote: (
+        id: string,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    removeNotes: (
+        ids: string[],
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+    updateNote: (
+        id: string,
+        note: Partial<Note>,
+        options?: { updateHistory: boolean }
+    ) => Promise<void>;
+
     // Custom type operations
     createCustomType: (
         attributes?: Partial<Omit<DBCustomType, 'id'>>
@@ -292,6 +339,7 @@ export const chartDBContext = createContext<ChartDBContext>({
     dependencies: [],
     areas: [],
     customTypes: [],
+    notes: [],
     schemas: [],
     highlightCustomTypeId: emptyFn,
     currentDiagram: {
@@ -341,6 +389,12 @@ export const chartDBContext = createContext<ChartDBContext>({
     removeIndex: emptyFn,
     updateIndex: emptyFn,
 
+    // Check constraint operations
+    createCheckConstraint: emptyFn,
+    addCheckConstraint: emptyFn,
+    removeCheckConstraint: emptyFn,
+    updateCheckConstraint: emptyFn,
+
     // Relationship operations
     createRelationship: emptyFn,
     addRelationship: emptyFn,
@@ -367,6 +421,15 @@ export const chartDBContext = createContext<ChartDBContext>({
     removeArea: emptyFn,
     removeAreas: emptyFn,
     updateArea: emptyFn,
+
+    // Note operations
+    createNote: emptyFn,
+    addNote: emptyFn,
+    addNotes: emptyFn,
+    getNote: emptyFn,
+    removeNote: emptyFn,
+    removeNotes: emptyFn,
+    updateNote: emptyFn,
 
     // Custom type operations
     createCustomType: emptyFn,

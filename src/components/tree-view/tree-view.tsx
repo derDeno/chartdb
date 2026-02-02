@@ -42,6 +42,7 @@ interface TreeViewProps<
     renderHoverComponent?: (node: TreeNode<Type, Context>) => ReactNode;
     renderActionsComponent?: (node: TreeNode<Type, Context>) => ReactNode;
     loadingNodeIds?: string[];
+    disableCache?: boolean;
 }
 
 export function TreeView<
@@ -62,12 +63,14 @@ export function TreeView<
     renderHoverComponent,
     renderActionsComponent,
     loadingNodeIds,
+    disableCache = false,
 }: TreeViewProps<Type, Context>) {
     const { expanded, loading, loadedChildren, hasMoreChildren, toggleNode } =
         useTree({
             fetchChildren,
             expanded: expandedProp,
             setExpanded: setExpandedProp,
+            disableCache,
         });
     const [selectedIdInternal, setSelectedIdInternal] = React.useState<
         string | undefined
@@ -145,6 +148,7 @@ export function TreeView<
                     renderHoverComponent={renderHoverComponent}
                     renderActionsComponent={renderActionsComponent}
                     loadingNodeIds={loadingNodeIds}
+                    disableCache={disableCache}
                 />
             ))}
         </div>
@@ -179,6 +183,7 @@ interface TreeNodeProps<
     renderHoverComponent?: (node: TreeNode<Type, Context>) => ReactNode;
     renderActionsComponent?: (node: TreeNode<Type, Context>) => ReactNode;
     loadingNodeIds?: string[];
+    disableCache?: boolean;
 }
 
 function TreeNode<Type extends string, Context extends Record<Type, unknown>>({
@@ -201,11 +206,16 @@ function TreeNode<Type extends string, Context extends Record<Type, unknown>>({
     renderHoverComponent,
     renderActionsComponent,
     loadingNodeIds,
+    disableCache = false,
 }: TreeNodeProps<Type, Context>) {
     const [isHovered, setIsHovered] = useState(false);
     const isExpanded = expanded[node.id];
     const isLoading = loading[node.id];
-    const children = loadedChildren[node.id] || node.children;
+    // If cache is disabled, always use fresh node.children
+    // Otherwise, use cached loadedChildren if available (for async fetched data)
+    const children = disableCache
+        ? node.children
+        : node.children || loadedChildren[node.id];
     const isSelected = selectedId === node.id;
 
     const IconComponent =
@@ -344,13 +354,27 @@ function TreeNode<Type extends string, Context extends Record<Type, unknown>>({
                 <span
                     {...node.labelProps}
                     className={cn(
-                        'text-xs truncate min-w-0 flex-1 w-0',
+                        'text-xs truncate min-w-0 flex-1 w-0 flex items-center gap-1.5',
                         isSelected && 'font-medium text-primary text-white',
                         node.labelProps?.className
                     )}
                     {...(isSelected ? { 'data-selected': true } : {})}
                 >
-                    {node.empty ? '' : node.name}
+                    <span className="truncate">
+                        {node.empty ? '' : node.name}
+                    </span>
+                    {node.suffix && (
+                        <span
+                            className={cn(
+                                'flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                                isSelected
+                                    ? 'bg-sky-400/50 text-white'
+                                    : 'bg-gray-200/50 text-muted-foreground dark:bg-gray-700/50'
+                            )}
+                        >
+                            {node.suffix}
+                        </span>
+                    )}
                 </span>
                 {renderActionsComponent && renderActionsComponent(node)}
                 {isHovered && renderHoverComponent
@@ -423,6 +447,7 @@ function TreeNode<Type extends string, Context extends Record<Type, unknown>>({
                                 renderHoverComponent={renderHoverComponent}
                                 renderActionsComponent={renderActionsComponent}
                                 loadingNodeIds={loadingNodeIds}
+                                disableCache={disableCache}
                             />
                         ))}
                         {isLoading ? (

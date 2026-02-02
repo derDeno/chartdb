@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fromPostgres } from '../postgresql';
+import { sqlImportToDiagram } from '@/lib/data/sql-import';
+import { DatabaseType } from '@/lib/domain/database-type';
+import * as dataTypes from '@/lib/data/data-types/data-types';
+import type { DBTable } from '@/lib/domain/db-table';
+import type { DBField } from '@/lib/domain/db-field';
 
 describe('PostgreSQL Core Parser Tests', () => {
     it('should parse basic tables', async () => {
@@ -454,5 +459,149 @@ CREATE TRIGGER arcane_audit_apprentices AFTER INSERT OR UPDATE OR DELETE ON appr
         );
         expect(fks.length).toBeGreaterThan(0);
         expect(fks[0].targetTable).toBe('base');
+    });
+
+    describe('Type Synonym Resolution', () => {
+        it('should call getPreferredSynonym for PostgreSQL types and use resolved types', async () => {
+            // Spy on getPreferredSynonym
+            const getPreferredSynonymSpy = vi.spyOn(
+                dataTypes,
+                'getPreferredSynonym'
+            );
+
+            // Mock return value for 'character varying' -> 'varchar'
+            getPreferredSynonymSpy.mockImplementation(
+                (typeName, databaseType) => {
+                    if (
+                        typeName === 'character varying' &&
+                        databaseType === DatabaseType.POSTGRESQL
+                    ) {
+                        return {
+                            id: 'varchar',
+                            name: 'varchar',
+                            fieldAttributes: { hasCharMaxLength: true },
+                            usageLevel: 1,
+                        } as const;
+                    }
+                    if (
+                        typeName === 'integer' &&
+                        databaseType === DatabaseType.POSTGRESQL
+                    ) {
+                        return {
+                            id: 'int',
+                            name: 'int',
+                            usageLevel: 1,
+                        } as const;
+                    }
+                    return null;
+                }
+            );
+
+            const sql = `
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY,
+                    name CHARACTER VARYING(255),
+                    email CHARACTER VARYING(100)
+                );
+            `;
+
+            const diagram = await sqlImportToDiagram({
+                sqlContent: sql,
+                sourceDatabaseType: DatabaseType.POSTGRESQL,
+                targetDatabaseType: DatabaseType.POSTGRESQL,
+            });
+
+            // Verify getPreferredSynonym was called
+            expect(getPreferredSynonymSpy).toHaveBeenCalled();
+            expect(getPreferredSynonymSpy).toHaveBeenCalledWith(
+                'integer',
+                DatabaseType.POSTGRESQL
+            );
+            expect(getPreferredSynonymSpy).toHaveBeenCalledWith(
+                'varchar',
+                DatabaseType.POSTGRESQL
+            );
+
+            // Verify the resolved types were used in the diagram
+            const usersTable = diagram.tables?.find(
+                (t: DBTable) => t.name === 'users'
+            );
+            expect(usersTable).toBeDefined();
+
+            const idField = usersTable?.fields.find(
+                (f: DBField) => f.name === 'id'
+            );
+            expect(idField?.type.id).toBe('int');
+            expect(idField?.type.name).toBe('int');
+
+            const nameField = usersTable?.fields.find(
+                (f: DBField) => f.name === 'name'
+            );
+            expect(nameField?.type.id).toBe('varchar');
+            expect(nameField?.type.name).toBe('varchar');
+
+            const emailField = usersTable?.fields.find(
+                (f: DBField) => f.name === 'email'
+            );
+            expect(emailField?.type.id).toBe('varchar');
+            expect(emailField?.type.name).toBe('varchar');
+
+            // Restore the original implementation
+            getPreferredSynonymSpy.mockRestore();
+        });
+    });
+
+    describe('Primary Key Uniqueness', () => {
+        it('should mark single-column primary key field as unique', async () => {
+            const sql = `
+CREATE SCHEMA IF NOT EXISTS "public";
+
+CREATE TABLE "public"."table_1" (
+    "id" bigint NOT NULL,
+    CONSTRAINT "pk_table_1_id" PRIMARY KEY ("id")
+);
+            `;
+
+            const result = await fromPostgres(sql);
+
+            expect(result.tables).toHaveLength(1);
+            const table = result.tables[0];
+            expect(table.name).toBe('table_1');
+
+            const idColumn = table.columns.find((c) => c.name === 'id');
+            expect(idColumn).toBeDefined();
+            expect(idColumn?.primaryKey).toBe(true);
+            expect(idColumn?.unique).toBe(true);
+        });
+
+        it('should not mark composite primary key fields as unique individually', async () => {
+            const sql = `
+CREATE SCHEMA IF NOT EXISTS "public";
+
+CREATE TABLE "public"."table_1" (
+    "id" bigint NOT NULL,
+    "field_2" bigint NOT NULL,
+    CONSTRAINT "pk_table_1_id" PRIMARY KEY ("id", "field_2")
+);
+            `;
+
+            const result = await fromPostgres(sql);
+
+            expect(result.tables).toHaveLength(1);
+            const table = result.tables[0];
+            expect(table.name).toBe('table_1');
+
+            const idColumn = table.columns.find((c) => c.name === 'id');
+            expect(idColumn).toBeDefined();
+            expect(idColumn?.primaryKey).toBe(true);
+            expect(idColumn?.unique).toBe(false);
+
+            const field2Column = table.columns.find(
+                (c) => c.name === 'field_2'
+            );
+            expect(field2Column).toBeDefined();
+            expect(field2Column?.primaryKey).toBe(true);
+            expect(field2Column?.unique).toBe(false);
+        });
     });
 });

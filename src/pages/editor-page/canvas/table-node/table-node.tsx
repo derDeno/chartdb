@@ -6,7 +6,13 @@ import React, {
     useEffect,
 } from 'react';
 import type { NodeProps, Node } from '@xyflow/react';
-import { NodeResizer, useConnection, useStore } from '@xyflow/react';
+import {
+    NodeResizer,
+    useConnection,
+    useStore,
+    Handle,
+    Position,
+} from '@xyflow/react';
 import { Button } from '@/components/button/button';
 import {
     ChevronsLeftRight,
@@ -18,6 +24,7 @@ import {
     SquareDot,
     SquarePlus,
     SquareMinus,
+    View,
 } from 'lucide-react';
 import { Label } from '@/components/label/label';
 import {
@@ -47,6 +54,9 @@ import { TableNodeStatus } from './table-node-status/table-node-status';
 import { TableEditMode } from './table-edit-mode/table-edit-mode';
 import { useCanvas } from '@/hooks/use-canvas';
 
+export const TABLE_RELATIONSHIP_SOURCE_HANDLE_ID_PREFIX = 'table_rel_source_';
+export const TABLE_RELATIONSHIP_TARGET_HANDLE_ID_PREFIX = 'table_rel_target_';
+
 export type TableNodeType = Node<
     {
         table: DBTable;
@@ -54,6 +64,7 @@ export type TableNodeType = Node<
         highlightOverlappingTables?: boolean;
         hasHighlightedCustomType?: boolean;
         highlightTable?: boolean;
+        isRelationshipCreatingTarget?: boolean;
     },
     'table'
 >;
@@ -69,6 +80,7 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             highlightOverlappingTables,
             hasHighlightedCustomType,
             highlightTable,
+            isRelationshipCreatingTarget,
         },
     }) => {
         const { updateTable, relationships, readonly } = useChartDB();
@@ -81,7 +93,13 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
         const [expanded, setExpanded] = useState(table.expanded ?? false);
         const { t } = useTranslation();
         const [isHovering, setIsHovering] = useState(false);
-        const { setEditTableModeTable, editTableModeTable } = useCanvas();
+        const {
+            setEditTableModeTable,
+            editTableModeTable,
+            setHoveringTableId,
+            showCreateRelationshipNode,
+            tempFloatingEdge,
+        } = useCanvas();
 
         // Get edit mode state directly from context
         const editTableMode = useMemo(
@@ -138,7 +156,7 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
         );
         const tableColor = useMemo(() => {
             if (tableChangedColor) {
-                return tableChangedColor;
+                return tableChangedColor.new;
             }
 
             return table.color;
@@ -314,11 +332,21 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             editModeInitialFieldCount,
         ]);
 
+        const isPartOfCreatingRelationship = useMemo(
+            () =>
+                tempFloatingEdge?.sourceNodeId === id ||
+                (isRelationshipCreatingTarget &&
+                    tempFloatingEdge?.targetNodeId === id) ||
+                isHovering,
+            [tempFloatingEdge, id, isRelationshipCreatingTarget, isHovering]
+        );
+
         const tableClassName = useMemo(
             () =>
                 cn(
                     'flex w-full flex-col border-2 bg-slate-50 dark:bg-slate-950 rounded-lg shadow-sm transition-transform duration-300',
-                    selected || isTarget
+                    table.isView ? 'border-dashed' : '',
+                    selected || isTarget || isPartOfCreatingRelationship
                         ? 'border-pink-600'
                         : 'border-slate-500 dark:border-slate-700',
                     isOverlapping
@@ -363,6 +391,8 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                 isDiffTableRemoved,
                 isTarget,
                 editTableMode,
+                isPartOfCreatingRelationship,
+                table.isView,
             ]
         );
 
@@ -400,11 +430,33 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                     className={tableClassName}
                     onClick={(e) => {
                         if (e.detail === 2 && !readonly) {
+                            e.stopPropagation();
                             enterEditTableMode();
+                        } else if (e.detail === 1 && !readonly) {
+                            // Handle single click
+                            if (
+                                isRelationshipCreatingTarget &&
+                                tempFloatingEdge
+                            ) {
+                                e.stopPropagation();
+                                showCreateRelationshipNode({
+                                    sourceTableId:
+                                        tempFloatingEdge.sourceNodeId,
+                                    targetTableId: table.id,
+                                    x: e.clientX,
+                                    y: e.clientY,
+                                });
+                            }
                         }
                     }}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
+                    onMouseEnter={() => {
+                        setIsHovering(true);
+                        setHoveringTableId(table.id);
+                    }}
+                    onMouseLeave={() => {
+                        setIsHovering(false);
+                        setHoveringTableId(null);
+                    }}
                 >
                     <NodeResizer
                         isVisible={focused}
@@ -414,6 +466,25 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                         shouldResize={(event) => event.dy === 0}
                         handleClassName="!hidden"
                     />
+                    {/* Center handle for floating edge creation */}
+                    {!readonly ? (
+                        <Handle
+                            id={`${TABLE_RELATIONSHIP_SOURCE_HANDLE_ID_PREFIX}${table.id}`}
+                            type="source"
+                            position={Position.Top}
+                            className="!invisible !left-1/2 !top-1/2 !h-1 !w-1 !-translate-x-1/2 !-translate-y-1/2 !transform"
+                        />
+                    ) : null}
+                    {/* Target handle covering entire table for floating edge creation */}
+                    {!readonly ? (
+                        <Handle
+                            id={`${TABLE_RELATIONSHIP_TARGET_HANDLE_ID_PREFIX}${table.id}`}
+                            type="target"
+                            position={Position.Top}
+                            className="!absolute !left-0 !top-0 !h-full !w-full !transform-none !rounded-none !border-none !opacity-0"
+                            isConnectable={isRelationshipCreatingTarget}
+                        />
+                    ) : null}
                     <TableNodeDependencyIndicator
                         table={table}
                         focused={focused}
@@ -469,6 +540,8 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                                         Table Changed
                                     </TooltipContent>
                                 </Tooltip>
+                            ) : table.isView ? (
+                                <View className="size-3.5 shrink-0 text-gray-600 dark:text-primary" />
                             ) : (
                                 <Table2 className="size-3.5 shrink-0 text-gray-600 dark:text-primary" />
                             )}
@@ -476,13 +549,13 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                             {tableChangedName ? (
                                 <Label className="flex h-5 items-center justify-center truncate rounded-sm bg-sky-200 px-2 py-0.5 text-sm font-normal text-sky-900 dark:bg-sky-800 dark:text-sky-200">
                                     <span className="truncate">
-                                        {table.name}
+                                        {tableChangedName.old}
                                     </span>
                                     <span className="mx-1 font-semibold">
                                         →
                                     </span>
                                     <span className="truncate">
-                                        {tableChangedName}
+                                        {tableChangedName.new}
                                     </span>
                                 </Label>
                             ) : isDiffNewTable ? (

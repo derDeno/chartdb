@@ -295,4 +295,132 @@ describe('DBML Import cases', () => {
     it('should handle case 2 - tables with relationships', async () => {
         await testDBMLImportCase('2');
     });
+
+    it('should handle table with default values', async () => {
+        const dbmlContent = `Table "public"."products" {
+  "id" bigint [pk, not null]
+  "name" varchar(255) [not null]
+  "price" decimal(10,2) [not null, default: 0]
+  "is_active" boolean [not null, default: true]
+  "status" varchar(50) [not null, default: "deprecated"]
+  "description" varchar(100) [default: \`complex "value" with quotes\`]
+  "created_at" timestamp [not null, default: "now()"]
+
+  Indexes {
+    (name) [name: "idx_products_name"]
+  }
+}`;
+
+        const result = await importDBMLToDiagram(dbmlContent, {
+            databaseType: DatabaseType.POSTGRESQL,
+        });
+
+        expect(result.tables).toHaveLength(1);
+        const table = result.tables![0];
+        expect(table.name).toBe('products');
+        expect(table.fields).toHaveLength(7);
+
+        // Check numeric default (0)
+        const priceField = table.fields.find((f) => f.name === 'price');
+        expect(priceField?.default).toBe('0');
+
+        // Check boolean default (true)
+        const isActiveField = table.fields.find((f) => f.name === 'is_active');
+        expect(isActiveField?.default).toBe('true');
+
+        // Check string default with all quotes removed
+        const statusField = table.fields.find((f) => f.name === 'status');
+        expect(statusField?.default).toBe('deprecated');
+
+        // Check backtick string - all quotes removed
+        const descField = table.fields.find((f) => f.name === 'description');
+        expect(descField?.default).toBe('complex value with quotes');
+
+        // Check function default with all quotes removed
+        const createdAtField = table.fields.find(
+            (f) => f.name === 'created_at'
+        );
+        expect(createdAtField?.default).toBe('now()');
+    });
+
+    it('should handle auto-increment fields correctly', async () => {
+        const dbmlContent = `Table "public"."table_1" {
+  "id" integer [pk, not null, increment]
+  "field_2" bigint [increment]
+  "field_3" serial [increment]
+  "field_4" varchar(100) [not null]
+}`;
+
+        const result = await importDBMLToDiagram(dbmlContent, {
+            databaseType: DatabaseType.POSTGRESQL,
+        });
+
+        expect(result.tables).toHaveLength(1);
+        const table = result.tables![0];
+        expect(table.name).toBe('table_1');
+        expect(table.fields).toHaveLength(4);
+
+        // field with [pk, not null, increment] - should be not null and increment
+        const idField = table.fields.find((f) => f.name === 'id');
+        expect(idField?.increment).toBe(true);
+        expect(idField?.nullable).toBe(false);
+        expect(idField?.primaryKey).toBe(true);
+
+        // field with [increment] only - should be not null and increment
+        // (auto-increment requires NOT NULL even if not explicitly stated)
+        const field2 = table.fields.find((f) => f.name === 'field_2');
+        expect(field2?.increment).toBe(true);
+        expect(field2?.nullable).toBe(false); // CRITICAL: must be false!
+
+        // SERIAL type with [increment] - should be not null and increment
+        const field3 = table.fields.find((f) => f.name === 'field_3');
+        expect(field3?.increment).toBe(true);
+        expect(field3?.nullable).toBe(false);
+        expect(field3?.type?.name).toBe('serial');
+
+        // Regular field with [not null] - should be not null, no increment
+        const field4 = table.fields.find((f) => f.name === 'field_4');
+        expect(field4?.increment).toBeUndefined();
+        expect(field4?.nullable).toBe(false);
+    });
+
+    it('should handle SERIAL types without increment attribute', async () => {
+        const dbmlContent = `Table "public"."test_table" {
+  "id" serial [pk]
+  "counter" bigserial
+  "small_counter" smallserial
+  "regular" integer
+}`;
+
+        const result = await importDBMLToDiagram(dbmlContent, {
+            databaseType: DatabaseType.POSTGRESQL,
+        });
+
+        expect(result.tables).toHaveLength(1);
+        const table = result.tables![0];
+        expect(table.fields).toHaveLength(4);
+
+        // SERIAL type without [increment] - should STILL be not null (type requires it)
+        const idField = table.fields.find((f) => f.name === 'id');
+        expect(idField?.type?.name).toBe('serial');
+        expect(idField?.nullable).toBe(false); // CRITICAL: Type requires NOT NULL
+        expect(idField?.primaryKey).toBe(true);
+
+        // BIGSERIAL without [increment] - should be not null
+        const counterField = table.fields.find((f) => f.name === 'counter');
+        expect(counterField?.type?.name).toBe('bigserial');
+        expect(counterField?.nullable).toBe(false); // CRITICAL: Type requires NOT NULL
+
+        // SMALLSERIAL without [increment] - should be not null
+        const smallCounterField = table.fields.find(
+            (f) => f.name === 'small_counter'
+        );
+        expect(smallCounterField?.type?.name).toBe('smallserial');
+        expect(smallCounterField?.nullable).toBe(false); // CRITICAL: Type requires NOT NULL
+
+        // Regular INTEGER - should be nullable by default
+        const regularField = table.fields.find((f) => f.name === 'regular');
+        expect(regularField?.type?.name).toBe('int');
+        expect(regularField?.nullable).toBe(true); // No NOT NULL constraint
+    });
 });

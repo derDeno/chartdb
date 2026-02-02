@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useRef,
 } from 'react';
-import { X, Search, Database, Table, Funnel, Box } from 'lucide-react';
+import { X, Search, Database, Table, Box, SearchX } from 'lucide-react';
 import { useChartDB } from '@/hooks/use-chartdb';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/button/button';
@@ -66,6 +66,7 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                     name: table.name,
                     schema: table.schema,
                     parentAreaId: table.parentAreaId,
+                    isView: table.isView,
                 })),
         [tables, showDBViews, checkIfNewTable]
     );
@@ -101,13 +102,32 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
         areas,
     ]);
 
-    // Initialize expanded state with all schemas expanded
-    useMemo(() => {
-        const initialExpanded: Record<string, boolean> = {};
-        treeData.forEach((node) => {
-            initialExpanded[node.id] = true;
+    // Sync expanded state with tree data changes - only expand NEW nodes
+    useEffect(() => {
+        setExpanded((prev) => {
+            const currentNodeIds = new Set(treeData.map((n) => n.id));
+            let hasChanges = false;
+            const newExpanded: Record<string, boolean> = { ...prev };
+
+            // Add any new nodes with expanded=true (preserve existing state)
+            treeData.forEach((node) => {
+                if (!(node.id in prev)) {
+                    newExpanded[node.id] = true;
+                    hasChanges = true;
+                }
+            });
+
+            // Remove nodes that no longer exist (cleanup)
+            Object.keys(prev).forEach((id) => {
+                if (!currentNodeIds.has(id)) {
+                    delete newExpanded[id];
+                    hasChanges = true;
+                }
+            });
+
+            // Only update state if something actually changed (performance)
+            return hasChanges ? newExpanded : prev;
         });
-        setExpanded(initialExpanded);
     }, [treeData]);
 
     // Filter tree data based on search query
@@ -134,6 +154,23 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
 
         return result;
     }, [treeData, searchQuery]);
+
+    // Check if there are no tables to show
+    const hasNoTables = useMemo(() => {
+        const totalTables = filteredTreeData.reduce(
+            (sum, node) => sum + (node.children?.length ?? 0),
+            0
+        );
+        return totalTables === 0;
+    }, [filteredTreeData]);
+
+    // Check if the diagram is completely empty (no tables at all)
+    const isDiagramEmpty = useMemo(() => tables.length === 0, [tables.length]);
+
+    // Clear search query only (preserves user's hide/show selections)
+    const handleClearFilter = useCallback(() => {
+        setSearchQuery('');
+    }, []);
 
     // Render actions with proper memoization for performance
     const renderActions = useCallback(
@@ -250,9 +287,9 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
             {/* Header */}
             <div className="flex items-center justify-between rounded-t-lg border-b px-2 py-1">
                 <div className="flex items-center gap-2">
-                    <Funnel className="size-3.5 text-muted-foreground md:size-4" />
+                    <Search className="size-3.5 text-muted-foreground md:size-4" />
                     <h2 className="text-sm font-medium">
-                        {t('canvas_filter.title', 'Filter Tables')}{' '}
+                        {t('canvas_filter.title')}{' '}
                     </h2>
                     <span className="text-xs text-muted-foreground">
                         ({openFilterShortcut})
@@ -274,10 +311,7 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         ref={searchInputRef}
-                        placeholder={t(
-                            'canvas_filter.search_placeholder',
-                            'Search tables...'
-                        )}
+                        placeholder={t('canvas_filter.search_placeholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="h-full pl-9"
@@ -297,27 +331,58 @@ export const CanvasFilter: React.FC<CanvasFilterProps> = ({ onClose }) => {
                 >
                     <ToggleGroupItem value="schema" className="flex-1 text-xs">
                         <Database className="mr-1.5 size-3.5" />
-                        {t('canvas_filter.group_by_schema', 'Group by Schema')}
+                        {t('canvas_filter.group_by_schema')}
                     </ToggleGroupItem>
                     <ToggleGroupItem value="area" className="flex-1 text-xs">
                         <Box className="mr-1.5 size-3.5" />
-                        {t('canvas_filter.group_by_area', 'Group by Area')}
+                        {t('canvas_filter.group_by_area')}
                     </ToggleGroupItem>
                 </ToggleGroup>
             </div>
 
             {/* Table Tree */}
             <ScrollArea className="flex-1 rounded-b-lg" type="auto">
-                <TreeView
-                    data={filteredTreeData}
-                    onNodeClick={handleNodeClick}
-                    renderActionsComponent={renderActions}
-                    defaultFolderIcon={groupingMode === 'area' ? Box : Database}
-                    defaultIcon={Table}
-                    expanded={expanded}
-                    setExpanded={setExpanded}
-                    className="py-2"
-                />
+                {hasNoTables ? (
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+                        <SearchX className="size-10 text-muted-foreground/50" />
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                {t('canvas_filter.no_tables_found')}
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                                {isDiagramEmpty
+                                    ? t(
+                                          'canvas_filter.empty_diagram_description'
+                                      )
+                                    : t('canvas_filter.no_tables_description')}
+                            </p>
+                        </div>
+                        {!isDiagramEmpty && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleClearFilter}
+                                className="mt-2"
+                            >
+                                {t('canvas_filter.clear_filter')}
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <TreeView
+                        data={filteredTreeData}
+                        onNodeClick={handleNodeClick}
+                        renderActionsComponent={renderActions}
+                        defaultFolderIcon={
+                            groupingMode === 'area' ? Box : Database
+                        }
+                        defaultIcon={Table}
+                        expanded={expanded}
+                        setExpanded={setExpanded}
+                        className="py-2"
+                        disableCache={true}
+                    />
+                )}
             </ScrollArea>
         </div>
     );

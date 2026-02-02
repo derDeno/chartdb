@@ -6,6 +6,7 @@ import type {
     SQLIndex,
     SQLForeignKey,
     SQLASTNode,
+    SQLCheckConstraint,
 } from '../../common';
 import type {
     TableReference,
@@ -19,6 +20,145 @@ import {
     extractColumnName,
     findTableWithSchemaSupport,
 } from './sqlserver-common';
+
+/**
+ * Extract columns from a CREATE VIEW statement
+ * Views can have explicit column names or derive them from the SELECT
+ */
+function extractColumnsFromView(sql: string): SQLColumn[] {
+    const columns: SQLColumn[] = [];
+
+    // First, try to extract explicit column list from CREATE VIEW viewname (col1, col2, ...) AS
+    const explicitColumnsMatch = sql.match(
+        /CREATE\s+(?:OR\s+ALTER\s+)?VIEW\s+(?:\[?[^\]]+\]?\.)?(?:\[?[^\]]+\]?)\s*\(([^)]+)\)\s*(?:WITH\s+[^)]+\s*)?AS/i
+    );
+
+    if (explicitColumnsMatch) {
+        // Parse explicit column list
+        const columnList = explicitColumnsMatch[1];
+        const columnNames = columnList
+            .split(',')
+            .map((col) => col.trim().replace(/^\[|\]$/g, ''));
+
+        for (const colName of columnNames) {
+            if (colName) {
+                columns.push({
+                    name: colName,
+                    type: 'nvarchar', // Default type for views
+                    nullable: true,
+                    primaryKey: false,
+                    unique: false,
+                });
+            }
+        }
+
+        return columns;
+    }
+
+    // If no explicit columns, try to extract from SELECT clause
+    const selectMatch = sql.match(/\bAS\s+SELECT\s+([\s\S]+?)\s+FROM\s+/i);
+
+    if (selectMatch) {
+        const selectClause = selectMatch[1];
+
+        // Handle SELECT * - we can't determine columns
+        if (selectClause.trim() === '*') {
+            return columns;
+        }
+
+        // Split by comma, but be careful of nested functions/expressions
+        let depth = 0;
+        let currentCol = '';
+        const selectParts: string[] = [];
+
+        for (const char of selectClause) {
+            if (char === '(' || char === '[') depth++;
+            else if (char === ')' || char === ']') depth--;
+            else if (char === ',' && depth === 0) {
+                selectParts.push(currentCol.trim());
+                currentCol = '';
+                continue;
+            }
+            currentCol += char;
+        }
+        if (currentCol.trim()) {
+            selectParts.push(currentCol.trim());
+        }
+
+        for (const part of selectParts) {
+            let columnName = '';
+
+            // Check for alias: ... AS [name] or ... AS name
+            const aliasMatch = part.match(/\s+AS\s+\[?(\w+)\]?\s*$/i);
+            if (aliasMatch) {
+                columnName = aliasMatch[1];
+            } else {
+                // Try to extract the column reference
+                const colRefMatch = part.match(
+                    /(?:[\w[\]]+\.)?\[?(\w+)\]?\s*$/
+                );
+                if (colRefMatch) {
+                    columnName = colRefMatch[1];
+                }
+            }
+
+            if (columnName && columnName !== '*') {
+                columns.push({
+                    name: columnName,
+                    type: 'nvarchar',
+                    nullable: true,
+                    primaryKey: false,
+                    unique: false,
+                });
+            }
+        }
+    }
+
+    return columns;
+}
+
+/**
+ * Extract CHECK constraints from CREATE TABLE statements
+ */
+function extractCheckConstraintsFromCreateTable(
+    sql: string
+): SQLCheckConstraint[] {
+    const constraints: SQLCheckConstraint[] = [];
+
+    // Extract the table body
+    const tableBodyMatch = sql.match(/\(([\s\S]+)\)/);
+    if (!tableBodyMatch) return constraints;
+
+    const tableBody = tableBodyMatch[1];
+
+    // Pattern for CHECK constraints:
+    // CHECK (expression) or CONSTRAINT [name] CHECK (expression)
+    const checkPattern =
+        /(?:CONSTRAINT\s+(?:\[[^\]]+\]|[^\s]+)\s+)?CHECK\s*\(/gi;
+    let match;
+
+    while ((match = checkPattern.exec(tableBody)) !== null) {
+        const startIdx = match.index + match[0].length;
+        let depth = 1;
+        let endIdx = startIdx;
+
+        // Find the matching closing parenthesis
+        for (let i = startIdx; i < tableBody.length && depth > 0; i++) {
+            if (tableBody[i] === '(') depth++;
+            else if (tableBody[i] === ')') depth--;
+            endIdx = i;
+        }
+
+        if (depth === 0) {
+            const expression = tableBody.substring(startIdx, endIdx).trim();
+            if (expression) {
+                constraints.push({ expression });
+            }
+        }
+    }
+
+    return constraints;
+}
 
 /**
  * Preprocess SQL Server script to remove or modify parts that the parser can't handle
@@ -371,6 +511,34 @@ function parseCreateTableManually(
             continue;
         }
 
+        // Handle standalone PRIMARY KEY definitions (without CONSTRAINT keyword)
+        // Format: PRIMARY KEY (column1, column2, ...)
+        if (part.match(/^\s*PRIMARY\s+KEY/i)) {
+            const pkColumnsMatch = part.match(
+                /PRIMARY\s+KEY(?:\s+CLUSTERED)?\s*\(([\s\S]+?)\)/i
+            );
+            if (pkColumnsMatch) {
+                const pkColumns = pkColumnsMatch[1].split(',').map((c) =>
+                    c
+                        .trim()
+                        .replace(/\[|\]|\s+(ASC|DESC)/gi, '')
+                        .trim()
+                );
+                const isSingleColumnPK = pkColumns.length === 1;
+                pkColumns.forEach((col) => {
+                    const column = columns.find((c) => c.name === col);
+                    if (column) {
+                        column.primaryKey = true;
+                        // Only mark as unique if single-column PK
+                        if (isSingleColumnPK) {
+                            column.unique = true;
+                        }
+                    }
+                });
+            }
+            continue;
+        }
+
         // Handle constraint definitions
         if (part.match(/^\s*CONSTRAINT/i)) {
             // Parse constraints
@@ -394,9 +562,16 @@ function parseCreateTableManually(
                                     .replace(/\[|\]|\s+(ASC|DESC)/gi, '')
                                     .trim()
                             );
+                        const isSingleColumnPK = pkColumns.length === 1;
                         pkColumns.forEach((col) => {
                             const column = columns.find((c) => c.name === col);
-                            if (column) column.primaryKey = true;
+                            if (column) {
+                                column.primaryKey = true;
+                                // Only mark as unique if single-column PK
+                                if (isSingleColumnPK) {
+                                    column.unique = true;
+                                }
+                            }
                         });
                     }
                 } else if (constraintType === 'UNIQUE') {
@@ -576,6 +751,9 @@ function parseCreateTableManually(
         }
     }
 
+    // Extract check constraints
+    const checkConstraints = extractCheckConstraintsFromCreateTable(statement);
+
     // Add the table
     tables.push({
         id: tableId,
@@ -583,6 +761,8 @@ function parseCreateTableManually(
         schema: schema,
         columns,
         indexes,
+        checkConstraints:
+            checkConstraints.length > 0 ? checkConstraints : undefined,
         order: tables.length,
     });
 }
@@ -651,6 +831,50 @@ export async function fromSQLServer(
 
         for (const stmt of createTableStatements) {
             parseCreateTableManually(stmt, tables, tableMap, relationships);
+        }
+
+        // Parse CREATE VIEW statements
+        const createViewStatements = statements.filter((stmt) => {
+            const upperStmt = stmt.trim().toUpperCase();
+            return (
+                upperStmt.includes('CREATE VIEW') ||
+                upperStmt.includes('CREATE OR ALTER VIEW')
+            );
+        });
+
+        for (const stmt of createViewStatements) {
+            // Extract view name and schema
+            // Handle: CREATE VIEW schema.viewname, CREATE VIEW [schema].[viewname], etc.
+            const viewMatch = stmt.match(
+                /CREATE\s+(?:OR\s+ALTER\s+)?VIEW\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?/i
+            );
+
+            if (viewMatch) {
+                // If there's a dot in the view reference, group 1 is schema, group 2 is name
+                // Otherwise, group 1 is undefined and group 2 is the name
+                const schema = viewMatch[1] || 'dbo';
+                const viewName = viewMatch[2];
+
+                if (viewName) {
+                    const viewId = generateId();
+                    const viewKey = `${schema}.${viewName}`;
+                    tableMap[viewKey] = viewId;
+
+                    // Extract columns from the view definition
+                    const columns = extractColumnsFromView(stmt);
+
+                    // Create view object (as a table with isView: true)
+                    tables.push({
+                        id: viewId,
+                        name: viewName,
+                        schema: schema,
+                        columns,
+                        indexes: [], // Views don't have indexes
+                        order: tables.length,
+                        isView: true,
+                    });
+                }
+            }
         }
 
         // Preprocess the SQL content for node-sql-parser

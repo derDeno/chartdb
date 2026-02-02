@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import logo from '@/assets/logo-2.png';
 import { ToggleGroup, ToggleGroupItem } from '@/components/toggle/toggle-group';
 import { DatabaseType } from '@/lib/domain/database-type';
@@ -36,7 +36,10 @@ export interface InstructionsSectionProps {
     setImportMethod: (method: ImportMethod) => void;
     showSSMSInfoDialog: boolean;
     setShowSSMSInfoDialog: (show: boolean) => void;
+    importMethods?: ImportMethod[];
 }
+
+const defaultImportMethods: ImportMethod[] = ['query', 'ddl', 'dbml'];
 
 export const InstructionsSection: React.FC<InstructionsSectionProps> = ({
     databaseType,
@@ -46,12 +49,27 @@ export const InstructionsSection: React.FC<InstructionsSectionProps> = ({
     setImportMethod,
     setShowSSMSInfoDialog,
     showSSMSInfoDialog,
+    importMethods = defaultImportMethods,
 }) => {
     const { t } = useTranslation();
 
+    const showSmartQuery = useMemo(
+        () => importMethods.includes('query'),
+        [importMethods]
+    );
+    const showDDL = useMemo(
+        () => importMethods.includes('ddl'),
+        [importMethods]
+    );
+    const showDBML = useMemo(
+        () => importMethods.includes('dbml'),
+        [importMethods]
+    );
+
     return (
         <div className="flex w-full flex-1 flex-col gap-4">
-            {databaseTypeToEditionMap[databaseType].length > 0 ? (
+            {showSmartQuery &&
+            databaseTypeToEditionMap[databaseType].length > 0 ? (
                 <div className="flex flex-col gap-1">
                     <p className="text-sm leading-6 text-primary">
                         {t(
@@ -117,24 +135,24 @@ export const InstructionsSection: React.FC<InstructionsSectionProps> = ({
                 </div>
             ) : null}
 
-            {DatabasesWithoutDDLInstructions.includes(databaseType) ? null : (
-                <div className="flex flex-col gap-1">
-                    <p className="text-sm leading-6 text-primary">
-                        How would you like to import?
-                    </p>
-                    <ToggleGroup
-                        type="single"
-                        className="ml-1 flex-wrap justify-start gap-2"
-                        value={importMethod}
-                        onValueChange={(value) => {
-                            let selectedImportMethod: ImportMethod = 'query';
-                            if (value) {
-                                selectedImportMethod = value as ImportMethod;
-                            }
+            <div className="flex flex-col gap-1">
+                <p className="text-sm leading-6 text-primary">
+                    How would you like to import?
+                </p>
+                <ToggleGroup
+                    type="single"
+                    className="ml-1 flex-wrap justify-start gap-2"
+                    value={importMethod}
+                    onValueChange={(value) => {
+                        let selectedImportMethod: ImportMethod = 'query';
+                        if (value) {
+                            selectedImportMethod = value as ImportMethod;
+                        }
 
-                            setImportMethod(selectedImportMethod);
-                        }}
-                    >
+                        setImportMethod(selectedImportMethod);
+                    }}
+                >
+                    {showSmartQuery && (
                         <ToggleGroupItem
                             value="query"
                             variant="outline"
@@ -146,16 +164,23 @@ export const InstructionsSection: React.FC<InstructionsSectionProps> = ({
                             </Avatar>
                             Smart Query
                         </ToggleGroupItem>
-                        <ToggleGroupItem
-                            value="ddl"
-                            variant="outline"
-                            className="h-6 gap-1 p-0 px-2 shadow-none data-[state=on]:bg-slate-200 dark:data-[state=on]:bg-slate-700"
-                        >
-                            <Avatar className="size-4 rounded-none">
-                                <FileCode size={16} />
-                            </Avatar>
-                            SQL Script
-                        </ToggleGroupItem>
+                    )}
+                    {showDDL &&
+                        !DatabasesWithoutDDLInstructions.includes(
+                            databaseType
+                        ) && (
+                            <ToggleGroupItem
+                                value="ddl"
+                                variant="outline"
+                                className="h-6 gap-1 p-0 px-2 shadow-none data-[state=on]:bg-slate-200 dark:data-[state=on]:bg-slate-700"
+                            >
+                                <Avatar className="size-4 rounded-none">
+                                    <FileCode size={16} />
+                                </Avatar>
+                                SQL Script
+                            </ToggleGroupItem>
+                        )}
+                    {showDBML && (
                         <ToggleGroupItem
                             value="dbml"
                             variant="outline"
@@ -166,13 +191,13 @@ export const InstructionsSection: React.FC<InstructionsSectionProps> = ({
                             </Avatar>
                             DBML
                         </ToggleGroupItem>
-                    </ToggleGroup>
-                </div>
-            )}
+                    )}
+                </ToggleGroup>
+            </div>
 
             <div className="flex flex-col gap-2">
                 <div className="text-sm font-semibold">Instructions:</div>
-                {importMethod === 'query' ? (
+                {importMethod === 'query' && showSmartQuery ? (
                     <SmartQueryInstructions
                         databaseType={databaseType}
                         databaseEdition={databaseEdition}

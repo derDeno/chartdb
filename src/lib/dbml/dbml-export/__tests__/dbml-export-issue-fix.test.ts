@@ -79,8 +79,9 @@ describe('DBML Export - Issue Fixes', () => {
         const result = generateDBMLFromDiagram(diagram);
 
         // Check that inline DBML has merged attributes in a single bracket
+        // Relationship is many-to-one (source=many, target=one), so source field gets ref: >
         expect(result.inlineDbml).toContain(
-            '"id" bigint [pk, not null, ref: < "service_tenant"."tenant_id"]'
+            '"id" bigint [pk, not null, ref: > "service_tenant"."tenant_id"]'
         );
 
         // Should NOT have separate brackets like [pk, not null] [ref: < ...]
@@ -210,8 +211,9 @@ describe('DBML Export - Issue Fixes', () => {
         const result = generateDBMLFromDiagram(diagram);
 
         // Check inline DBML preserves schema in references
-        // The foreign key is on the users.tenant_id field, referencing service.tenant.id
-        expect(result.inlineDbml).toContain('ref: < "service"."tenant"."id"');
+        // Relationship is many-to-one (source=many, target=one)
+        // The inline ref goes on users.tenant_id (source) with ref: > pointing to service.tenant.id (target)
+        expect(result.inlineDbml).toContain('ref: > "service"."tenant"."id"');
     });
 
     it('should wrap table and field names with spaces in quotes instead of replacing with underscores', () => {
@@ -344,12 +346,13 @@ describe('DBML Export - Issue Fixes', () => {
         expect(result.standardDbml).not.toContain('idx_user_name');
 
         // Check inline DBML as well - the ref is on the order details table
+        // Relationship is many-to-one (source=many, target=one), so source field gets ref: >
         expect(result.inlineDbml).toContain(
-            '"user id" bigint [not null, ref: < "user profile"."user id"]'
+            '"user id" bigint [not null, ref: > "user profile"."user id"]'
         );
     });
 
-    it('should export table and field comments to DBML', () => {
+    it('should export table and field comments to DBML for PostgreSQL', () => {
         const diagram: Diagram = {
             id: 'test-diagram',
             name: 'Test',
@@ -495,8 +498,9 @@ describe('DBML Export - Issue Fixes', () => {
         expect(result.inlineDbml).toContain(
             '"email" varchar(255) [unique, not null, note: \'User email address\']'
         );
+        // Relationship is many-to-one (source=many, target=one), so source field gets ref: >
         expect(result.inlineDbml).toContain(
-            '"user_id" bigint [not null, note: \'Reference to the user who created the post\', ref: < "users"."id"]'
+            '"user_id" bigint [not null, note: \'Reference to the user who created the post\', ref: > "users"."id"]'
         );
 
         // In standard DBML, field comments should use the note attribute syntax
@@ -516,6 +520,239 @@ describe('DBML Export - Issue Fixes', () => {
         );
         expect(result.standardDbml).not.toContain(
             '"title" varchar(500) [not null, note:'
+        );
+    });
+
+    it('should export table and field comments to DBML for MySQL', () => {
+        const diagram: Diagram = {
+            id: 'test-diagram',
+            name: 'Test',
+            databaseType: DatabaseType.MYSQL,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            tables: [
+                {
+                    id: 'table1',
+                    name: 'pl_a_cmsn',
+                    comments: 'Commission table',
+                    x: 0,
+                    y: 0,
+                    fields: [
+                        {
+                            id: 'field1',
+                            name: 'mandt',
+                            type: { id: 'char', name: 'char' },
+                            primaryKey: true,
+                            nullable: false,
+                            unique: false,
+                            comments: 'Mandant',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: '3',
+                            createdAt: Date.now(),
+                        },
+                        {
+                            id: 'field2',
+                            name: 'policy_no',
+                            type: { id: 'char', name: 'char' },
+                            primaryKey: false,
+                            nullable: false,
+                            unique: false,
+                            comments: 'Policennummer',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: '25',
+                            createdAt: Date.now(),
+                        },
+                        {
+                            id: 'field3',
+                            name: 'validity_from',
+                            type: { id: 'date', name: 'date' },
+                            primaryKey: false,
+                            nullable: false,
+                            unique: false,
+                            comments: 'Gültigkeitsdatum bis',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: null,
+                            createdAt: Date.now(),
+                        },
+                    ],
+                    indexes: [],
+                    color: 'blue',
+                    isView: false,
+                    createdAt: Date.now(),
+                },
+            ],
+            relationships: [],
+        };
+
+        const result = generateDBMLFromDiagram(diagram);
+
+        // Check table exists in DBML
+        expect(result.standardDbml).toContain('Table "pl_a_cmsn" {');
+
+        // Check table comments are preserved for MySQL
+        expect(result.standardDbml).toContain("Note: 'Commission table'");
+
+        // Check field comments are preserved with note: syntax
+        expect(result.standardDbml).toContain(
+            '"mandt" char(3) [pk, not null, note: \'Mandant\']'
+        );
+        expect(result.standardDbml).toContain(
+            '"policy_no" char(25) [not null, note: \'Policennummer\']'
+        );
+        expect(result.standardDbml).toContain(
+            '"validity_from" date [not null, note: \'Gültigkeitsdatum bis\']'
+        );
+
+        // Also check inline DBML
+        expect(result.inlineDbml).toContain('Table "pl_a_cmsn" {');
+        expect(result.inlineDbml).toContain("Note: 'Commission table'");
+        expect(result.inlineDbml).toContain(
+            '"mandt" char(3) [pk, not null, note: \'Mandant\']'
+        );
+        expect(result.inlineDbml).toContain(
+            '"policy_no" char(25) [not null, note: \'Policennummer\']'
+        );
+        expect(result.inlineDbml).toContain(
+            '"validity_from" date [not null, note: \'Gültigkeitsdatum bis\']'
+        );
+    });
+
+    it('should handle multiline comments for MySQL tables and fields', () => {
+        const diagram: Diagram = {
+            id: 'test-diagram',
+            name: 'Test',
+            databaseType: DatabaseType.MYSQL,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            tables: [
+                {
+                    id: 'table1',
+                    name: 'users',
+                    comments:
+                        'This is a multiline\ntable comment\nwith multiple lines',
+                    x: 0,
+                    y: 0,
+                    fields: [
+                        {
+                            id: 'field1',
+                            name: 'id',
+                            type: { id: 'bigint', name: 'bigint' },
+                            primaryKey: true,
+                            nullable: false,
+                            unique: false,
+                            comments: 'This is a\nmultiline field\ncomment',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: null,
+                            createdAt: Date.now(),
+                        },
+                        {
+                            id: 'field2',
+                            name: 'description',
+                            type: { id: 'text', name: 'text' },
+                            primaryKey: false,
+                            nullable: true,
+                            unique: false,
+                            comments:
+                                'Field with\n\ntabs\tand\n  spaces  \nand newlines',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: null,
+                            createdAt: Date.now(),
+                        },
+                    ],
+                    indexes: [],
+                    color: 'blue',
+                    isView: false,
+                    createdAt: Date.now(),
+                },
+            ],
+            relationships: [],
+        };
+
+        const result = generateDBMLFromDiagram(diagram);
+
+        // Check that multiline table comment is preserved as single line at the end
+        expect(result.standardDbml).toContain('Table "users" {');
+        expect(result.standardDbml).toContain(
+            "Note: 'This is a multiline table comment with multiple lines'"
+        );
+        // Note should be at the end of the table, before closing brace
+        expect(result.standardDbml).toMatch(
+            /Table "users" \{[\s\S]*Note: 'This is a multiline table comment with multiple lines'\s*\}/m
+        );
+
+        // Check that multiline field comments are preserved as single line
+        expect(result.standardDbml).toContain(
+            '"id" bigint [pk, not null, note: \'This is a multiline field comment\']'
+        );
+        expect(result.standardDbml).toContain(
+            '"description" text [note: \'Field with tabs and spaces and newlines\']'
+        );
+
+        // Also verify in inline DBML
+        expect(result.inlineDbml).toContain(
+            "Note: 'This is a multiline table comment with multiple lines'"
+        );
+        expect(result.inlineDbml).toContain(
+            '"id" bigint [pk, not null, note: \'This is a multiline field comment\']'
+        );
+    });
+
+    it('should handle multiline comments for PostgreSQL tables and fields', () => {
+        const diagram: Diagram = {
+            id: 'test-diagram',
+            name: 'Test',
+            databaseType: DatabaseType.POSTGRESQL,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            tables: [
+                {
+                    id: 'table1',
+                    name: 'products',
+                    comments: 'Product catalog\nwith detailed\ninformation',
+                    x: 0,
+                    y: 0,
+                    fields: [
+                        {
+                            id: 'field1',
+                            name: 'sku',
+                            type: { id: 'varchar', name: 'varchar' },
+                            primaryKey: true,
+                            nullable: false,
+                            unique: false,
+                            comments: 'Stock Keeping Unit\nUnique identifier',
+                            collation: null,
+                            default: null,
+                            characterMaximumLength: '50',
+                            createdAt: Date.now(),
+                        },
+                    ],
+                    indexes: [],
+                    color: 'blue',
+                    isView: false,
+                    createdAt: Date.now(),
+                },
+            ],
+            relationships: [],
+        };
+
+        const result = generateDBMLFromDiagram(diagram);
+
+        // Check that multiline comments are flattened for PostgreSQL too
+        expect(result.standardDbml).toContain('Table "products" {');
+        expect(result.standardDbml).toContain(
+            "Note: 'Product catalog with detailed information'"
+        );
+        // Note should be at the end of the table
+        expect(result.standardDbml).toMatch(
+            /Table "products" \{[\s\S]*Note: 'Product catalog with detailed information'\s*\}/m
+        );
+        expect(result.standardDbml).toContain(
+            '"sku" varchar(50) [pk, not null, note: \'Stock Keeping Unit Unique identifier\']'
         );
     });
 
@@ -1033,15 +1270,18 @@ describe('DBML Export - Issue Fixes', () => {
 
         const result = generateDBMLFromDiagram(diagram);
 
+        // For 1:1 relationships, symbol is '-' (one-to-one)
+        // Inline ref goes on target side (table_1) with ref: - pointing to source (table_2)
         const expectedInlineDBML = `Table "table_1" {
-  "id" bigint [pk, not null]
+  "id" bigint [pk, not null, ref: - "table_2"."id"]
 }
 
 Table "table_2" {
-  "id" bigint [pk, not null, ref: < "table_1"."id"]
+  "id" bigint [pk, not null]
 }
 `;
 
+        // Standard DBML: source - target (one-to-one relationship)
         const expectedStandardDBML = `Table "table_1" {
   "id" bigint [pk, not null]
 }
@@ -1050,7 +1290,7 @@ Table "table_2" {
   "id" bigint [pk, not null]
 }
 
-Ref "fk_0_table_2_id_fk":"table_1"."id" < "table_2"."id"
+Ref "fk_0_table_2_id_fk":"table_2"."id" - "table_1"."id"
 `;
 
         expect(result.inlineDbml).toBe(expectedInlineDBML);
@@ -1270,12 +1510,14 @@ Ref "fk_0_table_2_id_fk":"table_1"."id" < "table_2"."id"
         expect(result.standardDbml).toContain('Table "user_activities" {');
 
         // Check that the entity_id field in user_activities has multiple relationships in inline DBML
+        // All relationships are many-to-one (source=many, target=one), so source field gets ref: >
         // The field should have both references in a single bracket
         expect(result.inlineDbml).toContain(
-            '"entity_id" integer [not null, ref: < "posts"."id", ref: < "reviews"."id"]'
+            '"entity_id" integer [not null, ref: > "posts"."id", ref: > "reviews"."id"]'
         );
 
         // Check that standard DBML has separate Ref entries for each relationship
+        // Format: target < source for many-to-one relationships (target is one, source is many)
         expect(result.standardDbml).toContain(
             'Ref "fk_0_fk_posts_user":"users"."id" < "posts"."user_id"'
         );
@@ -1388,8 +1630,9 @@ Ref "fk_0_table_2_id_fk":"table_1"."id" < "table_2"."id"
   "id" bigint [pk, not null]
 }`);
 
+        // Relationship is many-to-one (source=many, target=one), so source field gets ref: >
         expect(result.inlineDbml).toContain(`Table "table_2" {
-  "id" bigint [pk, not null, ref: < "table_1"."id"]
+  "id" bigint [pk, not null, ref: > "table_1"."id"]
 }`);
 
         // The issue was that it would generate:

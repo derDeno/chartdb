@@ -1,4 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { NodeProps, Node } from '@xyflow/react';
 import { NodeResizer } from '@xyflow/react';
 import type { Area } from '@/lib/domain/area';
@@ -12,10 +18,19 @@ import {
 } from '@/components/tooltip/tooltip';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { Check, GripVertical, Pencil } from 'lucide-react';
+import {
+    Check,
+    GripVertical,
+    Pencil,
+    SquareMinus,
+    SquarePlus,
+} from 'lucide-react';
 import { Button } from '@/components/button/button';
 import { useLayout } from '@/hooks/use-layout';
 import { AreaNodeContextMenu } from './area-node-context-menu';
+import { useCanvas } from '@/hooks/use-canvas';
+import { useDiff } from '@/context/diff-context/use-diff';
+import { AreaNodeStatus } from './area-node-status/area-node-status';
 
 export type AreaNodeType = Node<
     {
@@ -31,9 +46,40 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
         const [editMode, setEditMode] = useState(false);
         const [areaName, setAreaName] = useState(area.name);
         const inputRef = React.useRef<HTMLInputElement>(null);
-        const { openAreaFromSidebar, selectSidebarSection } = useLayout();
+        const { openAreaFromSidebar, selectSidebarSection, selectVisualsTab } =
+            useLayout();
 
         const focused = !!selected && !dragging;
+
+        const { checkIfNewArea, checkIfAreaRemoved } = useDiff();
+
+        const [diffState, setDiffState] = useState<{
+            isDiffNewArea: boolean;
+            isDiffAreaRemoved: boolean;
+        }>({
+            isDiffNewArea: false,
+            isDiffAreaRemoved: false,
+        });
+
+        const hasMountedRef = useRef(false);
+
+        useEffect(() => {
+            const calculateDiff = () => {
+                setDiffState({
+                    isDiffNewArea: checkIfNewArea({ areaId: area.id }),
+                    isDiffAreaRemoved: checkIfAreaRemoved({ areaId: area.id }),
+                });
+            };
+
+            if (!hasMountedRef.current) {
+                hasMountedRef.current = true;
+                requestAnimationFrame(calculateDiff);
+            } else {
+                calculateDiff();
+            }
+        }, [checkIfNewArea, checkIfAreaRemoved, area.id]);
+
+        const { isDiffNewArea, isDiffAreaRemoved } = diffState;
 
         const editAreaName = useCallback(() => {
             if (!editMode) return;
@@ -49,18 +95,41 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
         }, [area.name]);
 
         const openAreaInEditor = useCallback(() => {
-            selectSidebarSection('areas');
+            selectSidebarSection('visuals');
+            selectVisualsTab('areas');
             openAreaFromSidebar(area.id);
-        }, [selectSidebarSection, openAreaFromSidebar, area.id]);
+        }, [
+            selectSidebarSection,
+            openAreaFromSidebar,
+            area.id,
+            selectVisualsTab,
+        ]);
 
         useClickAway(inputRef, editAreaName);
         useKeyPressEvent('Enter', editAreaName);
         useKeyPressEvent('Escape', abortEdit);
 
+        const { setEditTableModeTable } = useCanvas();
+
         const enterEditMode = (e: React.MouseEvent) => {
             e.stopPropagation();
             setEditMode(true);
         };
+
+        const containerClassName = useMemo(
+            () =>
+                cn(
+                    'relative flex h-full flex-col rounded-md border-2 shadow-sm',
+                    selected ? 'border-pink-600' : 'border-transparent',
+                    isDiffNewArea
+                        ? 'outline outline-[3px] outline-green-500 dark:outline-green-900 outline-offset-[5px]'
+                        : '',
+                    isDiffAreaRemoved
+                        ? 'outline outline-[3px] outline-red-500 dark:outline-red-900 outline-offset-[5px]'
+                        : ''
+                ),
+            [selected, isDiffNewArea, isDiffAreaRemoved]
+        );
 
         return (
             <AreaNodeContextMenu
@@ -68,20 +137,27 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
                 onEditName={() => setEditMode(true)}
             >
                 <div
-                    className={cn(
-                        'flex h-full flex-col rounded-md border-2 shadow-sm',
-                        selected ? 'border-pink-600' : 'border-transparent'
-                    )}
+                    className={containerClassName}
                     style={{
                         backgroundColor: `${area.color}15`,
                         borderColor: selected ? undefined : area.color,
                     }}
                     onClick={(e) => {
+                        setEditTableModeTable(null);
                         if (e.detail === 2) {
                             openAreaInEditor();
                         }
                     }}
                 >
+                    <AreaNodeStatus
+                        status={
+                            isDiffNewArea
+                                ? 'new'
+                                : isDiffAreaRemoved
+                                  ? 'removed'
+                                  : 'none'
+                        }
+                    />
                     {!readonly ? (
                         <NodeResizer
                             isVisible={focused}
@@ -93,7 +169,31 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
                     ) : null}
                     <div className="group flex h-8 items-center justify-between rounded-t-md px-2">
                         <div className="flex w-full items-center gap-1">
-                            <GripVertical className="size-4 shrink-0 text-slate-700 opacity-60 dark:text-slate-300" />
+                            {isDiffNewArea ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SquarePlus
+                                            className="size-3.5 shrink-0 text-green-600"
+                                            strokeWidth={2.5}
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>New Area</TooltipContent>
+                                </Tooltip>
+                            ) : isDiffAreaRemoved ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <SquareMinus
+                                            className="size-3.5 shrink-0 text-red-600"
+                                            strokeWidth={2.5}
+                                        />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Area Removed
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <GripVertical className="size-3.5 shrink-0 text-slate-700 opacity-60 dark:text-slate-300" />
+                            )}
 
                             {editMode && !readonly ? (
                                 <div className="flex w-full items-center">
@@ -117,6 +217,22 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
                                         <Check className="size-3.5 text-slate-700 dark:text-slate-300" />
                                     </Button>
                                 </div>
+                            ) : isDiffNewArea ? (
+                                <div
+                                    className={cn(
+                                        'flex h-5 items-center truncate rounded-sm bg-green-200 px-2 py-0.5 text-sm font-normal text-green-900 dark:bg-green-800 dark:text-green-200'
+                                    )}
+                                >
+                                    {area.name}
+                                </div>
+                            ) : isDiffAreaRemoved ? (
+                                <div
+                                    className={cn(
+                                        'flex h-5 items-center truncate rounded-sm bg-red-200 px-2 py-0.5 text-sm font-normal text-red-900 dark:bg-red-800 dark:text-red-200'
+                                    )}
+                                >
+                                    {area.name}
+                                </div>
                             ) : !readonly ? (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -136,15 +252,18 @@ export const AreaNode: React.FC<NodeProps<AreaNodeType>> = React.memo(
                                     {area.name}
                                 </div>
                             )}
-                            {!editMode && !readonly && (
-                                <Button
-                                    variant="ghost"
-                                    className="ml-auto size-5 p-0 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
-                                    onClick={enterEditMode}
-                                >
-                                    <Pencil className="size-3 text-slate-700 dark:text-slate-300" />
-                                </Button>
-                            )}
+                            {!editMode &&
+                                !readonly &&
+                                !isDiffNewArea &&
+                                !isDiffAreaRemoved && (
+                                    <Button
+                                        variant="ghost"
+                                        className="ml-auto size-5 p-0 opacity-0 transition-opacity hover:bg-white/20 group-hover:opacity-100"
+                                        onClick={enterEditMode}
+                                    >
+                                        <Pencil className="size-3 text-slate-700 dark:text-slate-300" />
+                                    </Button>
+                                )}
                         </div>
                     </div>
                     <div className="flex-1" />

@@ -4,18 +4,18 @@ export const zh_CN: LanguageTranslation = {
     translation: {
         editor_sidebar: {
             new_diagram: '新建',
-            browse: '浏览',
+            browse: '打开',
             tables: '表',
             refs: '引用',
-            areas: '区域',
             dependencies: '依赖关系',
             custom_types: '自定义类型',
+            visuals: '视觉效果',
         },
         menu: {
             actions: {
                 actions: '操作',
                 new: '新建...',
-                browse: '浏览...',
+                browse: '所有数据库...',
                 save: '保存',
                 import: '导入数据库',
                 export_sql: '导出 SQL 语句',
@@ -125,16 +125,20 @@ export const zh_CN: LanguageTranslation = {
                 // TODO: Translate
                 show_list: 'Show Table List',
                 show_dbml: 'Show DBML Editor',
+                all_hidden: '所有表格已隐藏',
+                show_all: '显示全部',
 
                 table: {
                     fields: '字段',
                     nullable: '可为空？',
                     primary_key: '主键',
                     indexes: '索引',
+                    check_constraints: '检查约束',
                     comments: '注释',
                     no_comments: '空',
                     add_field: '添加字段',
                     add_index: '添加索引',
+                    add_check: '添加检查',
                     index_select_fields: '选择字段',
                     no_types_found: '未找到类型',
                     field_name: '名称',
@@ -161,6 +165,11 @@ export const zh_CN: LanguageTranslation = {
                         index_type: '索引类型',
                         delete_index: '删除索引',
                     },
+                    check_constraint_actions: {
+                        title: '检查约束',
+                        expression: '表达式',
+                        delete: '删除检查约束',
+                    },
                     table_actions: {
                         title: '表操作',
                         change_schema: '更改模式',
@@ -185,9 +194,10 @@ export const zh_CN: LanguageTranslation = {
                 relationship: {
                     relationship: '关系',
                     primary: '主表',
-                    foreign: '被引用表',
+                    foreign: '关联表',
                     cardinality: '基数',
                     delete_relationship: '删除',
+                    switch_tables: '切换表',
                     relationship_actions: {
                         title: '操作',
                         delete_relationship: '删除',
@@ -209,54 +219,81 @@ export const zh_CN: LanguageTranslation = {
                 },
             },
 
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: '区域',
+                add_area: '添加区域',
+                filter: '筛选',
+                clear: '清除筛选',
+                no_results: '未找到符合筛选条件的区域。',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: '区域操作',
+                        edit_name: '编辑名称',
+                        delete_area: '删除区域',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: '没有区域',
+                    description: '创建区域以开始',
                 },
             },
-            // TODO: Translate
-            custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+
+            visuals_section: {
+                visuals: '视觉效果',
+                tabs: {
+                    areas: '区域',
+                    notes: '笔记',
+                },
+            },
+
+            notes_section: {
+                filter: '筛选',
+                add_note: '添加笔记',
+                no_results: '未找到笔记',
+                clear: '清除筛选',
                 empty_state: {
-                    title: 'No custom types',
+                    title: '没有笔记',
+                    description: '创建笔记以在画布上添加文本注释',
+                },
+                note: {
+                    empty_note: '空笔记',
+                    note_actions: {
+                        title: '笔记操作',
+                        edit_content: '编辑内容',
+                        delete_note: '删除笔记',
+                    },
+                },
+            },
+
+            custom_types_section: {
+                custom_types: '自定义类型',
+                filter: '筛选',
+                clear: '清除筛选',
+                no_results: '未找到符合筛选条件的自定义类型。',
+                new_type: '新类型',
+                empty_state: {
+                    title: '没有自定义类型',
                     description:
-                        'Custom types will appear here when they are available in your database',
+                        '当数据库中有可用的自定义类型时，它们将显示在这里',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: '类型',
+                    enum_values: '枚举值',
+                    composite_fields: '字段',
+                    no_fields: '未定义字段',
                     no_values: '没有定义枚举值',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: '字段名称',
+                    field_type_placeholder: '选择类型',
+                    add_field: '添加字段',
+                    no_fields_tooltip: '此自定义类型未定义字段',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: '操作',
+                        highlight_fields: '高亮字段',
+                        delete_custom_type: '删除',
+                        clear_field_highlight: '清除高亮',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: '删除类型',
                 },
             },
         },
@@ -274,8 +311,7 @@ export const zh_CN: LanguageTranslation = {
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
             highlight_overlapping_tables: '突出显示重叠的表',
-            // TODO: Translate
-            filter: 'Filter Tables',
+            filter: '筛选表',
         },
 
         new_diagram_dialog: {
@@ -306,7 +342,7 @@ export const zh_CN: LanguageTranslation = {
             cancel: '取消',
             import_from_file: '从文件导入',
             back: '上一步',
-            empty_diagram: '新建空关系图',
+            empty_diagram: '空数据库',
             continue: '下一步',
             import: '导入',
         },
@@ -322,6 +358,7 @@ export const zh_CN: LanguageTranslation = {
             },
             cancel: '取消',
             open: '打开',
+            new_database: '新建数据库',
 
             diagram_actions: {
                 open: '打开',
@@ -384,10 +421,9 @@ export const zh_CN: LanguageTranslation = {
         export_image_dialog: {
             title: '导出图片',
             description: '选择导出的缩放比例：',
-            scale_1x: '1x 常规',
-            scale_2x: '2x （推荐）',
-            scale_3x: '3x',
-            scale_4x: '4x',
+            scale_1x: '1x (低质量)',
+            scale_2x: '2x (普通质量)',
+            scale_4x: '4x (最佳质量)',
             cancel: '取消',
             export: '导出',
             // TODO: Translate
@@ -475,8 +511,8 @@ export const zh_CN: LanguageTranslation = {
             new_table: '新建表',
             new_view: '新建视图',
             new_relationship: '新建关系',
-            // TODO: Translate
-            new_area: 'New Area',
+            new_area: '新建区域',
+            new_note: '新笔记',
         },
 
         table_node_context_menu: {
@@ -484,6 +520,22 @@ export const zh_CN: LanguageTranslation = {
             duplicate_table: 'Duplicate Table', // TODO: Translate
             delete_table: '删除表',
             add_relationship: 'Add Relationship', // TODO: Translate
+        },
+
+        canvas: {
+            all_tables_hidden: '所有表格已隐藏',
+            show_all_tables: '显示全部',
+        },
+
+        canvas_filter: {
+            title: '筛选表格',
+            search_placeholder: '搜索表格...',
+            group_by_schema: '按模式分组',
+            group_by_area: '按区域分组',
+            no_tables_found: '未找到表格',
+            empty_diagram_description: '创建表格以开始',
+            no_tables_description: '尝试调整您的搜索或筛选',
+            clear_filter: '清除筛选',
         },
 
         snap_to_grid_tooltip: '对齐到网格（按住 {{key}}）',

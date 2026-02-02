@@ -4,18 +4,18 @@ export const hr: LanguageTranslation = {
     translation: {
         editor_sidebar: {
             new_diagram: 'Novi',
-            browse: 'Pregledaj',
+            browse: 'Otvori',
             tables: 'Tablice',
             refs: 'Refs',
-            areas: 'Područja',
             dependencies: 'Ovisnosti',
             custom_types: 'Prilagođeni Tipovi',
+            visuals: 'Vizuali',
         },
         menu: {
             actions: {
                 actions: 'Akcije',
                 new: 'Novi...',
-                browse: 'Pregledaj...',
+                browse: 'Sve baze podataka...',
                 save: 'Spremi',
                 import: 'Uvezi',
                 export_sql: 'Izvezi SQL',
@@ -126,16 +126,20 @@ export const hr: LanguageTranslation = {
                     'Nema pronađenih tablica koje odgovaraju vašem filteru.',
                 show_list: 'Prikaži popis tablica',
                 show_dbml: 'Prikaži DBML uređivač',
+                all_hidden: 'Sve tablice su skrivene',
+                show_all: 'Prikaži sve',
 
                 table: {
                     fields: 'Polja',
                     nullable: 'Može biti null?',
                     primary_key: 'Primarni ključ',
                     indexes: 'Indeksi',
+                    check_constraints: 'Provjerna ograničenja',
                     comments: 'Komentari',
                     no_comments: 'Nema komentara',
                     add_field: 'Dodaj polje',
                     add_index: 'Dodaj indeks',
+                    add_check: 'Dodaj provjeru',
                     index_select_fields: 'Odaberi polja',
                     no_types_found: 'Nema pronađenih tipova',
                     field_name: 'Naziv',
@@ -159,6 +163,11 @@ export const hr: LanguageTranslation = {
                         unique: 'Jedinstven',
                         index_type: 'Vrsta indeksa',
                         delete_index: 'Izbriši indeks',
+                    },
+                    check_constraint_actions: {
+                        title: 'Provjerno ograničenje',
+                        expression: 'Izraz',
+                        delete: 'Obriši ograničenje',
                     },
                     table_actions: {
                         title: 'Radnje nad tablicom',
@@ -184,9 +193,10 @@ export const hr: LanguageTranslation = {
                 relationship: {
                     relationship: 'Veza',
                     primary: 'Primarna tablica',
-                    foreign: 'Referentna tablica',
+                    foreign: 'Povezana tablica',
                     cardinality: 'Kardinalnost',
                     delete_relationship: 'Izbriši',
+                    switch_tables: 'Zamijeni tablice',
                     relationship_actions: {
                         title: 'Radnje',
                         delete_relationship: 'Izbriši',
@@ -229,12 +239,41 @@ export const hr: LanguageTranslation = {
                 },
             },
 
+            visuals_section: {
+                visuals: 'Vizuali',
+                tabs: {
+                    areas: 'Područja',
+                    notes: 'Bilješke',
+                },
+            },
+
+            notes_section: {
+                filter: 'Filtriraj',
+                add_note: 'Dodaj Bilješku',
+                no_results: 'Nije pronađena nijedna bilješka',
+                clear: 'Očisti Filter',
+                empty_state: {
+                    title: 'Nema Bilješki',
+                    description:
+                        'Kreirajte bilješku za dodavanje tekstualnih napomena na platnu',
+                },
+                note: {
+                    empty_note: 'Prazna bilješka',
+                    note_actions: {
+                        title: 'Akcije Bilješke',
+                        edit_content: 'Uredi Sadržaj',
+                        delete_note: 'Obriši Bilješku',
+                    },
+                },
+            },
+
             custom_types_section: {
                 custom_types: 'Prilagođeni tipovi',
                 filter: 'Filtriraj',
                 clear: 'Očisti filter',
                 no_results:
                     'Nema pronađenih prilagođenih tipova koji odgovaraju vašem filteru.',
+                new_type: 'Novi tip',
                 empty_state: {
                     title: 'Nema prilagođenih tipova',
                     description:
@@ -305,7 +344,7 @@ export const hr: LanguageTranslation = {
             cancel: 'Odustani',
             import_from_file: 'Uvezi iz datoteke',
             back: 'Natrag',
-            empty_diagram: 'Prazan dijagram',
+            empty_diagram: 'Prazna baza podataka',
             continue: 'Nastavi',
             import: 'Uvezi',
         },
@@ -321,6 +360,7 @@ export const hr: LanguageTranslation = {
             },
             cancel: 'Odustani',
             open: 'Otvori',
+            new_database: 'Nova baza podataka',
 
             diagram_actions: {
                 open: 'Otvori',
@@ -384,10 +424,9 @@ export const hr: LanguageTranslation = {
         export_image_dialog: {
             title: 'Izvezi sliku',
             description: 'Odaberite faktor veličine za izvoz:',
-            scale_1x: '1x Obično',
-            scale_2x: '2x (Preporučeno)',
-            scale_3x: '3x',
-            scale_4x: '4x',
+            scale_1x: '1x (Niska kvaliteta)',
+            scale_2x: '2x (Normalna kvaliteta)',
+            scale_4x: '4x (Najbolja kvaliteta)',
             cancel: 'Odustani',
             export: 'Izvezi',
             advanced_options: 'Napredne opcije',
@@ -478,6 +517,7 @@ export const hr: LanguageTranslation = {
             new_view: 'Novi Pogled',
             new_relationship: 'Nova veza',
             new_area: 'Novo područje',
+            new_note: 'Nova Bilješka',
         },
 
         table_node_context_menu: {
@@ -485,6 +525,22 @@ export const hr: LanguageTranslation = {
             duplicate_table: 'Dupliciraj tablicu',
             delete_table: 'Izbriši tablicu',
             add_relationship: 'Dodaj vezu',
+        },
+
+        canvas: {
+            all_tables_hidden: 'Sve tablice su skrivene',
+            show_all_tables: 'Prikaži sve',
+        },
+
+        canvas_filter: {
+            title: 'Filtriraj tablice',
+            search_placeholder: 'Pretraži tablice...',
+            group_by_schema: 'Grupiraj po shemi',
+            group_by_area: 'Grupiraj po području',
+            no_tables_found: 'Nisu pronađene tablice',
+            empty_diagram_description: 'Kreirajte tablicu za početak',
+            no_tables_description: 'Pokušajte prilagoditi pretragu ili filter',
+            clear_filter: 'Očisti filter',
         },
 
         snap_to_grid_tooltip: 'Priljepljivanje na mrežu (Drži {{key}})',

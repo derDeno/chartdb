@@ -58,7 +58,7 @@ export const CustomTypesSection: React.FC<CustomTypesSectionProps> = () => {
                         onClick={handleCreateCustomType}
                     >
                         <Plus className="mr-1 size-4" />
-                        New Type
+                        {t('side_panel.custom_types_section.new_type')}
                     </Button>
                 ) : null}
             </div>
@@ -73,6 +73,16 @@ export const CustomTypesSection: React.FC<CustomTypesSectionProps> = () => {
                                 'side_panel.custom_types_section.empty_state.description'
                             )}
                             className="mt-20"
+                            secondaryAction={
+                                !readonly
+                                    ? {
+                                          label: t(
+                                              'side_panel.custom_types_section.new_type'
+                                          ),
+                                          onClick: handleCreateCustomType,
+                                      }
+                                    : undefined
+                            }
                         />
                     ) : filterText && filteredCustomTypes.length === 0 ? (
                         <div className="mt-10 flex flex-col items-center gap-2">

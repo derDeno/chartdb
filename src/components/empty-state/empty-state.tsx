@@ -1,9 +1,32 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import EmptyStateImage from '@/assets/empty_state.png';
 import EmptyStateImageDark from '@/assets/empty_state_dark.png';
-import { Label } from '@/components/label/label';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '../empty/empty';
+import { Button } from '../button/button';
+
+export interface EmptyStateActionButton {
+    label: string;
+    onClick?: () => void;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+}
+
+export interface EmptyStateFooterAction {
+    label: string;
+    href?: string;
+    onClick?: () => void;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+}
 
 export interface EmptyStateProps {
     title: string;
@@ -11,6 +34,9 @@ export interface EmptyStateProps {
     imageClassName?: string;
     titleClassName?: string;
     descriptionClassName?: string;
+    primaryAction?: EmptyStateActionButton;
+    secondaryAction?: EmptyStateActionButton;
+    footerAction?: EmptyStateFooterAction;
 }
 
 export const EmptyState = forwardRef<
@@ -25,10 +51,28 @@ export const EmptyState = forwardRef<
             titleClassName,
             descriptionClassName,
             imageClassName,
+            primaryAction,
+            secondaryAction,
+            footerAction,
         },
         ref
     ) => {
         const { effectiveTheme } = useTheme();
+
+        // Determine if we have any actions to show
+        const hasActions = useMemo(
+            () => !!(primaryAction || secondaryAction),
+            [primaryAction, secondaryAction]
+        );
+        const hasFooterAction = useMemo(() => !!footerAction, [footerAction]);
+
+        const emptyStateImage = useMemo(
+            () =>
+                effectiveTheme === 'dark'
+                    ? EmptyStateImageDark
+                    : EmptyStateImage,
+            [effectiveTheme]
+        );
 
         return (
             <div
@@ -38,26 +82,84 @@ export const EmptyState = forwardRef<
                     className
                 )}
             >
-                <img
-                    src={
-                        effectiveTheme === 'dark'
-                            ? EmptyStateImageDark
-                            : EmptyStateImage
-                    }
-                    alt="Empty state"
-                    className={cn('mb-2 w-20', imageClassName)}
-                />
-                <Label className={cn('text-base', titleClassName)}>
-                    {title}
-                </Label>
-                <Label
-                    className={cn(
-                        'text-sm text-center font-normal text-muted-foreground',
-                        descriptionClassName
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            {/* <Group /> */}
+                            <img
+                                src={emptyStateImage}
+                                alt="Empty state"
+                                className={cn('p-2', imageClassName)}
+                            />
+                        </EmptyMedia>
+                        <EmptyTitle className={titleClassName}>
+                            {title}
+                        </EmptyTitle>
+                        <EmptyDescription className={descriptionClassName}>
+                            {description}
+                        </EmptyDescription>
+                    </EmptyHeader>
+
+                    {/* Action buttons section */}
+                    {hasActions && (
+                        <EmptyContent>
+                            <div className="flex gap-2">
+                                {primaryAction && (
+                                    <Button
+                                        onClick={primaryAction.onClick}
+                                        disabled={primaryAction.disabled}
+                                        className="h-8 font-normal"
+                                    >
+                                        {primaryAction.label}
+                                        {primaryAction.icon}
+                                    </Button>
+                                )}
+                                {secondaryAction && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={secondaryAction.onClick}
+                                        disabled={secondaryAction.disabled}
+                                        className="h-8 font-normal"
+                                    >
+                                        {secondaryAction.label}
+                                        {secondaryAction.icon}
+                                    </Button>
+                                )}
+                            </div>
+                        </EmptyContent>
                     )}
-                >
-                    {description}
-                </Label>
+
+                    {/* Footer action link */}
+                    {hasFooterAction && footerAction && (
+                        <Button
+                            variant="link"
+                            asChild={!!footerAction.href}
+                            className="text-muted-foreground"
+                            size="sm"
+                            disabled={footerAction.disabled}
+                            onClick={
+                                !footerAction.href
+                                    ? footerAction.onClick
+                                    : undefined
+                            }
+                        >
+                            {footerAction.href ? (
+                                <a href={footerAction.href}>
+                                    {footerAction.label}
+                                    {footerAction.icon}
+                                </a>
+                            ) : (
+                                <span>
+                                    {footerAction.label}
+                                    {footerAction.icon}
+                                </span>
+                            )}
+                        </Button>
+                    )}
+
+                    {/* Render empty content if no actions */}
+                    {!hasActions && !hasFooterAction && <EmptyContent />}
+                </Empty>
             </div>
         );
     }

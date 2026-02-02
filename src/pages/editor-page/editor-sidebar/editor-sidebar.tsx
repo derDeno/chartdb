@@ -27,7 +27,7 @@ import ChartDBLogo from '@/assets/logo-light.png';
 import ChartDBDarkLogo from '@/assets/logo-dark.png';
 import { useTheme } from '@/hooks/use-theme';
 import { useChartDB } from '@/hooks/use-chartdb';
-import { DatabaseType } from '@/lib/domain/database-type';
+import { supportsCustomTypes } from '@/lib/domain/database-capabilities';
 import { useDialog } from '@/hooks/use-dialog';
 import { Separator } from '@/components/separator/separator';
 
@@ -42,8 +42,12 @@ export interface SidebarItem {
 export interface EditorSidebarProps {}
 
 export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
-    const { selectSidebarSection, selectedSidebarSection, showSidePanel } =
-        useLayout();
+    const {
+        selectSidebarSection,
+        selectedSidebarSection,
+        showSidePanel,
+        selectVisualsTab,
+    } = useLayout();
     const { t } = useTranslation();
     const { isMd: isDesktop } = useBreakpoint('md');
     const { effectiveTheme } = useTheme();
@@ -101,16 +105,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
                 },
                 active: selectedSidebarSection === 'refs',
             },
-            {
-                title: t('editor_sidebar.areas'),
-                icon: Group,
-                onClick: () => {
-                    showSidePanel();
-                    selectSidebarSection('areas');
-                },
-                active: selectedSidebarSection === 'areas',
-            },
-            ...(databaseType === DatabaseType.POSTGRESQL
+            ...(supportsCustomTypes(databaseType)
                 ? [
                       {
                           title: t('editor_sidebar.custom_types'),
@@ -123,6 +118,16 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
                       },
                   ]
                 : []),
+            {
+                title: t('editor_sidebar.visuals'),
+                icon: Group,
+                onClick: () => {
+                    showSidePanel();
+                    selectSidebarSection('visuals');
+                    selectVisualsTab('areas');
+                },
+                active: selectedSidebarSection === 'visuals',
+            },
         ],
         [
             selectSidebarSection,
@@ -130,6 +135,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
             t,
             showSidePanel,
             databaseType,
+            selectVisualsTab,
         ]
     );
 

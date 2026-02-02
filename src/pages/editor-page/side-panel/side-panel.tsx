@@ -13,11 +13,11 @@ import type { SidebarSection } from '@/context/layout-context/layout-context';
 import { useTranslation } from 'react-i18next';
 import { useChartDB } from '@/hooks/use-chartdb';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { AreasSection } from './areas-section/areas-section';
 import { CustomTypesSection } from './custom-types-section/custom-types-section';
-import { DatabaseType } from '@/lib/domain/database-type';
+import { supportsCustomTypes } from '@/lib/domain/database-capabilities';
 import { DBMLSection } from './dbml-section/dbml-section';
 import { RefsSection } from './refs-section/refs-section';
+import { VisualsSection } from './visuals-section/visuals-section';
 
 export interface SidePanelProps {}
 
@@ -54,7 +54,10 @@ export const SidePanel: React.FC<SidePanelProps> = () => {
                                 <SelectItem value="areas">
                                     {t('side_panel.areas_section.areas')}
                                 </SelectItem>
-                                {databaseType === DatabaseType.POSTGRESQL ? (
+                                <SelectItem value="visuals">
+                                    {t('side_panel.visuals_section.visuals')}
+                                </SelectItem>
+                                {supportsCustomTypes(databaseType) ? (
                                     <SelectItem value="customTypes">
                                         {t(
                                             'side_panel.custom_types_section.custom_types'
@@ -72,8 +75,8 @@ export const SidePanel: React.FC<SidePanelProps> = () => {
                 <DBMLSection />
             ) : selectedSidebarSection === 'refs' ? (
                 <RefsSection />
-            ) : selectedSidebarSection === 'areas' ? (
-                <AreasSection />
+            ) : selectedSidebarSection === 'visuals' ? (
+                <VisualsSection />
             ) : (
                 <CustomTypesSection />
             )}

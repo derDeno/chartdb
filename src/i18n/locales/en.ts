@@ -4,18 +4,18 @@ export const en = {
     translation: {
         editor_sidebar: {
             new_diagram: 'New',
-            browse: 'Browse',
+            browse: 'Open',
             tables: 'Tables',
             refs: 'Refs',
-            areas: 'Areas',
             dependencies: 'Dependencies',
             custom_types: 'Custom Types',
+            visuals: 'Visuals',
         },
         menu: {
             actions: {
                 actions: 'Actions',
                 new: 'New...',
-                browse: 'Browse...',
+                browse: 'All Databases...',
                 save: 'Save',
                 import: 'Import',
                 export_sql: 'Export SQL',
@@ -125,16 +125,20 @@ export const en = {
                 no_results: 'No tables found matching your filter.',
                 show_list: 'Show Table List',
                 show_dbml: 'Show DBML Editor',
+                all_hidden: 'All tables are hidden',
+                show_all: 'Show all',
 
                 table: {
                     fields: 'Fields',
                     nullable: 'Nullable?',
                     primary_key: 'Primary Key',
                     indexes: 'Indexes',
+                    check_constraints: 'Check Constraints',
                     comments: 'Comments',
                     no_comments: 'No comments',
                     add_field: 'Add Field',
                     add_index: 'Add Index',
+                    add_check: 'Add Check',
                     index_select_fields: 'Select fields',
                     no_types_found: 'No types found',
                     field_name: 'Name',
@@ -158,6 +162,11 @@ export const en = {
                         unique: 'Unique',
                         index_type: 'Index Type',
                         delete_index: 'Delete Index',
+                    },
+                    check_constraint_actions: {
+                        title: 'Check Constraint',
+                        expression: 'Expression',
+                        delete: 'Delete Check Constraint',
                     },
                     table_actions: {
                         title: 'Table Actions',
@@ -183,9 +192,10 @@ export const en = {
                 relationship: {
                     relationship: 'Relationship',
                     primary: 'Primary Table',
-                    foreign: 'Referenced Table',
+                    foreign: 'Related Table',
                     cardinality: 'Cardinality',
                     delete_relationship: 'Delete',
+                    switch_tables: 'Switch Tables',
                     relationship_actions: {
                         title: 'Actions',
                         delete_relationship: 'Delete',
@@ -227,11 +237,40 @@ export const en = {
                 },
             },
 
+            visuals_section: {
+                visuals: 'Visuals',
+                tabs: {
+                    areas: 'Areas',
+                    notes: 'Notes',
+                },
+            },
+
+            notes_section: {
+                filter: 'Filter',
+                add_note: 'Add Note',
+                no_results: 'No notes found',
+                clear: 'Clear Filter',
+                empty_state: {
+                    title: 'No Notes',
+                    description:
+                        'Create a note to add text annotations on the canvas',
+                },
+                note: {
+                    empty_note: 'Empty note',
+                    note_actions: {
+                        title: 'Note Actions',
+                        edit_content: 'Edit Content',
+                        delete_note: 'Delete Note',
+                    },
+                },
+            },
+
             custom_types_section: {
                 custom_types: 'Custom Types',
                 filter: 'Filter',
                 clear: 'Clear Filter',
                 no_results: 'No custom types found matching your filter.',
+                new_type: 'New Type',
                 empty_state: {
                     title: 'No custom types',
                     description:
@@ -301,7 +340,7 @@ export const en = {
             cancel: 'Cancel',
             import_from_file: 'Import from File',
             back: 'Back',
-            empty_diagram: 'Empty diagram',
+            empty_diagram: 'Empty database',
             continue: 'Continue',
             import: 'Import',
         },
@@ -317,6 +356,7 @@ export const en = {
             },
             cancel: 'Cancel',
             open: 'Open',
+            new_database: 'New Database',
 
             diagram_actions: {
                 open: 'Open',
@@ -380,10 +420,9 @@ export const en = {
         export_image_dialog: {
             title: 'Export Image',
             description: 'Choose the scale factor for export:',
-            scale_1x: '1x Regular',
-            scale_2x: '2x (Recommended)',
-            scale_3x: '3x',
-            scale_4x: '4x',
+            scale_1x: '1x (Low Quality)',
+            scale_2x: '2x (Normal Quality)',
+            scale_4x: '4x (Best Quality)',
             cancel: 'Cancel',
             export: 'Export',
             advanced_options: 'Advanced Options',
@@ -473,6 +512,7 @@ export const en = {
             new_view: 'New View',
             new_relationship: 'New Relationship',
             new_area: 'New Area',
+            new_note: 'New Note',
         },
 
         table_node_context_menu: {
@@ -480,6 +520,22 @@ export const en = {
             duplicate_table: 'Duplicate Table',
             delete_table: 'Delete Table',
             add_relationship: 'Add Relationship',
+        },
+
+        canvas: {
+            all_tables_hidden: 'All tables are hidden',
+            show_all_tables: 'Show all',
+        },
+
+        canvas_filter: {
+            title: 'Filter Tables',
+            search_placeholder: 'Search tables...',
+            group_by_schema: 'Group by Schema',
+            group_by_area: 'Group by Area',
+            no_tables_found: 'No tables found',
+            empty_diagram_description: 'Create a table to get started',
+            no_tables_description: 'Try adjusting your search or filter',
+            clear_filter: 'Clear filter',
         },
 
         snap_to_grid_tooltip: 'Snap to Grid (Hold {{key}})',

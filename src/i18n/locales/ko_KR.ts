@@ -4,18 +4,18 @@ export const ko_KR: LanguageTranslation = {
     translation: {
         editor_sidebar: {
             new_diagram: '새로 만들기',
-            browse: '찾아보기',
+            browse: '열기',
             tables: '테이블',
             refs: 'Refs',
-            areas: '영역',
             dependencies: '종속성',
             custom_types: '사용자 지정 타입',
+            visuals: '시각화',
         },
         menu: {
             actions: {
                 actions: '작업',
                 new: '새로 만들기...',
-                browse: '찾아보기...',
+                browse: '모든 데이터베이스...',
                 save: '저장',
                 import: '데이터베이스 가져오기',
                 export_sql: 'SQL로 저장',
@@ -128,16 +128,20 @@ export const ko_KR: LanguageTranslation = {
                 // TODO: Translate
                 show_list: 'Show Table List',
                 show_dbml: 'Show DBML Editor',
+                all_hidden: '모든 테이블이 숨겨져 있습니다',
+                show_all: '모두 표시',
 
                 table: {
                     fields: '필드',
                     nullable: 'null 여부',
                     primary_key: '기본키',
                     indexes: '인덱스',
+                    check_constraints: '체크 제약조건',
                     comments: '주석',
                     no_comments: '주석 없음',
                     add_field: '필드 추가',
                     add_index: '인덱스 추가',
+                    add_check: '체크 추가',
                     index_select_fields: '필드 선택',
                     no_types_found: '타입을 찾을 수 없습니다.',
                     field_name: '이름',
@@ -164,6 +168,11 @@ export const ko_KR: LanguageTranslation = {
                         index_type: '인덱스 타입',
                         delete_index: '인덱스 삭제',
                     },
+                    check_constraint_actions: {
+                        title: '체크 제약조건',
+                        expression: '표현식',
+                        delete: '체크 제약조건 삭제',
+                    },
                     table_actions: {
                         title: '테이블 작업',
                         change_schema: '스키마 변경',
@@ -188,9 +197,10 @@ export const ko_KR: LanguageTranslation = {
                 relationship: {
                     relationship: '연관 관계',
                     primary: '주 테이블',
-                    foreign: '참조 테이블',
+                    foreign: '관련 테이블',
                     cardinality: '카디널리티',
                     delete_relationship: '제거',
+                    switch_tables: '테이블 전환',
                     relationship_actions: {
                         title: '연관 관계 작업',
                         delete_relationship: '연관 관계 삭제',
@@ -212,54 +222,84 @@ export const ko_KR: LanguageTranslation = {
                 },
             },
 
-            // TODO: Translate
             areas_section: {
-                areas: 'Areas',
-                add_area: 'Add Area',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No areas found matching your filter.',
+                areas: '영역',
+                add_area: '영역 추가',
+                filter: '필터',
+                clear: '필터 지우기',
+                no_results: '필터와 일치하는 영역을 찾을 수 없습니다.',
 
                 area: {
                     area_actions: {
-                        title: 'Area Actions',
-                        edit_name: 'Edit Name',
-                        delete_area: 'Delete Area',
+                        title: '영역 작업',
+                        edit_name: '이름 편집',
+                        delete_area: '영역 삭제',
                     },
                 },
                 empty_state: {
-                    title: 'No areas',
-                    description: 'Create an area to get started',
+                    title: '영역 없음',
+                    description: '영역을 만들어 시작하세요',
                 },
             },
-            // TODO: Translate
-            custom_types_section: {
-                custom_types: 'Custom Types',
-                filter: 'Filter',
-                clear: 'Clear Filter',
-                no_results: 'No custom types found matching your filter.',
+
+            visuals_section: {
+                visuals: '시각화',
+                tabs: {
+                    areas: '영역',
+                    notes: '메모',
+                },
+            },
+
+            notes_section: {
+                filter: '필터',
+                add_note: '메모 추가',
+                no_results: '메모를 찾을 수 없습니다',
+                clear: '필터 지우기',
                 empty_state: {
-                    title: 'No custom types',
+                    title: '메모 없음',
                     description:
-                        'Custom types will appear here when they are available in your database',
+                        '캔버스에 텍스트 주석을 추가하려면 메모를 만드세요',
+                },
+                note: {
+                    empty_note: '빈 메모',
+                    note_actions: {
+                        title: '메모 작업',
+                        edit_content: '내용 편집',
+                        delete_note: '메모 삭제',
+                    },
+                },
+            },
+
+            custom_types_section: {
+                custom_types: '사용자 정의 타입',
+                filter: '필터',
+                clear: '필터 지우기',
+                no_results:
+                    '필터와 일치하는 사용자 정의 타입을 찾을 수 없습니다.',
+                new_type: '새 타입',
+                empty_state: {
+                    title: '사용자 정의 타입 없음',
+                    description:
+                        '데이터베이스에서 사용 가능한 사용자 정의 타입이 여기에 표시됩니다',
                 },
                 custom_type: {
-                    kind: 'Kind',
-                    enum_values: 'Enum Values',
-                    composite_fields: 'Fields',
-                    no_fields: 'No fields defined',
+                    kind: '종류',
+                    enum_values: '열거형 값',
+                    composite_fields: '필드',
+                    no_fields: '정의된 필드 없음',
                     no_values: '정의된 열거형 값이 없습니다',
-                    field_name_placeholder: 'Field name',
-                    field_type_placeholder: 'Select type',
-                    add_field: 'Add Field',
-                    no_fields_tooltip: 'No fields defined for this custom type',
+                    field_name_placeholder: '필드 이름',
+                    field_type_placeholder: '타입 선택',
+                    add_field: '필드 추가',
+                    no_fields_tooltip:
+                        '이 사용자 정의 타입에 정의된 필드가 없습니다',
                     custom_type_actions: {
-                        title: 'Actions',
-                        highlight_fields: 'Highlight Fields',
-                        delete_custom_type: 'Delete',
-                        clear_field_highlight: 'Clear Highlight',
+                        title: '작업',
+                        highlight_fields: '필드 강조 표시',
+                        delete_custom_type: '삭제',
+                        clear_field_highlight: '강조 표시 지우기',
                     },
-                    delete_custom_type: 'Delete Type',
+                    delete_custom_type: '타입 삭제',
                 },
             },
         },
@@ -277,8 +317,7 @@ export const ko_KR: LanguageTranslation = {
             custom_type_highlight_tooltip:
                 'Highlighting "{{typeName}}" - Click to clear',
             highlight_overlapping_tables: '겹치는 테이블 강조 표시',
-            // TODO: Translate
-            filter: 'Filter Tables',
+            filter: '테이블 필터',
         },
 
         new_diagram_dialog: {
@@ -309,7 +348,7 @@ export const ko_KR: LanguageTranslation = {
             cancel: '취소',
             back: '뒤로가기',
             import_from_file: '파일에서 가져오기',
-            empty_diagram: '빈 다이어그램으로 시작',
+            empty_diagram: '빈 데이터베이스',
             continue: '계속',
             import: '가져오기',
         },
@@ -325,6 +364,7 @@ export const ko_KR: LanguageTranslation = {
             },
             cancel: '취소',
             open: '열기',
+            new_database: '새 데이터베이스',
 
             diagram_actions: {
                 open: '열기',
@@ -387,10 +427,9 @@ export const ko_KR: LanguageTranslation = {
         export_image_dialog: {
             title: '이미지로 내보내기',
             description: '내보낼 배율을 선택해주세요:',
-            scale_1x: '1x 기본',
-            scale_2x: '2x (권장)',
-            scale_3x: '3x',
-            scale_4x: '4x',
+            scale_1x: '1x (저화질)',
+            scale_2x: '2x (일반 화질)',
+            scale_4x: '4x (최고 화질)',
             cancel: '취소',
             export: '내보내기',
             // TODO: Translate
@@ -479,8 +518,8 @@ export const ko_KR: LanguageTranslation = {
             new_table: '새 테이블',
             new_view: '새 뷰',
             new_relationship: '새 연관관계',
-            // TODO: Translate
-            new_area: 'New Area',
+            new_area: '새 영역',
+            new_note: '새 메모',
         },
 
         table_node_context_menu: {
@@ -488,6 +527,22 @@ export const ko_KR: LanguageTranslation = {
             duplicate_table: '테이블 복제',
             delete_table: '테이블 삭제',
             add_relationship: 'Add Relationship', // TODO: Translate
+        },
+
+        canvas: {
+            all_tables_hidden: '모든 테이블이 숨겨져 있습니다',
+            show_all_tables: '모두 표시',
+        },
+
+        canvas_filter: {
+            title: '테이블 필터',
+            search_placeholder: '테이블 검색...',
+            group_by_schema: '스키마별 그룹화',
+            group_by_area: '영역별 그룹화',
+            no_tables_found: '테이블을 찾을 수 없습니다',
+            empty_diagram_description: '시작하려면 테이블을 만드세요',
+            no_tables_description: '검색 또는 필터를 조정해 보세요',
+            clear_filter: '필터 지우기',
         },
 
         snap_to_grid_tooltip: '그리드에 맞추기 ({{key}}를 누른채 유지)',

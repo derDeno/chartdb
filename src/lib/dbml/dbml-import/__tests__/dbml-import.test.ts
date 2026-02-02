@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     preprocessDBML,
     sanitizeDBML,
     importDBMLToDiagram,
 } from '../dbml-import';
 import { Parser } from '@dbml/core';
+import { DatabaseType } from '@/lib/domain/database-type';
+import * as dataTypes from '@/lib/data/data-types/data-types';
 
 describe('DBML Import', () => {
     describe('preprocessDBML', () => {
@@ -22,7 +24,7 @@ TableGroup "Test Group" [color: #CA4243] {
 Table posts {
   id int
 }`;
-            const result = preprocessDBML(dbml);
+            const { content: result } = preprocessDBML(dbml);
             expect(result).not.toContain('TableGroup');
             expect(result).toContain('Table users');
             expect(result).toContain('Table posts');
@@ -37,20 +39,20 @@ Table users {
 Note note_test {
   'This is a note'
 }`;
-            const result = preprocessDBML(dbml);
+            const { content: result } = preprocessDBML(dbml);
             expect(result).not.toContain('Note');
             expect(result).toContain('Table users');
         });
 
-        it('should convert array types to text', () => {
+        it('should remove array syntax while preserving base type', () => {
             const dbml = `
 Table users {
   tags text[]
   domains varchar[]
 }`;
-            const result = preprocessDBML(dbml);
+            const { content: result } = preprocessDBML(dbml);
             expect(result).toContain('tags text');
-            expect(result).toContain('domains text');
+            expect(result).toContain('domains varchar');
             expect(result).not.toContain('[]');
         });
 
@@ -60,7 +62,7 @@ Table users {
   status enum
   verification_type enum // comment here
 }`;
-            const result = preprocessDBML(dbml);
+            const { content: result } = preprocessDBML(dbml);
             expect(result).toContain('status varchar');
             expect(result).toContain('verification_type varchar');
             expect(result).not.toContain('enum');
@@ -71,7 +73,7 @@ Table users {
 Table users [headercolor: #24BAB1] {
   id int
 }`;
-            const result = preprocessDBML(dbml);
+            const { content: result } = preprocessDBML(dbml);
             expect(result).toContain('Table users {');
             expect(result).not.toContain('headercolor');
         });
@@ -105,7 +107,9 @@ Note note_test {
   'This is a test note'
 }`;
 
-            const diagram = await importDBMLToDiagram(complexDBML);
+            const diagram = await importDBMLToDiagram(complexDBML, {
+                databaseType: DatabaseType.POSTGRESQL,
+            });
 
             expect(diagram.tables).toHaveLength(2);
             expect(diagram.relationships).toHaveLength(1);
@@ -149,7 +153,7 @@ Note note_1750185617764 {
 }`;
 
             // Test that preprocessing handles all issues
-            const preprocessed = preprocessDBML(problematicDBML);
+            const { content: preprocessed } = preprocessDBML(problematicDBML);
             const sanitized = sanitizeDBML(preprocessed);
 
             // Should not throw
@@ -172,6 +176,128 @@ Note note_1750185617764 {
             const result = sanitizeDBML(dbml);
             // Russian text should remain unchanged
             expect(result).toContain('нужна таблица справочник?');
+        });
+    });
+
+    describe('Type Synonym Resolution', () => {
+        it('should call getPreferredSynonym for PostgreSQL types and use resolved types', async () => {
+            // Spy on getPreferredSynonym
+            const getPreferredSynonymSpy = vi.spyOn(
+                dataTypes,
+                'getPreferredSynonym'
+            );
+
+            // Mock return value for 'character varying' -> 'varchar'
+            getPreferredSynonymSpy.mockImplementation(
+                (typeName, databaseType) => {
+                    if (
+                        typeName === 'character varying' &&
+                        databaseType === DatabaseType.POSTGRESQL
+                    ) {
+                        return {
+                            id: 'varchar',
+                            name: 'varchar',
+                            fieldAttributes: { hasCharMaxLength: true },
+                            usageLevel: 1,
+                        } as const;
+                    }
+                    return null;
+                }
+            );
+
+            const dbml = `
+                Table users {
+                    id int [pk]
+                    name "character varying"(255)
+                    email "character varying"(100)
+                }
+            `;
+
+            const diagram = await importDBMLToDiagram(dbml, {
+                databaseType: DatabaseType.POSTGRESQL,
+            });
+
+            // Verify getPreferredSynonym was called
+            expect(getPreferredSynonymSpy).toHaveBeenCalled();
+            expect(getPreferredSynonymSpy).toHaveBeenCalledWith(
+                'character varying',
+                DatabaseType.POSTGRESQL
+            );
+
+            // Verify the resolved type was used in the diagram
+            const usersTable = diagram.tables?.find((t) => t.name === 'users');
+            expect(usersTable).toBeDefined();
+
+            const nameField = usersTable?.fields.find((f) => f.name === 'name');
+            expect(nameField?.type.id).toBe('varchar');
+            expect(nameField?.type.name).toBe('varchar');
+
+            const emailField = usersTable?.fields.find(
+                (f) => f.name === 'email'
+            );
+            expect(emailField?.type.id).toBe('varchar');
+            expect(emailField?.type.name).toBe('varchar');
+
+            // Restore the original implementation
+            getPreferredSynonymSpy.mockRestore();
+        });
+    });
+
+    describe('Schema Handling with defaultSchemas', () => {
+        it('should use defaultSchema when table schema is empty for PostgreSQL', async () => {
+            const dbml = `
+                Table users {
+                    id int [pk]
+                }
+            `;
+
+            const diagram = await importDBMLToDiagram(dbml, {
+                databaseType: DatabaseType.POSTGRESQL,
+            });
+
+            expect(diagram.tables?.[0]?.schema).toBe('public');
+        });
+
+        it('should use defaultSchema when table schema is empty for SQL Server', async () => {
+            const dbml = `
+                Table users {
+                    id int [pk]
+                }
+            `;
+
+            const diagram = await importDBMLToDiagram(dbml, {
+                databaseType: DatabaseType.SQL_SERVER,
+            });
+
+            expect(diagram.tables?.[0]?.schema).toBe('dbo');
+        });
+
+        it('should have undefined schema for database types without defaultSchema', async () => {
+            const dbml = `
+                Table users {
+                    id int [pk]
+                }
+            `;
+
+            const diagram = await importDBMLToDiagram(dbml, {
+                databaseType: DatabaseType.SQLITE,
+            });
+
+            expect(diagram.tables?.[0]?.schema).toBeUndefined();
+        });
+
+        it('should preserve explicit schema even when different from default', async () => {
+            const dbml = `
+                Table "custom_schema"."users" {
+                    id int [pk]
+                }
+            `;
+
+            const diagram = await importDBMLToDiagram(dbml, {
+                databaseType: DatabaseType.POSTGRESQL,
+            });
+
+            expect(diagram.tables?.[0]?.schema).toBe('custom_schema');
         });
     });
 });

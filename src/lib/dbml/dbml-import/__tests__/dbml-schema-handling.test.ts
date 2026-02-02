@@ -39,13 +39,10 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
                 databaseType: DatabaseType.MYSQL,
             });
 
-            // Verify no 'public' schema was added
+            // Verify schema is undefined for MySQL (no default schema)
             expect(diagram.tables).toBeDefined();
             diagram.tables?.forEach((table) => {
-                expect(table.schema).toBe('');
-                console.log(
-                    `✓ Table "${table.name}" has no schema (MySQL behavior)`
-                );
+                expect(table.schema).toBeUndefined();
             });
 
             // Check specific tables
@@ -53,7 +50,7 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
                 (t) => t.name === 'wizards'
             );
             expect(wizardsTable).toBeDefined();
-            expect(wizardsTable?.schema).toBe('');
+            expect(wizardsTable?.schema).toBeUndefined();
 
             // Check that reserved keywords are preserved as field names
             const yesField = wizardsTable?.fields.find((f) => f.name === 'Yes');
@@ -129,8 +126,6 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
                     expect(resultField?.name).toBe(sourceField.name);
                 });
             });
-
-            console.log('✓ All IDs preserved after DBML round-trip');
         });
     });
 
@@ -167,7 +162,7 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
             const heroesTable = diagram.tables?.find(
                 (t) => t.name === 'heroes'
             );
-            expect(heroesTable?.schema).toBe(''); // 'public' should be converted to empty
+            expect(heroesTable?.schema).toBe('public'); // PostgreSQL default schema
 
             const secretQuestsTable = diagram.tables?.find(
                 (t) => t.name === 'secret_quests'
@@ -177,7 +172,7 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
             const artifactsTable = diagram.tables?.find(
                 (t) => t.name === 'artifacts'
             );
-            expect(artifactsTable?.schema).toBe(''); // No schema = empty string
+            expect(artifactsTable?.schema).toBe('public'); // No schema = default schema
         });
 
         it('should handle reserved keywords for PostgreSQL', async () => {
@@ -227,24 +222,18 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
                 }
             );
 
-            // For MySQL, 'public' schema should be stripped
+            // For MySQL, 'public' schema should become undefined (no default schema)
             mysqlDiagram.tables?.forEach((table) => {
-                expect(table.schema).toBe('');
-                console.log(
-                    `✓ MySQL: Table "${table.name}" has no schema (public was stripped)`
-                );
+                expect(table.schema).toBeUndefined();
             });
 
-            // Now test with PostgreSQL - public should also be stripped (it's the default)
+            // For PostgreSQL, 'public' is the default schema
             const pgDiagram = await importDBMLToDiagram(dbmlWithPublicSchema, {
                 databaseType: DatabaseType.POSTGRESQL,
             });
 
             pgDiagram.tables?.forEach((table) => {
-                expect(table.schema).toBe('');
-                console.log(
-                    `✓ PostgreSQL: Table "${table.name}" has no schema (public is default)`
-                );
+                expect(table.schema).toBe('public');
             });
         });
 
@@ -275,7 +264,6 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
 
             expect(magicTable?.schema).toBe('fantasy');
             expect(questTable?.schema).toBe('adventure');
-            console.log('✓ Custom schemas preserved correctly');
         });
     });
 
@@ -395,8 +383,6 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
 
             // Perform 3 round-trips
             for (let cycle = 1; cycle <= 3; cycle++) {
-                console.log(`🔄 Round-trip cycle ${cycle}`);
-
                 // Export
                 const exported = generateDBMLFromDiagram(currentDiagram);
 
@@ -429,8 +415,6 @@ describe('DBML Schema Handling - Fantasy Realm Database', () => {
                     expect(currentTable?.id).toBe(original.id);
                 });
             }
-
-            console.log('✓ Data integrity maintained through 3 cycles');
         });
     });
 });

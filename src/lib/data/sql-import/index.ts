@@ -5,10 +5,12 @@ import { fromPostgresDump } from './dialect-importers/postgresql/postgresql-dump
 
 import { fromSQLServer } from './dialect-importers/sqlserver/sqlserver';
 import { fromSQLite } from './dialect-importers/sqlite/sqlite';
+import { fromOracle, isOracleFormat } from './dialect-importers/oracle/oracle';
 import type { SQLParserResult } from './common';
 import { convertToChartDBDiagram } from './common';
 import { adjustTablePositions } from '@/lib/domain/db-table';
 import { fromMySQL, isMySQLFormat } from './dialect-importers/mysql/mysql';
+import { getTableIndexesWithPrimaryKey } from '@/lib/domain/db-index';
 
 /**
  * Detect if SQL content is from pg_dump format
@@ -137,6 +139,11 @@ export function detectDatabaseType(sqlContent: string): DatabaseType | null {
         return DatabaseType.SQLITE;
     }
 
+    // Check for Oracle format
+    if (isOracleFormat(sqlContent)) {
+        return DatabaseType.ORACLE;
+    }
+
     // Look for database-specific keywords
     if (
         sqlContent.includes('SERIAL PRIMARY KEY') ||
@@ -190,7 +197,9 @@ export async function sqlImportToDiagram({
     // Select the appropriate parser based on database type
     switch (sourceDatabaseType) {
         case DatabaseType.POSTGRESQL:
+        case DatabaseType.COCKROACHDB:
             // Check if the SQL is from pg_dump and use the appropriate parser
+            // CockroachDB uses PostgreSQL-compatible syntax
             if (isPgDumpFormat(sqlContent)) {
                 parserResult = await fromPostgresDump(sqlContent);
             } else {
@@ -209,6 +218,9 @@ export async function sqlImportToDiagram({
         case DatabaseType.SQLITE:
             parserResult = await fromSQLite(sqlContent);
             break;
+        case DatabaseType.ORACLE:
+            parserResult = await fromOracle(sqlContent);
+            break;
         default:
             throw new Error(`Unsupported database type: ${sourceDatabaseType}`);
     }
@@ -226,14 +238,19 @@ export async function sqlImportToDiagram({
         mode: 'perSchema',
     });
 
-    const sortedTables = adjustedTables.sort((a, b) => {
-        if (a.isView === b.isView) {
-            // Both are either tables or views, so sort alphabetically by name
-            return a.name.localeCompare(b.name);
-        }
-        // If one is a view and the other is not, put tables first
-        return a.isView ? 1 : -1;
-    });
+    const sortedTables = adjustedTables
+        .map((table) => ({
+            ...table,
+            indexes: getTableIndexesWithPrimaryKey({ table }),
+        }))
+        .sort((a, b) => {
+            if (a.isView === b.isView) {
+                // Both are either tables or views, so sort alphabetically by name
+                return a.name.localeCompare(b.name);
+            }
+            // If one is a view and the other is not, put tables first
+            return a.isView ? 1 : -1;
+        });
 
     return {
         ...diagram,
@@ -263,7 +280,8 @@ export async function parseSQLError({
         // Validate SQL based on the database type
         switch (sourceDatabaseType) {
             case DatabaseType.POSTGRESQL:
-                // PostgreSQL validation - check format and use appropriate parser
+            case DatabaseType.COCKROACHDB:
+                // PostgreSQL/CockroachDB validation - check format and use appropriate parser
                 if (isPgDumpFormat(sqlContent)) {
                     await fromPostgresDump(sqlContent);
                 } else {
@@ -283,7 +301,10 @@ export async function parseSQLError({
                 // SQLite validation
                 await fromSQLite(sqlContent);
                 break;
-            // Add more database types here
+            case DatabaseType.ORACLE:
+                // Oracle validation
+                await fromOracle(sqlContent);
+                break;
             default:
                 throw new Error(
                     `Unsupported database type: ${sourceDatabaseType}`

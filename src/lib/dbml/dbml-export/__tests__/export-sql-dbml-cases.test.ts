@@ -47,7 +47,7 @@ const testCase = (caseNumber: string) => {
 };
 
 describe('DBML Export cases', () => {
-    it('should handle case 1 diagram', { timeout: 30000 }, async () => {
+    it('should handle case 1 diagram', { timeout: 60000 }, async () => {
         testCase('1');
     });
 
@@ -65,5 +65,21 @@ describe('DBML Export cases', () => {
 
     it('should handle case 5 diagram', { timeout: 30000 }, async () => {
         testCase('5');
+    });
+
+    it(
+        'should handle case 6 diagram - auto increment',
+        { timeout: 30000 },
+        async () => {
+            testCase('6');
+        }
+    );
+
+    it('should handle case 7 diagram', { timeout: 30000 }, async () => {
+        testCase('7');
+    });
+
+    it('should handle case 8 diagram', { timeout: 30000 }, async () => {
+        testCase('8');
     });
 });

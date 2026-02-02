@@ -1,5 +1,6 @@
-const withExtras = false;
-const withDefault = `IFNULL(REPLACE(REPLACE(cols.column_default, '\\\\', ''), '"', 'ֿֿֿ\\"'), '')`;
+const withDefault = true;
+
+const withDefaultExpr = `IFNULL(REPLACE(REPLACE(cols.column_default, '\\\\', ''), '"', 'ֿֿֿ\\"'), '')`;
 const withoutDefault = `""`;
 
 export const mariaDBQuery = `SET SESSION group_concat_max_len = 10000000;
@@ -68,8 +69,10 @@ SELECT CAST(CONCAT(
                          ',"scale":', IFNULL(cols.numeric_scale, 'null'), '}'), 'null'),
                ',"ordinal_position":', cols.ordinal_position,
                ',"nullable":', IF(cols.is_nullable = 'YES', 'true', 'false'),
-               ',"default":"', ${withExtras ? withDefault : withoutDefault},
-               '","collation":"', IFNULL(cols.collation_name, ''), '"}')
+               ',"default":"', ${withDefault ? withDefaultExpr : withoutDefault},
+               '","collation":"', IFNULL(cols.collation_name, ''),
+               '","is_identity":', IF(cols.extra LIKE '%auto_increment%', 'true', 'false'),
+               ',"comment":"', REPLACE(REPLACE(IFNULL(cols.column_comment, ''), '"', '\\"'), '\\n', ' '), '"}')
     ) FROM (
         SELECT cols.table_schema,
                cols.table_name,
@@ -81,7 +84,9 @@ SELECT CAST(CONCAT(
                cols.ordinal_position,
                cols.is_nullable,
                cols.column_default,
-               cols.collation_name
+               cols.collation_name,
+               cols.extra,
+               cols.column_comment
         FROM information_schema.columns cols
         WHERE cols.table_schema = DATABASE()
     ) AS cols), ''),
@@ -124,14 +129,16 @@ SELECT CAST(CONCAT(
                '","rows":', IFNULL(tbls.TABLE_ROWS, 0),
                ',"type":"', IFNULL(tbls.TABLE_TYPE, ''),
                '","engine":"', IFNULL(tbls.ENGINE, ''),
-               '","collation":"', IFNULL(tbls.TABLE_COLLATION, ''), '"}')
+               '","collation":"', IFNULL(tbls.TABLE_COLLATION, ''),
+               '","comment":"', REPLACE(REPLACE(IFNULL(tbls.TABLE_COMMENT, ''), '"', '\\"'), '\\n', ' '), '"}')
     ) FROM (
         SELECT \`TABLE_SCHEMA\`,
                \`TABLE_NAME\`,
                \`TABLE_ROWS\`,
                \`TABLE_TYPE\`,
                \`ENGINE\`,
-               \`TABLE_COLLATION\`
+               \`TABLE_COLLATION\`,
+               \`TABLE_COMMENT\`
         FROM information_schema.tables tbls
         WHERE tbls.table_schema = DATABASE()
     ) AS tbls), ''),

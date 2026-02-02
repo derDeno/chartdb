@@ -24,9 +24,9 @@ WITH fk_info AS (
                                             ',"table":"', replace(table_name::TEXT, '"', ''), '"',
                                             ',"column":"', replace(fk_column::TEXT, '"', ''), '"',
                                             ',"foreign_key_name":"', foreign_key_name::TEXT, '"',
-                                            ',"reference_schema":"', COALESCE(reference_schema::TEXT, 'public'), '"',
-                                            ',"reference_table":"', reference_table::TEXT, '"',
-                                            ',"reference_column":"', reference_column::TEXT, '"',
+                                            ',"reference_schema":"', COALESCE(replace(reference_schema::TEXT, '"', ''), 'public'), '"',
+                                            ',"reference_table":"', replace(reference_table::TEXT, '"', ''), '"',
+                                            ',"reference_column":"', replace(reference_column::TEXT, '"', ''), '"',
                                             ',"fk_def":"', replace(fk_def::TEXT, '"', ''),
                                             '"}')), ',') as fk_metadata
     FROM (
@@ -124,10 +124,16 @@ cols AS (
                                                     ELSE 'null'
                                                 END,
                                             ',"nullable":', CASE WHEN (cols.IS_NULLABLE = 'YES') THEN true ELSE false END::TEXT,
-                                            ',"default":"', null,
+                                            ',"default":"', COALESCE(replace(replace(cols.column_default::TEXT, '"', '\\"'), '\\x', '\\\\x'), ''),
                                             '","collation":"', COALESCE(cols.COLLATION_NAME::TEXT, ''),
                                             '","comment":"', COALESCE(replace(replace(dsc.description::TEXT, '"', '\\"'), '\\x', '\\\\x'), ''),
-                                            '"}')), ',') AS cols_metadata
+                                            '","is_identity":', CASE 
+                                                WHEN cols.is_identity = 'YES' THEN 'true'
+                                                WHEN cols.column_default IS NOT NULL AND cols.column_default LIKE 'nextval(%' THEN 'true'
+                                                WHEN cols.column_default LIKE 'unique_rowid()%' THEN 'true'
+                                                ELSE 'false'
+                                            END,
+                                            '}')), ',') AS cols_metadata
     FROM information_schema.columns cols
     LEFT JOIN pg_catalog.pg_class c
         ON c.relname = cols.table_name

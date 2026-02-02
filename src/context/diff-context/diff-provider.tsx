@@ -15,6 +15,7 @@ import { useEventEmitter } from 'ahooks';
 import type { DBField } from '@/lib/domain/db-field';
 import type { DataType } from '@/lib/data/data-types/data-types';
 import type { DBRelationship } from '@/lib/domain/db-relationship';
+import type { Area } from '@/lib/domain/area';
 import type { ChartDBDiff, DiffMap } from '@/lib/domain/diff/diff';
 
 export const DiffProvider: React.FC<React.PropsWithChildren> = ({
@@ -32,11 +33,17 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
     const [fieldsChanged, setFieldsChanged] = React.useState<
         Map<string, boolean>
     >(new Map<string, boolean>());
+    const [relationshipsChanged, setRelationshipsChanged] = React.useState<
+        Map<string, boolean>
+    >(new Map<string, boolean>());
+    const [relationshipIdMap, setRelationshipIdMap] = React.useState<
+        Map<string, string>
+    >(new Map<string, string>());
     const [isSummaryOnly, setIsSummaryOnly] = React.useState<boolean>(false);
 
     const events = useEventEmitter<DiffEvent>();
 
-    const generateNewFieldsMap = useCallback(
+    const generateFieldsToAddMap = useCallback(
         ({
             diffMap,
             newDiagram,
@@ -66,7 +73,7 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
         []
     );
 
-    const findNewRelationships = useCallback(
+    const findRelationshipsToAdd = useCallback(
         ({
             diffMap,
             newDiagram,
@@ -92,6 +99,32 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
         []
     );
 
+    const findAreasToAdd = useCallback(
+        ({
+            diffMap,
+            newDiagram,
+        }: {
+            diffMap: DiffMap;
+            newDiagram: Diagram;
+        }) => {
+            const areas: Area[] = [];
+            diffMap.forEach((diff) => {
+                if (diff.object === 'area' && diff.type === 'added') {
+                    const area = newDiagram?.areas?.find(
+                        (a) => a.id === diff.areaAdded.id
+                    );
+
+                    if (area) {
+                        areas.push(area);
+                    }
+                }
+            });
+
+            return areas;
+        },
+        []
+    );
+
     const generateDiffCalculatedData = useCallback(
         ({
             newDiagram,
@@ -101,7 +134,7 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
             diffMap: DiffMap;
         }): DiffCalculatedData => {
             return {
-                tablesAdded:
+                tablesToAdd:
                     newDiagram?.tables?.filter((table) => {
                         const tableKey = getDiffMapKey({
                             diffObject: 'table',
@@ -114,17 +147,21 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                         );
                     }) ?? [],
 
-                fieldsAdded: generateNewFieldsMap({
+                fieldsToAdd: generateFieldsToAddMap({
                     diffMap: diffMap,
                     newDiagram: newDiagram,
                 }),
-                relationshipsAdded: findNewRelationships({
+                relationshipsToAdd: findRelationshipsToAdd({
+                    diffMap: diffMap,
+                    newDiagram: newDiagram,
+                }),
+                areasToAdd: findAreasToAdd({
                     diffMap: diffMap,
                     newDiagram: newDiagram,
                 }),
             };
         },
-        [findNewRelationships, generateNewFieldsMap]
+        [findRelationshipsToAdd, generateFieldsToAddMap, findAreasToAdd]
     );
 
     const calculateDiff: DiffContext['calculateDiff'] = useCallback(
@@ -133,11 +170,15 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 diffMap: newDiffs,
                 changedTables: newChangedTables,
                 changedFields: newChangedFields,
+                changedRelationships: newChangedRelationships,
+                relationshipIdMap: newRelationshipIdMap,
             } = generateDiff({ diagram, newDiagram: newDiagramArg });
 
             setDiffMap(newDiffs);
             setTablesChanged(newChangedTables);
             setFieldsChanged(newChangedFields);
+            setRelationshipsChanged(newChangedRelationships);
+            setRelationshipIdMap(newRelationshipIdMap);
             setNewDiagram(newDiagramArg);
             setOriginalDiagram(diagram);
             setIsSummaryOnly(options?.summaryOnly ?? false);
@@ -149,6 +190,8 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                     newDiagram: newDiagramArg,
                 }),
             });
+
+            return { foundDiff: !!newDiffs.size };
         },
         [setDiffMap, events, generateDiffCalculatedData]
     );
@@ -165,7 +208,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(tableNameKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as string;
+                    return {
+                        new: diff.newValue as string,
+                        old: diff.oldValue as string,
+                    };
                 }
             }
 
@@ -186,7 +232,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(tableColorKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as string;
+                    return {
+                        new: diff.newValue as string,
+                        old: diff.oldValue as string,
+                    };
                 }
             }
             return null;
@@ -277,7 +326,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as string;
+                    return {
+                        old: diff.oldValue as string,
+                        new: diff.newValue as string,
+                    };
                 }
             }
 
@@ -298,7 +350,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as DataType;
+                    return {
+                        old: diff.oldValue as DataType,
+                        new: diff.newValue as DataType,
+                    };
                 }
             }
 
@@ -321,7 +376,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as boolean;
+                    return {
+                        old: diff.oldValue as boolean,
+                        new: diff.newValue as boolean,
+                    };
                 }
             }
 
@@ -342,7 +400,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as boolean;
+                    return {
+                        old: diff.oldValue as boolean,
+                        new: diff.newValue as boolean,
+                    };
                 }
             }
 
@@ -365,7 +426,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as string;
+                    return {
+                        old: diff.oldValue as string,
+                        new: diff.newValue as string,
+                    };
                 }
             }
 
@@ -386,7 +450,10 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as number;
+                    return {
+                        old: diff.oldValue as number,
+                        new: diff.newValue as number,
+                    };
                 }
             }
 
@@ -409,13 +476,96 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 const diff = diffMap.get(fieldKey);
 
                 if (diff?.type === 'changed') {
-                    return diff.newValue as number;
+                    return {
+                        old: diff.oldValue as number,
+                        new: diff.newValue as number,
+                    };
                 }
             }
 
             return null;
         },
         [diffMap]
+    );
+
+    const getFieldNewIsArray = useCallback<DiffContext['getFieldNewIsArray']>(
+        ({ fieldId }) => {
+            const fieldKey = getDiffMapKey({
+                diffObject: 'field',
+                objectId: fieldId,
+                attribute: 'isArray',
+            });
+
+            if (diffMap.has(fieldKey)) {
+                const diff = diffMap.get(fieldKey);
+
+                if (diff?.type === 'changed') {
+                    return {
+                        old: diff.oldValue as boolean,
+                        new: diff.newValue as boolean,
+                    };
+                }
+            }
+
+            return null;
+        },
+        [diffMap]
+    );
+
+    const checkIfRelationshipHasChange = useCallback<
+        DiffContext['checkIfRelationshipHasChange']
+    >(
+        ({ relationshipId }) =>
+            relationshipsChanged.get(relationshipId) ?? false,
+        [relationshipsChanged]
+    );
+
+    const getRelationshipNewName = useCallback<
+        DiffContext['getRelationshipNewName']
+    >(
+        ({ relationshipId }) => {
+            // Try with the given ID first
+            const relationshipNameKey = getDiffMapKey({
+                diffObject: 'relationship',
+                objectId: relationshipId,
+                attribute: 'name',
+            });
+
+            if (diffMap.has(relationshipNameKey)) {
+                const diff = diffMap.get(relationshipNameKey);
+
+                if (diff?.type === 'changed') {
+                    return {
+                        new: diff.newValue as string,
+                        old: diff.oldValue as string,
+                    };
+                }
+            }
+
+            // If not found, try with the mapped ID (old <-> new mapping)
+            const mappedId = relationshipIdMap.get(relationshipId);
+            if (mappedId) {
+                const mappedKey = getDiffMapKey({
+                    diffObject: 'relationship',
+                    objectId: mappedId,
+                    attribute: 'name',
+                });
+
+                if (diffMap.has(mappedKey)) {
+                    const diff = diffMap.get(mappedKey);
+
+                    if (diff?.type === 'changed') {
+                        return {
+                            new: diff.newValue as string,
+                            old: diff.oldValue as string,
+                        };
+                    }
+                }
+            }
+
+            return null;
+        },
+        [diffMap, relationshipIdMap]
     );
 
     const checkIfNewRelationship = useCallback<
@@ -452,10 +602,40 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
         [diffMap]
     );
 
+    const checkIfNewArea = useCallback<DiffContext['checkIfNewArea']>(
+        ({ areaId }) => {
+            const areaKey = getDiffMapKey({
+                diffObject: 'area',
+                objectId: areaId,
+            });
+
+            return (
+                diffMap.has(areaKey) && diffMap.get(areaKey)?.type === 'added'
+            );
+        },
+        [diffMap]
+    );
+
+    const checkIfAreaRemoved = useCallback<DiffContext['checkIfAreaRemoved']>(
+        ({ areaId }) => {
+            const areaKey = getDiffMapKey({
+                diffObject: 'area',
+                objectId: areaId,
+            });
+
+            return (
+                diffMap.has(areaKey) && diffMap.get(areaKey)?.type === 'removed'
+            );
+        },
+        [diffMap]
+    );
+
     const resetDiff = useCallback<DiffContext['resetDiff']>(() => {
         setDiffMap(new Map<string, ChartDBDiff>());
         setTablesChanged(new Map<string, boolean>());
         setFieldsChanged(new Map<string, boolean>());
+        setRelationshipsChanged(new Map<string, boolean>());
+        setRelationshipIdMap(new Map<string, string>());
         setNewDiagram(null);
         setOriginalDiagram(null);
         setIsSummaryOnly(false);
@@ -491,10 +671,18 @@ export const DiffProvider: React.FC<React.PropsWithChildren> = ({
                 getFieldNewCharacterMaximumLength,
                 getFieldNewScale,
                 getFieldNewPrecision,
+                getFieldNewIsArray,
 
                 // relationship diff
+                checkIfRelationshipHasChange,
                 checkIfNewRelationship,
                 checkIfRelationshipRemoved,
+                getRelationshipNewName,
+                relationshipIdMap,
+
+                // area diff
+                checkIfNewArea,
+                checkIfAreaRemoved,
 
                 events,
             }}

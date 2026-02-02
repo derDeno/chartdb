@@ -132,9 +132,15 @@ export function exportMSSQL({
                                 typeName.toLowerCase() === 'varchar' ||
                                 typeName.toLowerCase() === 'nvarchar' ||
                                 typeName.toLowerCase() === 'char' ||
-                                typeName.toLowerCase() === 'nchar'
+                                typeName.toLowerCase() === 'nchar' ||
+                                typeName.toLowerCase() === 'varbinary'
                             ) {
-                                typeWithSize = `${typeName}(${field.characterMaximumLength})`;
+                                // SQL Server uses -1 to represent MAX length
+                                const lengthSpec =
+                                    field.characterMaximumLength === '-1'
+                                        ? 'MAX'
+                                        : field.characterMaximumLength;
+                                typeWithSize = `${typeName}(${lengthSpec})`;
                             }
                         }
                         if (field.precision && field.scale) {
@@ -178,22 +184,34 @@ export function exportMSSQL({
                     })
                     .join(',\n')}${
                     table.fields.filter((f) => f.primaryKey).length > 0
-                        ? `,\n    ${(() => {
-                              // Find PK index to get the constraint name
-                              const pkIndex = table.indexes.find(
-                                  (idx) => idx.isPrimaryKey
-                              );
-                              return pkIndex?.name
-                                  ? `CONSTRAINT [${pkIndex.name}] `
-                                  : '';
-                          })()}PRIMARY KEY (${table.fields
+                        ? `,\n    PRIMARY KEY (${table.fields
                               .filter((f) => f.primaryKey)
                               .map((f) => `[${f.name}]`)
                               .join(', ')})`
                         : ''
+                }${
+                    // Add check constraints (filter out empty expressions)
+                    (() => {
+                        const validChecks = (
+                            table.checkConstraints ?? []
+                        ).filter((c) => c.expression && c.expression.trim());
+                        return validChecks.length > 0
+                            ? validChecks
+                                  .map(
+                                      (constraint) =>
+                                          `,\n    CHECK (${constraint.expression})`
+                                  )
+                                  .join('')
+                            : '';
+                    })()
                 }\n);\n${(() => {
                     const validIndexes = table.indexes
                         .map((index) => {
+                            // Skip primary key indexes - they're already handled as constraints
+                            if (index.isPrimaryKey) {
+                                return '';
+                            }
+
                             const indexName = table.schema
                                 ? `[${table.schema}_${index.name}]`
                                 : `[${index.name}]`;
@@ -214,15 +232,16 @@ export function exportMSSQL({
                                 );
                                 indexFields.length = 32;
                                 return indexFields.length > 0
-                                    ? `${warningComment}CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${indexName}\nON ${tableName} (${indexFields.join(', ')});`
+                                    ? `${warningComment}CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${indexName} ON ${tableName} (${indexFields.join(', ')});`
                                     : '';
                             }
 
                             return indexFields.length > 0
-                                ? `CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${indexName}\nON ${tableName} (${indexFields.join(', ')});`
+                                ? `CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${indexName} ON ${tableName} (${indexFields.join(', ')});`
                                 : '';
                         })
-                        .filter(Boolean);
+                        .filter(Boolean)
+                        .sort((a, b) => a.localeCompare(b)); // Sort for consistent output
 
                     return validIndexes.length > 0
                         ? `\n-- Indexes\n${validIndexes.join('\n')}`
@@ -268,39 +287,31 @@ export function exportMSSQL({
                 }
 
                 // Determine which table should have the foreign key based on cardinality
+                // - FK goes on the "many" side when cardinalities differ
+                // - FK goes on target when cardinalities are the same (one:one, many:many)
                 let fkTable, fkField, refTable, refField;
 
                 if (
-                    r.sourceCardinality === 'one' &&
+                    r.sourceCardinality === 'many' &&
                     r.targetCardinality === 'many'
                 ) {
-                    // FK goes on target table
-                    fkTable = targetTable;
-                    fkField = targetField;
-                    refTable = sourceTable;
-                    refField = sourceField;
+                    // Many-to-many relationships need a junction table, skip
+                    return '';
                 } else if (
                     r.sourceCardinality === 'many' &&
                     r.targetCardinality === 'one'
                 ) {
-                    // FK goes on source table
-                    fkTable = sourceTable;
-                    fkField = sourceField;
-                    refTable = targetTable;
-                    refField = targetField;
-                } else if (
-                    r.sourceCardinality === 'one' &&
-                    r.targetCardinality === 'one'
-                ) {
-                    // For 1:1, FK can go on either side, but typically goes on the table that references the other
-                    // We'll keep the current behavior for 1:1
+                    // FK goes on source table (the many side)
                     fkTable = sourceTable;
                     fkField = sourceField;
                     refTable = targetTable;
                     refField = targetField;
                 } else {
-                    // Many-to-many relationships need a junction table, skip for now
-                    return '';
+                    // All other cases: FK goes on target table
+                    fkTable = targetTable;
+                    fkField = targetField;
+                    refTable = sourceTable;
+                    refField = sourceField;
                 }
 
                 const fkTableName = fkTable.schema

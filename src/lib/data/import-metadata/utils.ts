@@ -18,11 +18,15 @@ export const fixMetadataJson = (metadataJson: string): string => {
         metadataJson
             .trim()
             // First unescape the JSON string
+            .replace(/\\n/g, '') // Remove literal \n (backslash + n) from stringified JSON
+            .replace(/\\t/g, '') // Remove literal \t (backslash + t) from stringified JSON
+            .replace(/\\r/g, '') // Remove literal \r (backslash + r) from stringified JSON
             .replace(/\\"/g, '"')
             .replace(/\\\\/g, '\\')
             .replace(/^[^{]*/, '') // Remove everything before the first '{'
             .replace(/}[^}]*$/, '}') // Remove everything after the last '}'
-            .replace(/:""([^"]+)""/g, ':"$1"') // Convert :""value"" to :"value"
+            .replace(/: ""([^"]*)""/g, ': "$1"') // Convert : ""value"" to : "value" (handles values with any content)
+            .replace(/:""([^"]*)""/g, ':"$1"') // Convert :""value"" to :"value" (no space variant)
             .replace(/""(\w+)""/g, '"$1"') // Convert ""key"" to "key"
             .replace(/^\s+|\s+$/g, '')
             .replace(/^"|"$/g, '')
@@ -53,7 +57,7 @@ export const fixMetadataJson = (metadataJson: string): string => {
 
             /* eslint-disable-next-line no-useless-escape */
             .replace(/\"/g, '___ESCAPED_QUOTE___') // Temporarily replace empty strings
-            .replace(/(?<=:\s*)""(?=\s*[,}])/g, '___EMPTY___') // Temporarily replace empty strings
+            .replace(/(:\s*)""(?=\s*[,}])/g, '$1___EMPTY___') // Temporarily replace empty strings (Safari-compatible)
             .replace(/""/g, '"') // Replace remaining double quotes
             .replace(/___ESCAPED_QUOTE___/g, '"') // Restore empty strings
             .replace(/___EMPTY___/g, '""') // Restore empty strings

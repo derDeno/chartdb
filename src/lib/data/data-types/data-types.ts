@@ -1,10 +1,14 @@
 import { z } from 'zod';
 import { DatabaseType } from '../../domain/database-type';
+import { databaseSupportsArrays } from '../../domain/database-capabilities';
 import { clickhouseDataTypes } from './clickhouse-data-types';
 import { genericDataTypes } from './generic-data-types';
 import { mariadbDataTypes } from './mariadb-data-types';
 import { mysqlDataTypes } from './mysql-data-types';
-import { postgresDataTypes } from './postgres-data-types';
+import {
+    getPostgresPreferredSynonym,
+    postgresDataTypes,
+} from './postgres-data-types';
 import { sqlServerDataTypes } from './sql-server-data-types';
 import { sqliteDataTypes } from './sqlite-data-types';
 import { oracleDataTypes } from './oracle-data-types';
@@ -164,4 +168,111 @@ export const supportsAutoIncrementDataType = (
         'numeric',
         'decimal',
     ].includes(dataTypeName.toLocaleLowerCase());
+};
+
+export const autoIncrementAlwaysOn = (dataTypeName: string): boolean => {
+    return ['serial', 'bigserial', 'smallserial'].includes(
+        dataTypeName.toLowerCase()
+    );
+};
+
+export const requiresNotNull = (dataTypeName: string): boolean => {
+    return ['serial', 'bigserial', 'smallserial'].includes(
+        dataTypeName.toLowerCase()
+    );
+};
+
+const ARRAY_INCOMPATIBLE_TYPES = [
+    'serial',
+    'bigserial',
+    'smallserial',
+] as const;
+
+export const supportsArrayDataType = (
+    dataTypeName: string,
+    databaseType: DatabaseType
+): boolean => {
+    if (!databaseSupportsArrays(databaseType)) {
+        return false;
+    }
+
+    return !ARRAY_INCOMPATIBLE_TYPES.includes(
+        dataTypeName.toLowerCase() as (typeof ARRAY_INCOMPATIBLE_TYPES)[number]
+    );
+};
+
+/**
+ * Resolves a data type to its preferred synonym if one exists for the given database type.
+ *
+ * This function acts as a dispatcher to database-specific synonym resolution functions.
+ * Currently supports PostgreSQL synonyms.
+ *
+ * @param typeName - The name of the data type to check (case-insensitive)
+ * @param databaseType - The database type (e.g., PostgreSQL, MySQL, etc.)
+ * @returns The DataTypeData of the preferred synonym, or null if the type
+ *          is already the preferred form, has no synonyms, or the database type
+ *          doesn't have synonym mappings
+ *
+ * @example
+ * ```ts
+ * getPreferredSynonym('character varying', DatabaseType.POSTGRESQL)
+ * // Returns: { name: 'varchar', id: 'varchar', ... }
+ *
+ * getPreferredSynonym('varchar', DatabaseType.POSTGRESQL)
+ * // Returns: null (already the preferred form)
+ *
+ * getPreferredSynonym('character varying', DatabaseType.MYSQL)
+ * // Returns: null (MySQL synonym mappings not implemented)
+ * ```
+ */
+export const getPreferredSynonym = (
+    typeName: string,
+    databaseType: DatabaseType
+): DataTypeData | null => {
+    const nameLower = typeName.toLowerCase().trim();
+
+    if (
+        databaseType === DatabaseType.POSTGRESQL ||
+        databaseType === DatabaseType.COCKROACHDB
+    ) {
+        return getPostgresPreferredSynonym(nameLower);
+    }
+
+    return null;
+};
+
+/**
+ * Returns the default primary key data type for a given database type.
+ *
+ * Different databases have different conventions for auto-increment primary key types:
+ * - SQLite: INTEGER (required for AUTOINCREMENT)
+ * - Oracle: NUMBER (Oracle doesn't have bigint - uses NUMBER for all numeric types)
+ * - Others: BIGINT (PostgreSQL, MySQL, SQL Server, MariaDB, etc.)
+ *
+ * @param databaseType - The database type
+ * @returns The DataType object with id and name for the default primary key type
+ *
+ * @example
+ * ```ts
+ * getDefaultPrimaryKeyType(DatabaseType.SQLITE)
+ * // Returns: { id: 'integer', name: 'integer' }
+ *
+ * getDefaultPrimaryKeyType(DatabaseType.ORACLE)
+ * // Returns: { id: 'number', name: 'number' }
+ *
+ * getDefaultPrimaryKeyType(DatabaseType.POSTGRESQL)
+ * // Returns: { id: 'bigint', name: 'bigint' }
+ * ```
+ */
+export const getDefaultPrimaryKeyType = (
+    databaseType: DatabaseType
+): DataType => {
+    switch (databaseType) {
+        case DatabaseType.SQLITE:
+            return { id: 'integer', name: 'integer' };
+        case DatabaseType.ORACLE:
+            return { id: 'number', name: 'number' };
+        default:
+            return { id: 'bigint', name: 'bigint' };
+    }
 };

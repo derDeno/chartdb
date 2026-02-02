@@ -5,6 +5,8 @@ import { DatabaseType } from '@/lib/domain/database-type';
 import type { DBTable } from '@/lib/domain/db-table';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import { DBCustomTypeKind } from '@/lib/domain/db-custom-type';
+import { validateCheckConstraint } from '@/lib/check-constraints/check-constraints-validator';
+import type { DBRelationship } from '@/lib/domain/db-relationship';
 
 // Use DBCustomType for generating Enum DBML
 const generateEnumsDBML = (customTypes: DBCustomType[] | undefined): string => {
@@ -218,12 +220,48 @@ export const sanitizeSQLforDBML = (sql: string): string => {
     return sanitized;
 };
 
+// Find the matching closing bracket, properly handling quoted strings within brackets
+const findClosingBracket = (str: string, openBracketIndex: number): number => {
+    let i = openBracketIndex + 1;
+    const len = str.length;
+
+    while (i < len) {
+        const char = str[i];
+
+        if (char === ']') return i;
+
+        // Skip quoted strings (triple, single, or double)
+        if (char === "'" || char === '"') {
+            const isTriple =
+                char === "'" && str[i + 1] === "'" && str[i + 2] === "'";
+            const quote = isTriple ? "'''" : char;
+            const quoteLen = quote.length;
+            i += quoteLen;
+
+            while (i < len) {
+                if (str[i] === '\\') {
+                    i += 2; // Skip escaped char
+                } else if (str.startsWith(quote, i)) {
+                    i += quoteLen;
+                    break;
+                } else {
+                    i++;
+                }
+            }
+            continue;
+        }
+        i++;
+    }
+    return -1;
+};
+
 // Post-process DBML to convert separate Ref statements to inline refs
 const convertToInlineRefs = (dbml: string): string => {
     // Extract all Ref statements - Updated pattern to handle schema.table.field format
     // Matches both "table"."field" and "schema"."table"."field" formats
+    // Now supports cardinality symbols: < (one-to-many), > (many-to-one), - (one-to-one), <> (many-to-many)
     const refPattern =
-        /Ref\s+"([^"]+)"\s*:\s*(?:"([^"]+)"\.)?"([^"]+)"\."([^"]+)"\s*([<>*])\s*(?:"([^"]+)"\.)?"([^"]+)"\."([^"]+)"/g;
+        /Ref\s+"([^"]+)"\s*:\s*(?:"([^"]+)"\.)?"([^"]+)"\."([^"]+)"\s*(<>|[<>\-*])\s*(?:"([^"]+)"\.)?"([^"]+)"\."([^"]+)"/g;
     const refs: Array<{
         refName: string;
         sourceSchema?: string;
@@ -337,24 +375,71 @@ const convertToInlineRefs = (dbml: string): string => {
     refs.forEach((ref) => {
         let targetTableName, fieldNameToModify, inlineRefSyntax, relatedTable;
 
+        // Build the reference strings for both sides
+        const sourceRef = ref.sourceSchema
+            ? `"${ref.sourceSchema}"."${ref.sourceTable}"."${ref.sourceField}"`
+            : `"${ref.sourceTable}"."${ref.sourceField}"`;
+        const targetRef = ref.targetSchema
+            ? `"${ref.targetSchema}"."${ref.targetTable}"."${ref.targetField}"`
+            : `"${ref.targetTable}"."${ref.targetField}"`;
+
+        // After parsing Ref "name":LEFT [symbol] RIGHT:
+        // ref.sourceTable = LEFT, ref.targetTable = RIGHT
+        //
+        // For Ref A < B: A is one, B is many, B has FK pointing to A
+        // For Ref A > B: A is many, B is one, A has FK pointing to B
+        //
+        // Inline ref semantics:
+        // - ref: > other = "I reference other" (I have FK pointing to other)
+        // - ref: < other = "other references me" (other has FK pointing to me)
+        //
+        // Both one-to-many and many-to-one Refs use '<' symbol (A < B format)
+        // where A=one, B=many. FK is always on B (the many side).
+
         if (ref.direction === '<') {
+            // Ref: A < B where A=one, B=many. FK is on B.
+            // In parsed: ref.sourceTable=A (one), ref.targetTable=B (many)
+            // Inline ref goes on B (many side) with: ref: > A (B references A)
             targetTableName = ref.targetSchema
                 ? `${ref.targetSchema}.${ref.targetTable}`
                 : ref.targetTable;
             fieldNameToModify = ref.targetField;
-            const sourceRef = ref.sourceSchema
-                ? `"${ref.sourceSchema}"."${ref.sourceTable}"."${ref.sourceField}"`
-                : `"${ref.sourceTable}"."${ref.sourceField}"`;
-            inlineRefSyntax = `ref: < ${sourceRef}`;
+            inlineRefSyntax = `ref: > ${sourceRef}`; // B references A
             relatedTable = ref.sourceTable;
-        } else {
+        } else if (ref.direction === '>') {
+            // Ref: A > B where A=many, B=one. FK is on A.
+            // In parsed: ref.sourceTable=A (many), ref.targetTable=B (one)
+            // Inline ref goes on A (many side) with: ref: > B (A references B)
             targetTableName = ref.sourceSchema
                 ? `${ref.sourceSchema}.${ref.sourceTable}`
                 : ref.sourceTable;
             fieldNameToModify = ref.sourceField;
-            const targetRef = ref.targetSchema
-                ? `"${ref.targetSchema}"."${ref.targetTable}"."${ref.targetField}"`
-                : `"${ref.targetTable}"."${ref.targetField}"`;
+            inlineRefSyntax = `ref: > ${targetRef}`; // A references B
+            relatedTable = ref.targetTable;
+        } else if (ref.direction === '-') {
+            // one-to-one: A - B
+            // Convention: inline ref on B pointing to A
+            targetTableName = ref.targetSchema
+                ? `${ref.targetSchema}.${ref.targetTable}`
+                : ref.targetTable;
+            fieldNameToModify = ref.targetField;
+            inlineRefSyntax = `ref: - ${sourceRef}`;
+            relatedTable = ref.sourceTable;
+        } else if (ref.direction === '<>') {
+            // many-to-many: A <> B
+            // Convention: inline ref on B pointing to A
+            targetTableName = ref.targetSchema
+                ? `${ref.targetSchema}.${ref.targetTable}`
+                : ref.targetTable;
+            fieldNameToModify = ref.targetField;
+            inlineRefSyntax = `ref: <> ${sourceRef}`;
+            relatedTable = ref.sourceTable;
+        } else {
+            // Default fallback (e.g., '*' or unknown)
+            targetTableName = ref.sourceSchema
+                ? `${ref.sourceSchema}.${ref.sourceTable}`
+                : ref.sourceTable;
+            fieldNameToModify = ref.sourceField;
             inlineRefSyntax = `ref: > ${targetRef}`;
             relatedTable = ref.targetTable;
         }
@@ -372,59 +457,49 @@ const convertToInlineRefs = (dbml: string): string => {
 
     // 2. Apply all refs to fields
     fieldRefs.forEach((fieldData, fieldKey) => {
-        // fieldKey might be "schema.table.field" or just "table.field"
         const lastDotIndex = fieldKey.lastIndexOf('.');
         const tableName = fieldKey.substring(0, lastDotIndex);
         const fieldName = fieldKey.substring(lastDotIndex + 1);
         const tableData = tableMap.get(tableName);
 
-        if (tableData) {
-            // Updated pattern to capture field definition and all existing attributes in brackets
-            const fieldPattern = new RegExp(
-                `^([ \t]*"${fieldName}"[^\\n]*?)(?:\\s*(\\[[^\\]]*\\]))*\\s*(//.*)?$`,
-                'gm'
-            );
-            let newContent = tableData.content;
+        if (!tableData) return;
 
-            newContent = newContent.replace(
-                fieldPattern,
-                (lineMatch, fieldPart, existingBrackets, commentPart) => {
-                    // Collect all attributes from existing brackets
-                    const allAttributes: string[] = [];
-                    if (existingBrackets) {
-                        // Extract all bracket contents
-                        const bracketPattern = /\[([^\]]*)\]/g;
-                        let bracketMatch;
-                        while (
-                            (bracketMatch = bracketPattern.exec(lineMatch)) !==
-                            null
-                        ) {
-                            const content = bracketMatch[1].trim();
-                            if (content) {
-                                allAttributes.push(content);
-                            }
-                        }
-                    }
+        const fieldStartPattern = new RegExp(`^([ \\t]*)"${fieldName}"\\s+`);
+        const lines = tableData.content.split('\n');
+        let modified = false;
 
-                    // Add all refs for this field
-                    allAttributes.push(...fieldData.refs);
+        const newLines = lines.map((line) => {
+            const match = fieldStartPattern.exec(line);
+            if (!match) return line;
 
-                    // Combine all attributes into a single bracket
-                    const combinedAttributes = allAttributes.join(', ');
+            modified = true;
+            const leadingSpaces = match[1];
+            const bracketStart = line.indexOf('[');
 
-                    // Preserve original spacing from fieldPart
-                    const leadingSpaces = fieldPart.match(/^(\s*)/)?.[1] || '';
-                    const fieldDefWithoutSpaces = fieldPart.trim();
+            // Extract field definition (before bracket) and existing attributes
+            const fieldDef =
+                bracketStart !== -1
+                    ? line.substring(0, bracketStart).trim()
+                    : line.trim();
 
-                    return `${leadingSpaces}${fieldDefWithoutSpaces} [${combinedAttributes}]${commentPart || ''}`;
-                }
-            );
+            const existingContent =
+                bracketStart !== -1
+                    ? line.substring(
+                          bracketStart + 1,
+                          findClosingBracket(line, bracketStart)
+                      )
+                    : null;
 
-            // Update the table content if modified
-            if (newContent !== tableData.content) {
-                tableData.content = newContent;
-                tableMap.set(tableName, tableData);
-            }
+            const attributes = existingContent
+                ? [existingContent.trim(), ...fieldData.refs]
+                : fieldData.refs;
+
+            return `${leadingSpaces}${fieldDef} [${attributes.join(', ')}]`;
+        });
+
+        if (modified) {
+            tableData.content = newLines.join('\n');
+            tableMap.set(tableName, tableData);
         }
     });
 
@@ -583,6 +658,210 @@ const fixMultilineTableNames = (dbml: string): string => {
     );
 };
 
+// Restore increment attribute for auto-incrementing fields
+const restoreIncrementAttribute = (dbml: string, tables: DBTable[]): string => {
+    if (!tables || tables.length === 0) return dbml;
+
+    let result = dbml;
+
+    tables.forEach((table) => {
+        // Find fields with increment=true
+        const incrementFields = table.fields.filter((f) => f.increment);
+
+        incrementFields.forEach((field) => {
+            // Build the table identifier pattern
+            const tableIdentifier = table.schema
+                ? `"${table.schema.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\."${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`
+                : `"${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`;
+
+            // Escape field name for regex
+            const escapedFieldName = field.name.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                '\\$&'
+            );
+
+            // Pattern to match the field line with existing attributes in brackets
+            // Matches: "field_name" type [existing, attributes]
+            const fieldPattern = new RegExp(
+                `(Table ${tableIdentifier} \\{[^}]*?^\\s*"${escapedFieldName}"[^\\[\\n]+)(\\[[^\\]]*\\])`,
+                'gms'
+            );
+
+            result = result.replace(
+                fieldPattern,
+                (match, fieldPart, brackets) => {
+                    // Check if increment already exists
+                    if (brackets.includes('increment')) {
+                        return match;
+                    }
+
+                    // Add increment to the attributes
+                    const newBrackets = brackets.replace(']', ', increment]');
+                    return fieldPart + newBrackets;
+                }
+            );
+        });
+    });
+
+    return result;
+};
+
+// Restore check constraints that may have been lost during DBML export
+// The @dbml/core importer doesn't support check constraints natively
+const restoreCheckConstraints = (dbml: string, tables: DBTable[]): string => {
+    if (!tables || tables.length === 0) return dbml;
+
+    let result = dbml;
+
+    tables.forEach((table) => {
+        // Filter out empty and invalid expressions
+        const validChecks = (table.checkConstraints ?? []).filter(
+            (c) =>
+                c.expression &&
+                c.expression.trim() &&
+                validateCheckConstraint(c.expression)
+        );
+
+        if (validChecks.length === 0) {
+            return;
+        }
+
+        // Build the table identifier pattern once for this table
+        const tableIdentifier = table.schema
+            ? `"${table.schema.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\."${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`
+            : `"${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`;
+
+        // Pattern to match the entire table block
+        const tableBlockPattern = new RegExp(
+            `(Table ${tableIdentifier} \\{)([\\s\\S]*?)(^\\})`,
+            'gm'
+        );
+
+        result = result.replace(
+            tableBlockPattern,
+            (match, tableStart, tableContent, tableEnd) => {
+                // Check if a checks block already exists
+                if (/^\s*checks\s*\{/m.test(tableContent)) {
+                    return match;
+                }
+
+                // Build the checks block
+                const checksContent = validChecks
+                    .map((check) => `    \`${check.expression}\``)
+                    .join('\n');
+
+                const checksBlock = `\n  checks {\n${checksContent}\n  }\n`;
+
+                // Add the checks block at the end, before the closing brace
+                return `${tableStart}${tableContent}${checksBlock}${tableEnd}`;
+            }
+        );
+    });
+
+    return result;
+};
+
+// Restore table and field notes/comments that may have been lost during DBML export
+// This handles databases where @dbml/core doesn't recognize the comment syntax
+// (e.g., MySQL's inline COMMENT syntax). For databases like PostgreSQL where
+// notes are already preserved, this function detects existing notes and skips them.
+const restoreNotes = (dbml: string, tables: DBTable[]): string => {
+    if (!tables || tables.length === 0) return dbml;
+
+    let result = dbml;
+
+    // Helper function to escape comments for DBML
+    const escapeComment = (comment: string): string => {
+        return comment
+            .replace(/\r?\n/g, ' ') // Replace newlines with spaces
+            .replace(/\s+/g, ' ') // Normalize multiple spaces
+            .trim() // Remove leading/trailing whitespace
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"');
+    };
+
+    tables.forEach((table) => {
+        // Build the table identifier pattern once for this table
+        const tableIdentifier = table.schema
+            ? `"${table.schema.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\."${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`
+            : `"${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`;
+
+        // Restore table-level notes
+        if (table.comments) {
+            const escapedComment = escapeComment(table.comments);
+
+            // Pattern to match the entire table block
+            const tableBlockPattern = new RegExp(
+                `(Table ${tableIdentifier} \\{)([\\s\\S]*?)(^\\})`,
+                'gm'
+            );
+
+            result = result.replace(
+                tableBlockPattern,
+                (match, tableStart, tableContent, tableEnd) => {
+                    // Check if a Note already exists ANYWHERE in this table
+                    if (/^\s*Note:\s*'/m.test(tableContent)) {
+                        // Note already exists, don't add another one
+                        return match;
+                    }
+
+                    // Add the Note at the end, before the closing brace (like PostgreSQL)
+                    return `${tableStart}${tableContent}\n  Note: '${escapedComment}'\n${tableEnd}`;
+                }
+            );
+        }
+
+        // Restore field-level notes
+        const fieldsWithComments = table.fields.filter((f) => f.comments);
+
+        fieldsWithComments.forEach((field) => {
+            // Escape field name for regex
+            const escapedFieldName = field.name.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                '\\$&'
+            );
+
+            // Escape the comment text for use in the replacement
+            const escapedComment = escapeComment(field.comments!);
+
+            // Pattern to match the field line
+            // We need to match the complete field definition including array types
+            // Format: "field_name" type_with_size_and_arrays [attributes]
+            // Examples: "id" bigint [pk], "items" text[] [not null], "name" varchar(100) [unique]
+            const fieldPattern = new RegExp(
+                `(Table ${tableIdentifier} \\{[^}]*?^\\s*"${escapedFieldName}"\\s+\\S+(?:\\([^)]*\\))?(?:\\[\\])?)(\\s*\\[[^\\]]*\\])?`,
+                'gms'
+            );
+
+            result = result.replace(
+                fieldPattern,
+                (match, fieldPart, brackets) => {
+                    // Check if note already exists
+                    if (brackets && brackets.includes('note:')) {
+                        return match;
+                    }
+
+                    // Add note to the attributes
+                    if (brackets) {
+                        // If brackets exist, add note to them
+                        const newBrackets = brackets.replace(
+                            ']',
+                            `, note: '${escapedComment}']`
+                        );
+                        return fieldPart + newBrackets;
+                    } else {
+                        // If no brackets, create new ones with note
+                        return fieldPart + ` [note: '${escapedComment}']`;
+                    }
+                }
+            );
+        });
+    });
+
+    return result;
+};
+
 // Restore composite primary key names in the DBML
 const restoreCompositePKNames = (dbml: string, tables: DBTable[]): string => {
     if (!tables || tables.length === 0) return dbml;
@@ -645,39 +924,52 @@ const restoreTableSchemas = (dbml: string, tables: DBTable[]): string => {
             // Single table with this name - simple case
             const table = tablesGroup[0].table;
             if (table.schema) {
-                // Match table definition without schema (e.g., Table "users" {)
-                const tablePattern = new RegExp(
-                    `Table\\s+"${table.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*{`,
-                    'g'
-                );
-                const schemaTableName = `Table "${table.schema}"."${table.name}" {`;
-                result = result.replace(tablePattern, schemaTableName);
-
-                // Update references in Ref statements
                 const escapedTableName = table.name.replace(
                     /[.*+?^${}()|[\]\\]/g,
                     '\\$&'
                 );
-
-                // Pattern 1: In Ref definitions - :"tablename"."field"
-                const refDefPattern = new RegExp(
-                    `(Ref\\s+"[^"]+")\\s*:\\s*"${escapedTableName}"\\."([^"]+)"`,
-                    'g'
-                );
-                result = result.replace(
-                    refDefPattern,
-                    `$1:"${table.schema}"."${table.name}"."$2"`
+                const escapedSchema = table.schema.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    '\\$&'
                 );
 
-                // Pattern 2: In Ref targets - [<>] "tablename"."field"
-                const refTargetPattern = new RegExp(
-                    `([<>])\\s*"${escapedTableName}"\\."([^"]+)"`,
+                // Check if the schema is already present in the table definition
+                const schemaAlreadyPresent = new RegExp(
+                    `Table\\s+"${escapedSchema}"\\."${escapedTableName}"\\s*{`,
                     'g'
-                );
-                result = result.replace(
-                    refTargetPattern,
-                    `$1 "${table.schema}"."${table.name}"."$2"`
-                );
+                ).test(result);
+
+                // Only add schema if it's not already present
+                if (!schemaAlreadyPresent) {
+                    // Match table definition without schema (e.g., Table "users" {)
+                    const tablePattern = new RegExp(
+                        `Table\\s+"${escapedTableName}"\\s*{`,
+                        'g'
+                    );
+                    const schemaTableName = `Table "${table.schema}"."${table.name}" {`;
+                    result = result.replace(tablePattern, schemaTableName);
+
+                    // Update references in Ref statements
+                    // Pattern 1: In Ref definitions - :"tablename"."field"
+                    const refDefPattern = new RegExp(
+                        `(Ref\\s+"[^"]+")\\s*:\\s*"${escapedTableName}"\\."([^"]+)"`,
+                        'g'
+                    );
+                    result = result.replace(
+                        refDefPattern,
+                        `$1:"${table.schema}"."${table.name}"."$2"`
+                    );
+
+                    // Pattern 2: In Ref targets - [<>] "tablename"."field"
+                    const refTargetPattern = new RegExp(
+                        `([<>])\\s*"${escapedTableName}"\\."([^"]+)"`,
+                        'g'
+                    );
+                    result = result.replace(
+                        refTargetPattern,
+                        `$1 "${table.schema}"."${table.name}"."$2"`
+                    );
+                }
             }
         } else {
             // Multiple tables with the same name - need to be more careful
@@ -732,9 +1024,129 @@ const restoreTableSchemas = (dbml: string, tables: DBTable[]): string => {
     return result;
 };
 
+// Function to extract only Ref statements from DBML
+const extractRelationshipsDbml = (dbml: string): string => {
+    const lines = dbml.split('\n');
+    const refLines = lines.filter((line) => line.trim().startsWith('Ref '));
+    return refLines.join('\n').trim();
+};
+
+// Generate Ref statements from diagram relationships with correct cardinality symbols
+// Note: relationships should already be processed with sanitized names (fk_N_name format)
+// Format: referenced_table [symbol] fk_table (matches @dbml/core order)
+// - For many-to-one (source has FK): target [symbol] source
+// - For one-to-many (target has FK): source [symbol] target
+// - For one-to-one: target [symbol] source (convention)
+// - For many-to-many: target [symbol] source (convention)
+const generateRelationshipsDbmlFromDiagram = (
+    relationships: DBRelationship[],
+    tables: DBTable[]
+): string => {
+    if (!relationships || relationships.length === 0) {
+        return '';
+    }
+
+    // Build lookup maps once for O(1) access - improves performance for large diagrams
+    const tableMap = new Map<string, DBTable>();
+    const fieldMap = new Map<string, { table: DBTable; fieldName: string }>();
+
+    for (const table of tables) {
+        tableMap.set(table.id, table);
+        for (const field of table.fields) {
+            fieldMap.set(field.id, { table, fieldName: field.name });
+        }
+    }
+
+    const refStatements: string[] = [];
+
+    for (const rel of relationships) {
+        const sourceTable = tableMap.get(rel.sourceTableId);
+        const targetTable = tableMap.get(rel.targetTableId);
+        const sourceFieldInfo = fieldMap.get(rel.sourceFieldId);
+        const targetFieldInfo = fieldMap.get(rel.targetFieldId);
+
+        // Skip invalid relationships (missing table or field)
+        if (
+            !sourceTable ||
+            !targetTable ||
+            !sourceFieldInfo ||
+            !targetFieldInfo
+        ) {
+            continue;
+        }
+
+        // Build quoted table.field references
+        const sourceRef = sourceTable.schema
+            ? `"${sourceTable.schema}"."${sourceTable.name}"."${sourceFieldInfo.fieldName}"`
+            : `"${sourceTable.name}"."${sourceFieldInfo.fieldName}"`;
+
+        const targetRef = targetTable.schema
+            ? `"${targetTable.schema}"."${targetTable.name}"."${targetFieldInfo.fieldName}"`
+            : `"${targetTable.name}"."${targetFieldInfo.fieldName}"`;
+
+        // Determine order and symbol based on cardinality
+        // To preserve @dbml/core output format while adding correct symbols:
+        // - @dbml/core always outputs: referenced_table < fk_table (regardless of actual cardinality)
+        // - We preserve the order but use correct symbol based on actual cardinality
+        //
+        // DBML semantics:
+        // - `A < B` means: A is ONE, B is MANY
+        // - `A > B` means: A is MANY, B is ONE
+        // - `A - B` means: one-to-one
+        // - `A <> B` means: many-to-many
+        let leftRef: string;
+        let rightRef: string;
+        let symbol: string;
+
+        if (
+            rel.sourceCardinality === 'one' &&
+            rel.targetCardinality === 'many'
+        ) {
+            // one-to-many: source (one) has many target
+            // Format: source < target (source is one, target is many)
+            leftRef = sourceRef;
+            rightRef = targetRef;
+            symbol = '<';
+        } else if (
+            rel.sourceCardinality === 'many' &&
+            rel.targetCardinality === 'one'
+        ) {
+            // many-to-one: source (many) belongs to target (one)
+            // Format: target < source (to match @dbml/core order, target is one, source is many)
+            leftRef = targetRef;
+            rightRef = sourceRef;
+            symbol = '<';
+        } else if (
+            rel.sourceCardinality === 'one' &&
+            rel.targetCardinality === 'one'
+        ) {
+            // one-to-one
+            // Format: source - target
+            leftRef = sourceRef;
+            rightRef = targetRef;
+            symbol = '-';
+        } else {
+            // many-to-many
+            // Format: source <> target
+            leftRef = sourceRef;
+            rightRef = targetRef;
+            symbol = '<>';
+        }
+
+        // rel.name is already sanitized (fk_N_name format) by generateDBMLFromDiagram
+        refStatements.push(
+            `Ref "${rel.name}":${leftRef} ${symbol} ${rightRef}`
+        );
+    }
+
+    // Join with blank lines to match @dbml/core format
+    return refStatements.join('\n\n');
+};
+
 export interface DBMLExportResult {
     standardDbml: string;
     inlineDbml: string;
+    relationshipsDbml: string;
     error?: string;
 }
 
@@ -751,31 +1163,37 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
             };
         }) ?? [];
 
-    // Remove duplicate tables (consider both schema and table name)
+    // Filter out empty tables and duplicates in a single pass for performance
     const seenTableIdentifiers = new Set<string>();
-    const uniqueTables = sanitizedTables.filter((table) => {
+    const tablesWithFields = sanitizedTables.filter((table) => {
+        // Skip tables with no fields (empty tables cause DBML export to fail)
+        if (table.fields.length === 0) {
+            return false;
+        }
+
         // Create a unique identifier combining schema and table name
         const tableIdentifier = table.schema
             ? `${table.schema}.${table.name}`
             : table.name;
 
+        // Skip duplicate tables
         if (seenTableIdentifiers.has(tableIdentifier)) {
-            return false; // Skip duplicate
+            return false;
         }
         seenTableIdentifiers.add(tableIdentifier);
-        return true; // Keep unique table
+        return true; // Keep unique, non-empty table
     });
 
     // Create the base filtered diagram structure
     const filteredDiagram: Diagram = {
         ...diagram,
-        tables: uniqueTables,
+        tables: tablesWithFields,
         relationships:
             diagram.relationships?.filter((rel) => {
-                const sourceTable = uniqueTables.find(
+                const sourceTable = tablesWithFields.find(
                     (t) => t.id === rel.sourceTableId
                 );
-                const targetTable = uniqueTables.find(
+                const targetTable = tablesWithFields.find(
                     (t) => t.id === rel.targetTableId
                 );
                 const sourceFieldExists = sourceTable?.fields.some(
@@ -797,7 +1215,7 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
     // Sanitize field names ('from'/'to' in 'relation' table)
     const cleanDiagram = fixProblematicFieldNames(filteredDiagram);
 
-    // Simplified processing - just handle duplicate field names
+    // Simplified processing - handle duplicate field names and filter invalid check constraints
     const processTable = (table: DBTable) => {
         const fieldNameCounts = new Map<string, number>();
         const processedFields = table.fields.map((field) => {
@@ -814,6 +1232,14 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
             return field;
         });
 
+        // Filter out empty and invalid check constraint expressions
+        const validCheckConstraints = (table.checkConstraints ?? []).filter(
+            (c) =>
+                c.expression &&
+                c.expression.trim() &&
+                validateCheckConstraint(c.expression)
+        );
+
         return {
             ...table,
             fields: processedFields,
@@ -825,6 +1251,10 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
                         index.name ||
                         `idx_${Math.random().toString(36).substring(2, 8)}`,
                 })),
+            checkConstraints:
+                validCheckConstraints.length > 0
+                    ? validCheckConstraints
+                    : undefined,
         };
     };
 
@@ -857,6 +1287,7 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
             diagram: finalDiagramForExport, // Use final diagram
             targetDatabaseType: diagram.databaseType,
             isDBMLFlow: true,
+            skipFKGeneration: true, // We generate Refs directly with correct cardinality
         });
 
         baseScript = sanitizeSQLforDBML(baseScript);
@@ -875,10 +1306,33 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
         );
 
         // Restore schema information that may have been stripped by DBML importer
-        standard = restoreTableSchemas(standard, uniqueTables);
+        standard = restoreTableSchemas(standard, tablesWithFields);
 
         // Restore composite primary key names
-        standard = restoreCompositePKNames(standard, uniqueTables);
+        standard = restoreCompositePKNames(standard, tablesWithFields);
+
+        // Restore increment attribute for auto-incrementing fields
+        standard = restoreIncrementAttribute(standard, tablesWithFields);
+
+        // Restore table and field notes/comments that may have been lost during DBML export
+        standard = restoreNotes(standard, tablesWithFields);
+
+        // Restore check constraints that may have been lost during DBML export
+        standard = restoreCheckConstraints(standard, tablesWithFields);
+
+        // Generate cardinality-aware Ref statements from the diagram relationships
+        // (FK generation is skipped in SQL, so @dbml/core doesn't generate any Refs)
+        const cardinalityAwareRefs = generateRelationshipsDbmlFromDiagram(
+            finalDiagramForExport.relationships ?? [],
+            finalDiagramForExport.tables ?? []
+        );
+
+        // Append our Ref statements if we have relationships
+        if (cardinalityAwareRefs) {
+            // Clean up trailing whitespace/newlines and add proper spacing
+            standard =
+                standard.trimEnd() + '\n\n' + cardinalityAwareRefs + '\n';
+        }
 
         // Prepend Enum DBML to the standard output
         if (enumsDBML) {
@@ -923,5 +1377,13 @@ export function generateDBMLFromDiagram(diagram: Diagram): DBMLExportResult {
         }
     }
 
-    return { standardDbml: standard, inlineDbml: inline, error: errorMsg };
+    // Extract relationships DBML from standard output
+    const relationshipsDbml = extractRelationshipsDbml(standard);
+
+    return {
+        standardDbml: standard,
+        inlineDbml: inline,
+        relationshipsDbml,
+        error: errorMsg,
+    };
 }

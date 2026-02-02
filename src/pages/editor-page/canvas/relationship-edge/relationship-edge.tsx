@@ -1,13 +1,17 @@
 import React, { useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { Edge, EdgeProps } from '@xyflow/react';
 import { getSmoothStepPath, Position, useReactFlow } from '@xyflow/react';
-import type { DBRelationship } from '@/lib/domain/db-relationship';
+import type { DBRelationship, Cardinality } from '@/lib/domain/db-relationship';
 import { RIGHT_HANDLE_ID_PREFIX } from '../table-node/table-node-field';
 import { useChartDB } from '@/hooks/use-chartdb';
-import { useLayout } from '@/hooks/use-layout';
 import { cn } from '@/lib/utils';
 import { getCardinalityMarkerId } from '../canvas-utils';
 import { useDiff } from '@/context/diff-context/use-diff';
+import { useLocalConfig } from '@/hooks/use-local-config';
+import { useCanvas } from '@/hooks/use-canvas';
+import { EditRelationshipPopover } from './edit-relationship-popover';
+import { EllipsisIcon } from 'lucide-react';
 
 export type RelationshipEdgeType = Edge<
     {
@@ -31,19 +35,167 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
             data,
         }) => {
             const { getInternalNode, getEdge } = useReactFlow();
-            const { openRelationshipFromSidebar, selectSidebarSection } =
-                useLayout();
             const { checkIfRelationshipRemoved, checkIfNewRelationship } =
                 useDiff();
+            const { showCardinality } = useLocalConfig();
 
-            const { relationships } = useChartDB();
+            const { relationships, updateRelationship, removeRelationship } =
+                useChartDB();
+            const {
+                editRelationshipPopover,
+                openRelationshipPopover,
+                closeRelationshipPopover,
+            } = useCanvas();
 
             const relationship = data?.relationship;
 
-            const openRelationshipInEditor = useCallback(() => {
-                selectSidebarSection('refs');
-                openRelationshipFromSidebar(id);
-            }, [id, openRelationshipFromSidebar, selectSidebarSection]);
+            const isPopoverOpen = useMemo(
+                () => editRelationshipPopover?.relationshipId === id,
+                [editRelationshipPopover, id]
+            );
+
+            const handleEdgeClick = useCallback(
+                (e: React.MouseEvent) => {
+                    if (e.detail === 2) {
+                        // Double click - open popover
+                        openRelationshipPopover({
+                            relationshipId: id,
+                            position: { x: e.clientX, y: e.clientY },
+                        });
+                    }
+                    // Single click just selects the edge, doesn't open popover
+                },
+                [openRelationshipPopover, id]
+            );
+
+            const handleContextMenu = useCallback(
+                (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openRelationshipPopover({
+                        relationshipId: id,
+                        position: { x: e.clientX, y: e.clientY },
+                    });
+                },
+                [id, openRelationshipPopover]
+            );
+
+            const handleIndicatorClick = useCallback(
+                (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    openRelationshipPopover({
+                        relationshipId: id,
+                        position: { x: e.clientX, y: e.clientY },
+                    });
+                },
+                [id, openRelationshipPopover]
+            );
+
+            const handleSwitchTables = useCallback(async () => {
+                if (!relationship) return;
+
+                const sameCardinality =
+                    relationship.sourceCardinality ===
+                    relationship.targetCardinality;
+
+                if (sameCardinality) {
+                    // Equal cardinalities: swap everything (tables, fields, schemas, cardinalities)
+                    await updateRelationship(
+                        id,
+                        {
+                            sourceSchema: relationship.targetSchema,
+                            targetSchema: relationship.sourceSchema,
+                            sourceTableId: relationship.targetTableId,
+                            targetTableId: relationship.sourceTableId,
+                            sourceFieldId: relationship.targetFieldId,
+                            targetFieldId: relationship.sourceFieldId,
+                            sourceCardinality: relationship.targetCardinality,
+                            targetCardinality: relationship.sourceCardinality,
+                        },
+                        { updateHistory: true }
+                    );
+                } else if (relationship.sourceCardinality === 'many') {
+                    // many:one → one:many (swap cardinalities so "many" moves to target)
+                    await updateRelationship(
+                        id,
+                        {
+                            sourceCardinality: 'one',
+                            targetCardinality: 'many',
+                        },
+                        { updateHistory: true }
+                    );
+                } else {
+                    // one:many → swap tables/fields/schemas (keeps one:many with different tables)
+                    await updateRelationship(
+                        id,
+                        {
+                            sourceSchema: relationship.targetSchema,
+                            targetSchema: relationship.sourceSchema,
+                            sourceTableId: relationship.targetTableId,
+                            targetTableId: relationship.sourceTableId,
+                            sourceFieldId: relationship.targetFieldId,
+                            targetFieldId: relationship.sourceFieldId,
+                        },
+                        { updateHistory: true }
+                    );
+                }
+
+                closeRelationshipPopover();
+            }, [
+                id,
+                relationship,
+                updateRelationship,
+                closeRelationshipPopover,
+            ]);
+
+            const handleCardinalityChange = useCallback(
+                async (
+                    newSourceCardinality: Cardinality,
+                    newTargetCardinality: Cardinality
+                ) => {
+                    if (!relationship) return;
+
+                    // Ensure "many" is always on target side when cardinalities differ
+                    // If trying to set many:one (N:1), swap tables and set one:many
+                    if (
+                        newSourceCardinality === 'many' &&
+                        newTargetCardinality === 'one'
+                    ) {
+                        await updateRelationship(
+                            id,
+                            {
+                                // Swap tables/fields/schemas
+                                sourceSchema: relationship.targetSchema,
+                                targetSchema: relationship.sourceSchema,
+                                sourceTableId: relationship.targetTableId,
+                                targetTableId: relationship.sourceTableId,
+                                sourceFieldId: relationship.targetFieldId,
+                                targetFieldId: relationship.sourceFieldId,
+                                // Set one:many (many on target)
+                                sourceCardinality: 'one',
+                                targetCardinality: 'many',
+                            },
+                            { updateHistory: true }
+                        );
+                    } else {
+                        await updateRelationship(
+                            id,
+                            {
+                                sourceCardinality: newSourceCardinality,
+                                targetCardinality: newTargetCardinality,
+                            },
+                            { updateHistory: true }
+                        );
+                    }
+                    closeRelationshipPopover();
+                },
+                [id, relationship, updateRelationship, closeRelationshipPopover]
+            );
+
+            const handleDelete = useCallback(() => {
+                removeRelationship(id, { updateHistory: true });
+                closeRelationshipPopover();
+            }, [id, removeRelationship, closeRelationshipPopover]);
 
             const edgeNumber = useMemo(() => {
                 let index = 0;
@@ -144,7 +296,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                         sourceSide === 'left' ? Position.Left : Position.Right,
                     targetPosition:
                         targetSide === 'left' ? Position.Left : Position.Right,
-                    offset: (edgeNumber + 1) * 14,
+                    offset: (edgeNumber + 1 + (showCardinality ? 1.5 : 0)) * 14,
                 });
                 return path;
             }, [
@@ -157,6 +309,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 sourceSide,
                 targetSide,
                 edgeNumber,
+                showCardinality,
             ]);
 
             const sourceMarker = useMemo(
@@ -198,6 +351,27 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 [checkIfRelationshipRemoved, relationship?.id]
             );
 
+            // Calculate the midpoint of the edge for the indicator
+            const edgeMidpoint = useMemo(() => {
+                const sourceXPos =
+                    sourceSide === 'left' ? sourceLeftX : sourceRightX;
+                const targetXPos =
+                    targetSide === 'left' ? targetLeftX : targetRightX;
+                return {
+                    x: (sourceXPos + targetXPos) / 2,
+                    y: (sourceY + targetY) / 2,
+                };
+            }, [
+                sourceSide,
+                targetSide,
+                sourceLeftX,
+                sourceRightX,
+                targetLeftX,
+                targetRightX,
+                sourceY,
+                targetY,
+            ]);
+
             return (
                 <>
                     <path
@@ -216,11 +390,8 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                                     isDiffRelationshipRemoved,
                             },
                         ])}
-                        onClick={(e) => {
-                            if (e.detail === 2) {
-                                openRelationshipInEditor();
-                            }
-                        }}
+                        onClick={handleEdgeClick}
+                        onContextMenu={handleContextMenu}
                     />
                     <path
                         d={edgePath}
@@ -229,12 +400,49 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                         strokeWidth={20}
                         // eslint-disable-next-line tailwindcss/no-custom-classname
                         className="react-flow__edge-interaction"
-                        onClick={(e) => {
-                            if (e.detail === 2) {
-                                openRelationshipInEditor();
-                            }
-                        }}
+                        onClick={handleEdgeClick}
+                        onContextMenu={handleContextMenu}
                     />
+                    {selected && (
+                        <foreignObject
+                            width={24}
+                            height={24}
+                            x={edgeMidpoint.x - 12}
+                            y={edgeMidpoint.y - 12}
+                            className="overflow-visible"
+                            style={{ pointerEvents: 'all' }}
+                        >
+                            <button
+                                onClick={handleIndicatorClick}
+                                className="relative flex size-6 items-center justify-center rounded-full border-2 border-pink-600 bg-background shadow-lg transition-all hover:scale-110 hover:bg-pink-50"
+                                title="Edit relationship"
+                                style={{ zIndex: 10 }}
+                            >
+                                <EllipsisIcon className="size-4 text-pink-600" />
+                            </button>
+                        </foreignObject>
+                    )}
+                    {relationship &&
+                        isPopoverOpen &&
+                        editRelationshipPopover?.position &&
+                        createPortal(
+                            <EditRelationshipPopover
+                                anchorPosition={
+                                    editRelationshipPopover.position
+                                }
+                                relationshipId={id}
+                                sourceCardinality={
+                                    relationship.sourceCardinality ?? 'one'
+                                }
+                                targetCardinality={
+                                    relationship.targetCardinality ?? 'one'
+                                }
+                                onCardinalityChange={handleCardinalityChange}
+                                onSwitch={handleSwitchTables}
+                                onDelete={handleDelete}
+                            />,
+                            document.body
+                        )}
                 </>
                 // <BaseEdge
                 //     id={id}

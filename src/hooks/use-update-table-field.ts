@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useChartDB } from './use-chartdb';
 import { useDebounce } from './use-debounce-v2';
-import type { DBField, DBTable } from '@/lib/domain';
+import type { DatabaseType, DBField, DBTable } from '@/lib/domain';
 import type {
     SelectBoxOption,
     SelectBoxProps,
@@ -9,49 +9,62 @@ import type {
 import {
     dataTypeDataToDataType,
     sortedDataTypeMap,
+    supportsArrayDataType,
+    autoIncrementAlwaysOn,
+    requiresNotNull,
 } from '@/lib/data/data-types/data-types';
 import { generateDBFieldSuffix } from '@/lib/domain/db-field';
 import type { DataTypeData } from '@/lib/data/data-types/data-types';
 
 const generateFieldRegexPatterns = (
-    dataType: DataTypeData
+    dataType: DataTypeData,
+    databaseType: DatabaseType
 ): {
     regex?: string;
     extractRegex?: RegExp;
 } => {
+    const typeName = dataType.name;
+    const supportsArrays = supportsArrayDataType(dataType.id, databaseType);
+    const arrayPattern = supportsArrays ? '(\\[\\])?' : '';
+
     if (!dataType.fieldAttributes) {
-        return { regex: undefined, extractRegex: undefined };
+        // For types without field attributes, support plain type + optional array notation
+        return {
+            regex: `^${typeName}${arrayPattern}$`,
+            extractRegex: new RegExp(`^${typeName}${arrayPattern}$`),
+        };
     }
 
-    const typeName = dataType.name;
     const fieldAttributes = dataType.fieldAttributes;
 
     if (fieldAttributes.hasCharMaxLength) {
         if (fieldAttributes.hasCharMaxLengthOption) {
             return {
-                regex: `^${typeName}\\((\\d+|[mM][aA][xX])\\)$`,
-                extractRegex: /\((\d+|max)\)/i,
+                regex: `^${typeName}\\((\\d+|[mM][aA][xX])\\)${arrayPattern}$`,
+                extractRegex: supportsArrays
+                    ? /\((\d+|max)\)(\[\])?/i
+                    : /\((\d+|max)\)/i,
             };
         }
         return {
-            regex: `^${typeName}\\(\\d+\\)$`,
-            extractRegex: /\((\d+)\)/,
+            regex: `^${typeName}\\(\\d+\\)${arrayPattern}$`,
+            extractRegex: supportsArrays ? /\((\d+)\)(\[\])?/ : /\((\d+)\)/,
         };
     }
 
     if (fieldAttributes.precision && fieldAttributes.scale) {
         return {
-            regex: `^${typeName}\\s*\\(\\s*\\d+\\s*(?:,\\s*\\d+\\s*)?\\)$`,
+            regex: `^${typeName}\\s*\\(\\s*\\d+\\s*(?:,\\s*\\d+\\s*)?\\)${arrayPattern}$`,
             extractRegex: new RegExp(
-                `${typeName}\\s*\\(\\s*(\\d+)\\s*(?:,\\s*(\\d+)\\s*)?\\)`
+                `${typeName}\\s*\\(\\s*(\\d+)\\s*(?:,\\s*(\\d+)\\s*)?\\)${arrayPattern}`
             ),
         };
     }
 
     if (fieldAttributes.precision) {
         return {
-            regex: `^${typeName}\\s*\\(\\s*\\d+\\s*\\)$`,
-            extractRegex: /\((\d+)\)/,
+            regex: `^${typeName}\\s*\\(\\s*\\d+\\s*\\)${arrayPattern}$`,
+            extractRegex: supportsArrays ? /\((\d+)\)(\[\])?/ : /\((\d+)\)/,
         };
     }
 
@@ -75,12 +88,34 @@ export const useUpdateTableField = (
     const [localNullable, setLocalNullable] = useState(field.nullable);
     const [localPrimaryKey, setLocalPrimaryKey] = useState(field.primaryKey);
 
+    const lastFieldNameRef = useRef<string>(field.name);
+
+    useEffect(() => {
+        if (localFieldName === lastFieldNameRef.current) {
+            lastFieldNameRef.current = field.name;
+            setLocalFieldName(field.name);
+        }
+    }, [field.name, localFieldName]);
+
     // Update local state when field properties change externally
     useEffect(() => {
-        setLocalFieldName(field.name);
         setLocalNullable(field.nullable);
         setLocalPrimaryKey(field.primaryKey);
-    }, [field.name, field.nullable, field.primaryKey]);
+    }, [field.nullable, field.primaryKey]);
+
+    // Auto-correct: Primary key fields must be NOT NULL
+    // This fixes any existing data where PK columns were incorrectly set as nullable
+    useEffect(() => {
+        if (field.primaryKey && field.nullable) {
+            chartDBUpdateField(table.id, field.id, { nullable: false });
+        }
+    }, [
+        field.primaryKey,
+        field.nullable,
+        table.id,
+        field.id,
+        chartDBUpdateField,
+    ]);
 
     // Use custom updateField if provided, otherwise use the chartDB one
     const updateField = useMemo(
@@ -110,7 +145,10 @@ export const useUpdateTableField = (
         const standardTypes: SelectBoxOption[] = sortedDataTypeMap[
             databaseType
         ].map((type) => {
-            const regexPatterns = generateFieldRegexPatterns(type);
+            const regexPatterns = generateFieldRegexPatterns(
+                type,
+                databaseType
+            );
 
             return {
                 label: type.name,
@@ -154,8 +192,13 @@ export const useUpdateTableField = (
             let characterMaximumLength: string | undefined = undefined;
             let precision: number | undefined = undefined;
             let scale: number | undefined = undefined;
+            let isArray: boolean | undefined = undefined;
 
             if (regexMatches?.length) {
+                // Check if the last captured group is the array indicator []
+                const lastMatch = regexMatches[regexMatches.length - 1];
+                const hasArrayIndicator = lastMatch === '[]';
+
                 if (dataType?.fieldAttributes?.hasCharMaxLength) {
                     characterMaximumLength = regexMatches[1]?.toLowerCase();
                 } else if (
@@ -168,6 +211,17 @@ export const useUpdateTableField = (
                         : undefined;
                 } else if (dataType?.fieldAttributes?.precision) {
                     precision = parseInt(regexMatches[1]);
+                }
+
+                // Set isArray if the array indicator was found and the type supports arrays
+                if (hasArrayIndicator) {
+                    const typeId = value as string;
+                    if (supportsArrayDataType(typeId, databaseType)) {
+                        isArray = true;
+                    }
+                } else {
+                    // Explicitly set to false/undefined if no array indicator
+                    isArray = undefined;
                 }
             } else {
                 if (
@@ -186,11 +240,17 @@ export const useUpdateTableField = (
                 }
             }
 
+            const newTypeName = dataType?.name ?? (value as string);
+            const typeRequiresNotNull = requiresNotNull(newTypeName);
+            const shouldForceIncrement = autoIncrementAlwaysOn(newTypeName);
+
             updateField(table.id, field.id, {
                 characterMaximumLength,
                 precision,
                 scale,
-                increment: undefined,
+                isArray,
+                ...(typeRequiresNotNull ? { nullable: false } : {}),
+                increment: shouldForceIncrement ? true : undefined,
                 default: undefined,
                 type: dataTypeDataToDataType(
                     dataType ?? {
@@ -228,9 +288,16 @@ export const useUpdateTableField = (
     const debouncedNullableUpdate = useDebounce(
         useCallback(
             (value: boolean) => {
-                updateField(table.id, field.id, { nullable: value });
+                const updates: Partial<DBField> = { nullable: value };
+
+                // If setting to nullable, clear increment (auto-increment requires NOT NULL)
+                if (value && field.increment) {
+                    updates.increment = undefined;
+                }
+
+                updateField(table.id, field.id, updates);
             },
-            [updateField, table.id, field.id]
+            [updateField, table.id, field.id, field.increment]
         ),
         100 // 100ms debounce for toggle
     );
@@ -243,6 +310,7 @@ export const useUpdateTableField = (
                     // When setting as primary key
                     const updates: Partial<DBField> = {
                         primaryKey: true,
+                        nullable: false, // Primary keys must be NOT NULL
                     };
                     // Only auto-set unique if this will be the only primary key
                     if (primaryKeyCount === 0) {
@@ -265,6 +333,10 @@ export const useUpdateTableField = (
     const handlePrimaryKeyToggle = useCallback(
         (value: boolean) => {
             setLocalPrimaryKey(value);
+            // Primary keys must be NOT NULL - update local state immediately for responsive UI
+            if (value) {
+                setLocalNullable(false);
+            }
             debouncedPrimaryKeyUpdate(value, primaryKeyCount);
         },
         [primaryKeyCount, debouncedPrimaryKeyUpdate]
@@ -291,11 +363,17 @@ export const useUpdateTableField = (
     // Utility function to generate field suffix for display
     const generateFieldSuffix = useCallback(
         (typeId?: string) => {
-            return generateDBFieldSuffix(field, {
-                databaseType,
-                forceExtended: true,
-                typeId,
-            });
+            return generateDBFieldSuffix(
+                {
+                    ...field,
+                    isArray: field.isArray && typeId === field.type.id,
+                },
+                {
+                    databaseType,
+                    forceExtended: true,
+                    typeId,
+                }
+            );
         },
         [field, databaseType]
     );
