@@ -194,12 +194,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
                         className="cursor-pointer"
                         rel="noreferrer"
                     >
-                            <img
-                                src={logoSrc}
-                                alt={appName}
-                                className="h-4 max-w-fit"
-                            />
-                        </a>
+                        <img
+                            src={logoSrc}
+                            alt={appName}
+                            className="h-4 max-w-fit"
+                        />
+                    </a>
                 </SidebarHeader>
             ) : null}
             <SidebarContent>
