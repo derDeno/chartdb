@@ -28,11 +28,13 @@ export const EditorMobileLayout: React.FC<EditorMobileLayoutProps> = ({
     const { isSidePanelShowed, hideSidePanel } = useLayout();
     if (cleanMode) {
         return (
-            <Canvas
-                initialTables={initialDiagram?.tables ?? []}
-                cleanMode
-                cleanTableId={cleanTableId}
-            />
+            <div className="flex min-h-0 flex-1">
+                <Canvas
+                    initialTables={initialDiagram?.tables ?? []}
+                    cleanMode
+                    cleanTableId={cleanTableId}
+                />
+            </div>
         );
     }
     return (

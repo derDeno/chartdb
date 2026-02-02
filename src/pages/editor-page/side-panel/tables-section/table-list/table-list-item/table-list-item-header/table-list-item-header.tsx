@@ -76,7 +76,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const [tableName, setTableName] = React.useState(table.name);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
-    const [isShareCopied, setIsShareCopied] = React.useState(false);
     const { listeners } = useSortable({ id: table.id });
 
     const editTableName = useCallback(() => {
@@ -125,7 +124,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
         (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
             event.stopPropagation();
             setShareDialogOpen(true);
-            setIsShareCopied(false);
         },
         []
     );
@@ -133,10 +131,8 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
     const handleCopyShareUrl = useCallback(async () => {
         try {
             await navigator.clipboard.writeText(shareUrl);
-            setIsShareCopied(true);
-            setTimeout(() => setIsShareCopied(false), 2000);
         } catch {
-            setIsShareCopied(false);
+            // Ignore clipboard failures to avoid breaking the dialog flow.
         }
     }, [shareUrl]);
 
@@ -358,6 +354,11 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                                 </span>
                             ) : null}
                             <div className="flex flex-row-reverse md:hidden md:group-hover:flex">
+                                <ListItemHeaderButton
+                                    onClick={handleOpenShareDialog}
+                                >
+                                    <Share2 />
+                                </ListItemHeaderButton>
                                 {!readonly ? (
                                     <ListItemHeaderButton
                                         onClick={enterEditMode}
@@ -365,11 +366,6 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                                         <Pencil />
                                     </ListItemHeaderButton>
                                 ) : null}
-                                <ListItemHeaderButton
-                                    onClick={handleOpenShareDialog}
-                                >
-                                    <Share2 />
-                                </ListItemHeaderButton>
                                 <ListItemHeaderButton
                                     onClick={handleFocusOnTable}
                                 >
@@ -385,15 +381,22 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                 </div>
             </div>
             <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent
+                    className="sm:max-w-xl"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                >
                     <DialogHeader>
                         <DialogTitle>Share Table</DialogTitle>
                     </DialogHeader>
                     <div className="flex items-center gap-2">
                         <Input readOnly value={shareUrl} />
-                        <Button onClick={handleCopyShareUrl} type="button">
-                            <Copy className="mr-2 size-4" />
-                            {isShareCopied ? 'Copied' : 'Copy'}
+                        <Button
+                            onClick={handleCopyShareUrl}
+                            type="button"
+                            aria-label="Copy share URL"
+                        >
+                            <Copy className="size-4" />
                         </Button>
                     </div>
                 </DialogContent>
