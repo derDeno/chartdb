@@ -309,7 +309,7 @@ export const createApiHandler = ({ dataDir = resolveDataDir() } = {}) => {
 
             sendJson(res, 404, { error: 'Not found.' });
             return true;
-        } catch (error) {
+        } catch {
             sendJson(res, 500, { error: 'Internal server error.' });
             return true;
         }

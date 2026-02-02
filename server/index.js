@@ -63,7 +63,7 @@ const serveStatic = async (req, res) => {
             try {
                 await sendFile(res, fallbackPath);
                 return;
-            } catch (fallbackError) {
+            } catch {
                 res.statusCode = 404;
                 res.end('Not Found');
                 return;
