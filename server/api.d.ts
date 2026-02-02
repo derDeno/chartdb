@@ -8,6 +8,4 @@ export type ApiHandler = (
 
 export const resolveDataDir: () => string;
 
-export const createApiHandler: (options?: {
-    dataDir?: string;
-}) => ApiHandler;
+export const createApiHandler: (options?: { dataDir?: string }) => ApiHandler;

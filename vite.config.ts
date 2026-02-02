@@ -15,14 +15,18 @@ const apiMiddleware = () => {
         configureServer(server: ViteDevServer) {
             const handler = createApiHandler({ dataDir: resolveDataDir() });
             server.middlewares.use(
-                (req: IncomingMessage, res: ServerResponse, next: NextHandler) => {
-                handler(req, res)
-                    .then((handled) => {
-                        if (!handled) {
-                            next();
-                        }
-                    })
-                    .catch(next);
+                (
+                    req: IncomingMessage,
+                    res: ServerResponse,
+                    next: NextHandler
+                ) => {
+                    handler(req, res)
+                        .then((handled) => {
+                            if (!handled) {
+                                next();
+                            }
+                        })
+                        .catch(next);
                 }
             );
         },
