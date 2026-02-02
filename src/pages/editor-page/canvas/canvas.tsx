@@ -1754,66 +1754,67 @@ export const Canvas: React.FC<CanvasProps> = ({
                             <div className="flex flex-col items-center gap-2 md:flex-row">
                                 {!readonly ? (
                                     <>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span>
-                                                <Button
-                                                    variant="secondary"
-                                                    className={cn(
-                                                        'size-8 p-1 shadow-none',
-                                                        snapToGridEnabled ||
-                                                            effectiveShiftPressed
-                                                            ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
-                                                            : ''
-                                                    )}
-                                                    onClick={() =>
-                                                        setSnapToGridEnabled(
-                                                            (prev) => !prev
-                                                        )
-                                                    }
-                                                >
-                                                    <Magnet className="size-4" />
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t('snap_to_grid_tooltip', {
-                                                key:
-                                                    operatingSystem === 'mac'
-                                                        ? '⇧'
-                                                        : 'Shift',
-                                            })}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    {highlightedCustomType ? (
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <span>
                                                     <Button
                                                         variant="secondary"
-                                                        className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
+                                                        className={cn(
+                                                            'size-8 p-1 shadow-none',
+                                                            snapToGridEnabled ||
+                                                                effectiveShiftPressed
+                                                                ? 'bg-pink-600 text-white hover:bg-pink-500 dark:hover:bg-pink-700 hover:text-white'
+                                                                : ''
+                                                        )}
                                                         onClick={() =>
-                                                            highlightCustomTypeId(
-                                                                undefined
+                                                            setSnapToGridEnabled(
+                                                                (prev) => !prev
                                                             )
                                                         }
                                                     >
-                                                        <Highlighter className="size-4" />
+                                                        <Magnet className="size-4" />
                                                     </Button>
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                {t(
-                                                    'toolbar.custom_type_highlight_tooltip',
-                                                    {
-                                                        typeName:
-                                                            highlightedCustomType.name,
-                                                    }
-                                                )}
+                                                {t('snap_to_grid_tooltip', {
+                                                    key:
+                                                        operatingSystem ===
+                                                        'mac'
+                                                            ? '⇧'
+                                                            : 'Shift',
+                                                })}
                                             </TooltipContent>
                                         </Tooltip>
-                                    ) : null}
-                                </>
+                                        {highlightedCustomType ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span>
+                                                        <Button
+                                                            variant="secondary"
+                                                            className="size-8 border border-yellow-400 bg-yellow-200 p-1 shadow-none hover:bg-yellow-300 dark:border-yellow-700 dark:bg-yellow-800 dark:hover:bg-yellow-700"
+                                                            onClick={() =>
+                                                                highlightCustomTypeId(
+                                                                    undefined
+                                                                )
+                                                            }
+                                                        >
+                                                            <Highlighter className="size-4" />
+                                                        </Button>
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t(
+                                                        'toolbar.custom_type_highlight_tooltip',
+                                                        {
+                                                            typeName:
+                                                                highlightedCustomType.name,
+                                                        }
+                                                    )}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ) : null}
+                                    </>
                                 ) : null}
 
                                 <div
@@ -1903,7 +1904,9 @@ export const Canvas: React.FC<CanvasProps> = ({
                     ) : null}
                     {!cleanMode ? (
                         <Controls
-                            position={isDesktop ? 'bottom-center' : 'top-center'}
+                            position={
+                                isDesktop ? 'bottom-center' : 'top-center'
+                            }
                             orientation="horizontal"
                             showZoom={false}
                             showFitView={false}
