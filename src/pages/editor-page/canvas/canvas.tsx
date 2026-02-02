@@ -268,11 +268,13 @@ const noteToNoteNode = (note: Note): NoteNodeType => {
 export interface CanvasProps {
     initialTables: DBTable[];
     cleanMode?: boolean;
+    cleanTableId?: string;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
     initialTables,
     cleanMode = false,
+    cleanTableId,
 }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
@@ -331,6 +333,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         resetFilter,
     } = useDiagramFilter();
     const { checkIfNewTable } = useDiff();
+    const normalizedCleanTableId = cleanTableId?.trim();
+    const isCleanTableFocus = cleanMode && !!normalizedCleanTableId;
+    const lockViewport = isCleanTableFocus;
 
     const shouldForceShowTable = useCallback(
         (tableId: string) => {
@@ -341,8 +346,18 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
 
+    const initialTablesForRender = useMemo(
+        () =>
+            isCleanTableFocus
+                ? initialTables.filter(
+                      (table) => table.id === normalizedCleanTableId
+                  )
+                : initialTables,
+        [initialTables, isCleanTableFocus, normalizedCleanTableId]
+    );
+
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
-        initialTables.map((table) =>
+        initialTablesForRender.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -365,10 +380,10 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     useEffect(() => {
         setIsInitialLoadingNodes(true);
-    }, [initialTables]);
+    }, [initialTablesForRender]);
 
     useEffect(() => {
-        const initialNodes = initialTables.map((table) =>
+        const initialNodes = initialTablesForRender.map((table) =>
             tableToTableNode(table, {
                 filter,
                 databaseType,
@@ -382,7 +397,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setIsInitialLoadingNodes(false);
         }
     }, [
-        initialTables,
+        initialTablesForRender,
         nodes,
         filter,
         databaseType,
@@ -404,6 +419,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView]);
 
     useEffect(() => {
+        if (isCleanTableFocus) {
+            setEdges([]);
+            return;
+        }
+
         const targetIndexes: Record<string, number> = relationships.reduce(
             (acc, relationship) => {
                 acc[
@@ -463,7 +483,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 }),
             ];
         });
-    }, [relationships, dependencies, setEdges, showDBViews]);
+    }, [relationships, dependencies, setEdges, showDBViews, isCleanTableFocus]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -559,11 +579,18 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [selectedRelationshipIds, selectedTableIds, setEdges]);
 
     useEffect(() => {
+        const visibleTables = isCleanTableFocus
+            ? tables.filter((table) => table.id === normalizedCleanTableId)
+            : tables;
+        const visibleAreas = isCleanTableFocus ? [] : areas;
+        const visibleNotes = isCleanTableFocus ? [] : notes;
+
         setNodes((prevNodes) => {
             const newNodes = [
-                ...tables.map((table) => {
-                    const isOverlapping =
-                        (overlapGraph.graph.get(table.id) ?? []).length > 0;
+                ...visibleTables.map((table) => {
+                    const isOverlapping = isCleanTableFocus
+                        ? false
+                        : (overlapGraph.graph.get(table.id) ?? []).length > 0;
                     const node = tableToTableNode(table, {
                         filter,
                         databaseType,
@@ -592,15 +619,15 @@ export const Canvas: React.FC<CanvasProps> = ({
                         },
                     };
                 }),
-                ...areas.map((area) =>
+                ...visibleAreas.map((area) =>
                     areaToAreaNode(area, {
-                        tables,
+                        tables: visibleTables,
                         filter,
                         databaseType,
                         filterLoading,
                     })
                 ),
-                ...notes.map((note) => noteToNoteNode(note)),
+                ...visibleNotes.map((note) => noteToNoteNode(note)),
                 ...prevNodes.filter(
                     (n) =>
                         n.type === 'temp-cursor' ||
@@ -629,6 +656,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         filterLoading,
         showDBViews,
         shouldForceShowTable,
+        isCleanTableFocus,
+        normalizedCleanTableId,
     ]);
 
     // Surgical update for relationship creation target highlighting
@@ -665,6 +694,10 @@ export const Canvas: React.FC<CanvasProps> = ({
     const prevFilter = useRef<DiagramFilter | undefined>(undefined);
     const prevShowDBViews = useRef<boolean>(showDBViews);
     useEffect(() => {
+        if (isCleanTableFocus) {
+            return;
+        }
+
         if (
             !equal(filter, prevFilter.current) ||
             showDBViews !== prevShowDBViews.current
@@ -695,7 +728,15 @@ export const Canvas: React.FC<CanvasProps> = ({
             prevFilter.current = filter;
             prevShowDBViews.current = showDBViews;
         }
-    }, [filter, fitView, tables, setOverlapGraph, databaseType, showDBViews]);
+    }, [
+        filter,
+        fitView,
+        tables,
+        setOverlapGraph,
+        databaseType,
+        showDBViews,
+        isCleanTableFocus,
+    ]);
 
     useEffect(() => {
         const checkParentAreas = debounce(() => {
@@ -749,8 +790,12 @@ export const Canvas: React.FC<CanvasProps> = ({
             }
         }, 300);
 
+        if (isCleanTableFocus) {
+            return;
+        }
+
         checkParentAreas();
-    }, [nodes, updateTablesState]);
+    }, [nodes, updateTablesState, isCleanTableFocus]);
 
     const onConnectHandler = useCallback(
         async (params: AddEdgeParams) => {
@@ -1433,6 +1478,10 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Check if all tables are hidden due to filtering
     // Derived from filter state directly (not nodes) for better performance
     const allTablesHiddenByFilter = useMemo(() => {
+        if (isCleanTableFocus) {
+            return false;
+        }
+
         if (!hasActiveFilter || tables.length === 0 || filterLoading) {
             return false;
         }
@@ -1445,7 +1494,14 @@ export const Canvas: React.FC<CanvasProps> = ({
             })
         ).length;
         return visibleTableCount === 0;
-    }, [hasActiveFilter, tables, filter, databaseType, filterLoading]);
+    }, [
+        hasActiveFilter,
+        tables,
+        filter,
+        databaseType,
+        filterLoading,
+        isCleanTableFocus,
+    ]);
 
     const pulseOverlappingTables = useCallback(() => {
         setHighlightOverlappingTables(true);
@@ -1559,6 +1615,10 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [nodes, tempFloatingEdge, cursorPosition]);
 
     const edgesWithFloating = useMemo(() => {
+        if (isCleanTableFocus) {
+            return [];
+        }
+
         if (!tempFloatingEdge || !cursorPosition) return edges;
 
         let target = TEMP_CURSOR_NODE_ID;
@@ -1585,7 +1645,13 @@ export const Canvas: React.FC<CanvasProps> = ({
         };
 
         return [...edges, tempEdge];
-    }, [edges, tempFloatingEdge, cursorPosition, hoveringTableId]);
+    }, [
+        edges,
+        tempFloatingEdge,
+        cursorPosition,
+        hoveringTableId,
+        isCleanTableFocus,
+    ]);
 
     const onPaneClickHandler = useCallback(
         (event: React.MouseEvent<Element, MouseEvent>) => {
@@ -1655,7 +1721,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                         animated: false,
                         type: 'relationship-edge',
                     }}
-                    panOnScroll={scrollAction === 'pan'}
+                    panOnScroll={!lockViewport && scrollAction === 'pan'}
+                    panOnDrag={!lockViewport}
+                    zoomOnScroll={!lockViewport}
+                    zoomOnPinch={!lockViewport}
+                    zoomOnDoubleClick={!lockViewport}
                     snapToGrid={
                         !cleanMode &&
                         (effectiveShiftPressed || snapToGridEnabled)

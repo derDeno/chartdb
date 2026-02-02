@@ -28,6 +28,7 @@ import { TopNavbarMock } from './top-navbar/top-navbar-mock';
 import { DiagramFilterProvider } from '@/context/diagram-filter-context/diagram-filter-provider';
 import { useConfig } from '@/hooks/use-config';
 import { useCleanMode } from '@/hooks/use-clean-mode';
+import { useCleanTableId } from '@/hooks/use-clean-table-id';
 
 const OPEN_STAR_US_AFTER_SECONDS = 30;
 const SHOW_STAR_US_AGAIN_AFTER_DAYS = 1;
@@ -42,10 +43,12 @@ export const EditorMobileLayoutLazy = React.lazy(
 
 export interface EditorPageComponentProps {
     cleanMode?: boolean;
+    cleanTableId?: string;
 }
 
 const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
     cleanMode = false,
+    cleanTableId,
 }) => {
     const { diagramName, currentDiagram } = useChartDB();
     const { openStarUsDialog } = useDialog();
@@ -110,11 +113,13 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
                         <EditorDesktopLayoutLazy
                             initialDiagram={initialDiagram}
                             cleanMode={cleanMode}
+                            cleanTableId={cleanTableId}
                         />
                     ) : (
                         <EditorMobileLayoutLazy
                             initialDiagram={initialDiagram}
                             cleanMode={cleanMode}
+                            cleanTableId={cleanTableId}
                         />
                     )}
                 </Suspense>
@@ -126,6 +131,7 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
 
 export const EditorPage: React.FC = () => {
     const cleanMode = useCleanMode();
+    const cleanTableId = useCleanTableId();
 
     return (
         <LocalConfigProvider>
@@ -152,6 +158,9 @@ export const EditorPage: React.FC = () => {
                                                                             <EditorPageComponent
                                                                                 cleanMode={
                                                                                     cleanMode
+                                                                                }
+                                                                                cleanTableId={
+                                                                                    cleanTableId
                                                                                 }
                                                                             />
                                                                         </KeyboardShortcutsProvider>

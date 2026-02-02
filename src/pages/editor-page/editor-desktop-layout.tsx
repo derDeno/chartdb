@@ -16,15 +16,23 @@ import { TopNavbar } from './top-navbar/top-navbar';
 export interface EditorDesktopLayoutProps {
     initialDiagram?: Diagram;
     cleanMode?: boolean;
+    cleanTableId?: string;
 }
 export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
     initialDiagram,
     cleanMode = false,
+    cleanTableId,
 }) => {
     const { isSidePanelShowed } = useLayout();
 
     if (cleanMode) {
-        return <Canvas initialTables={initialDiagram?.tables ?? []} cleanMode />;
+        return (
+            <Canvas
+                initialTables={initialDiagram?.tables ?? []}
+                cleanMode
+                cleanTableId={cleanTableId}
+            />
+        );
     }
 
     return (
