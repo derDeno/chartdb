@@ -441,8 +441,6 @@ export const zh_CN: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: '选择模式',
             description: '当前显示多个模式。请选择一个用于新表。',

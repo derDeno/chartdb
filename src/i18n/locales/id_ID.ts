@@ -447,8 +447,6 @@ export const id_ID: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'Pilih Skema',
             description:

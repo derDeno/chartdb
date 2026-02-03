@@ -451,8 +451,6 @@ export const bn: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'স্কিমা নির্বাচন করুন',
             description:

@@ -169,3 +169,15 @@ Thank you for helping us make ChartDB better for everyone :heart:.
 ## License
 
 ChartDB is licensed under the [GNU Affero General Public License v3.0](LICENSE)
+
+
+
+## Custom Fork
+This fork introduces a docker volume bind for storing and loading persistent diagrams from a volume.
+It also introduces many customization functions like custom logo, name and colors.
+
+Other features:
+- clean mode support with the url param clean=true
+- single table embedding
+- hiding social links
+- better table color picker

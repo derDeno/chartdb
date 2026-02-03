@@ -384,7 +384,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             </div>
             <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                 <DialogContent
-                    className="sm:max-w-xl text-slate-100 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 border border-slate-800/80 shadow-2xl ring-1 ring-white/5"
+                    className="sm:max-w-xl border border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 text-slate-100 shadow-2xl ring-1 ring-white/5"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => event.stopPropagation()}
                 >

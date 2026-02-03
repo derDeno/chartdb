@@ -451,8 +451,6 @@ export const ne: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'स्कीम चयन गर्नुहोस्',
             description:

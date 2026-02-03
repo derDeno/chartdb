@@ -440,8 +440,6 @@ export const zh_TW: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: '選擇 Schema',
             description: '目前顯示多個 Schema，請為新表格選擇一個。',

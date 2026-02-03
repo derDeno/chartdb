@@ -450,8 +450,6 @@ export const te: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'స్కీమాను ఎంచుకోండి',
             description:

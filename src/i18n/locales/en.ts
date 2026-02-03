@@ -439,8 +439,6 @@ export const en = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'Select Schema',
             description:

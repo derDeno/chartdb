@@ -452,8 +452,6 @@ export const ja: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'スキーマを選択',
             description:

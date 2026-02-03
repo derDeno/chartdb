@@ -449,8 +449,6 @@ export const uk: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'Виберіть Схему',
             description:

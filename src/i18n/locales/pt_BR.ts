@@ -451,8 +451,6 @@ export const pt_BR: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: 'Selecionar Esquema',
             description:

@@ -447,8 +447,6 @@ export const ko_KR: LanguageTranslation = {
             close: 'Close',
             copy_aria_label: 'Copy share URL',
         },
-
-
         new_table_schema_dialog: {
             title: '스키마 선택',
             description:
