@@ -448,11 +448,11 @@ export const de: LanguageTranslation = {
         },
         share_table_dialog: {
             title: 'Teile Tabelle',
-            description: 'Kopieren Sie den folgenden Link, um diese Tabelle zu teilen.',
+            description:
+                'Kopieren Sie den folgenden Link, um diese Tabelle zu teilen.',
             close: 'Schlie?en',
             copy_aria_label: 'Freigabelink kopieren',
         },
-
 
         new_table_schema_dialog: {
             title: 'Schema auswählen',

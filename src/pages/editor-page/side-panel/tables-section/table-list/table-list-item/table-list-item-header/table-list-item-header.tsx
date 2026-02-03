@@ -384,7 +384,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             </div>
             <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                 <DialogContent
-                    className="sm:max-w-xl border border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 text-slate-100 shadow-2xl ring-1 ring-white/5"
+                    className="sm:max-w-xl bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 border border-slate-800/80 text-slate-100 shadow-2xl ring-1 ring-white/5"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => event.stopPropagation()}
                 >
@@ -408,7 +408,7 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
                             aria-label={t('share_table_dialog.copy_aria_label')}
                             size="icon"
                             variant="outline"
-                            className="h-10 w-10 border-slate-800/80 bg-slate-900/60 text-slate-100 hover:bg-slate-800/80"
+                            className="size-10 border-slate-800/80 bg-slate-900/60 text-slate-100 hover:bg-slate-800/80"
                         >
                             <Copy className="size-4" />
                         </Button>

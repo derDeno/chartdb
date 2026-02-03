@@ -178,7 +178,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
                 active: false,
             },
         ];
-    }, []);
+    }, [hideSocialLinks]);
 
     return (
         <Sidebar

@@ -4,6 +4,7 @@ export interface ChartDBConfig {
     appName?: string;
     appLogo?: string;
     hideSocialLinks?: boolean;
+    primaryColor?: string;
 }
 
 export const getConfigAssetUrl = (

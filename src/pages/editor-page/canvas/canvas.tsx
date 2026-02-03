@@ -419,7 +419,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView]);
 
     useEffect(() => {
-        if (!cleanMode || filterLoading || initialTablesForRender.length === 0) {
+        if (
+            !cleanMode ||
+            filterLoading ||
+            initialTablesForRender.length === 0
+        ) {
             return;
         }
 
