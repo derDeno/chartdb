@@ -42,6 +42,33 @@
   <img width='700px' src="./public/chartdb.png">
 </p>
 
+
+## Custom Fork
+This fork introduces a docker volume bind for storing and loading persistent diagrams from a volume.
+It also introduces many customization functions like custom logo, name and colors.
+
+Other features:
+- clean mode support with the url param clean=true
+- single table embedding
+- hiding social links
+- better table color picker
+
+Mount a docker volume to `/data`
+
+In the mounted volume you will find a `config.json` file. This file allows you to perform custom configs. The possible options are:
+
+```json
+{
+  "defaultDiagramId": "default id of diagram - will be auto generated",
+  "appName": "App Name",
+  "appLogo": "relative Path to logo file",
+  "primaryColor": "#ffffff",
+  "hideSocialLinks": true
+}
+```
+
+__
+
 ### 🎉 ChartDB
 
 ChartDB is a powerful, web-based database diagramming editor.
@@ -169,15 +196,3 @@ Thank you for helping us make ChartDB better for everyone :heart:.
 ## License
 
 ChartDB is licensed under the [GNU Affero General Public License v3.0](LICENSE)
-
-
-
-## Custom Fork
-This fork introduces a docker volume bind for storing and loading persistent diagrams from a volume.
-It also introduces many customization functions like custom logo, name and colors.
-
-Other features:
-- clean mode support with the url param clean=true
-- single table embedding
-- hiding social links
-- better table color picker
