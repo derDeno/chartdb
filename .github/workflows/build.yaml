@@ -42,10 +42,12 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
-      - name: Build and push (feat-* branches)
-        if: startsWith(github.ref, 'refs/heads/feat-')
+      - name: Build and push (feat/* branches)
+        if: startsWith(github.ref, 'refs/heads/feat/')
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:nightly
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:nightly
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
