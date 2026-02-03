@@ -39,8 +39,7 @@ const rgbToHsl = ({ r, g, b }: { r: number; g: number; b: number }) => {
     }
 
     const l = (max + min) / 2;
-    const s =
-        delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
     return { h, s: s * 100, l: l * 100 };
 };
