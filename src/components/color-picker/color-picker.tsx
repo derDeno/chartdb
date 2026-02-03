@@ -19,6 +19,27 @@ export const ColorPicker = React.forwardRef<
     React.ElementRef<typeof PopoverTrigger>,
     ColorPickerProps
 >(({ color, onChange, disabled, popoverOnMouseDown, popoverOnClick }, ref) => {
+    const [recentColors, setRecentColors] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const stored = window.localStorage.getItem('chartdb.recentColors');
+            if (!stored) return;
+            const parsed = JSON.parse(stored) as string[];
+            if (Array.isArray(parsed)) {
+                setRecentColors(
+                    parsed.filter(
+                        (item) =>
+                            typeof item === 'string' && item.startsWith('#')
+                    )
+                );
+            }
+        } catch {
+            // Ignore malformed localStorage content.
+        }
+    }, []);
+
     const resolvedRgb = useMemo(() => {
         if (!color) return null;
         const trimmed = color.trim();
@@ -106,11 +127,30 @@ export const ColorPicker = React.forwardRef<
         return rounded;
     };
 
+    const applyColor = (nextColor: string) => {
+        setRecentColors((prev) => {
+            const next = [
+                nextColor,
+                ...prev.filter(
+                    (item) => item.toLowerCase() !== nextColor.toLowerCase()
+                ),
+            ].slice(0, 8);
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem(
+                    'chartdb.recentColors',
+                    JSON.stringify(next)
+                );
+            }
+            return next;
+        });
+        onChange(nextColor);
+    };
+
     const handleHexChange = (value: string) => {
         setHexValue(value);
         const normalized = normalizeHex(value);
         if (normalized) {
-            onChange(normalized);
+            applyColor(normalized);
         }
     };
 
@@ -121,7 +161,7 @@ export const ColorPicker = React.forwardRef<
             const g = clampChannel(next.g);
             const b = clampChannel(next.b);
             if (r !== null && g !== null && b !== null) {
-                onChange(
+                applyColor(
                     `#${[r, g, b]
                         .map((item) => item.toString(16).padStart(2, '0'))
                         .join('')}`
@@ -162,7 +202,7 @@ export const ColorPicker = React.forwardRef<
                             aria-label="Color picker"
                             type="color"
                             value={resolvedHex || '#000000'}
-                            onChange={(event) => onChange(event.target.value)}
+                            onChange={(event) => applyColor(event.target.value)}
                             className="h-12 w-16 cursor-pointer p-1"
                         />
                         <div className="flex flex-1 flex-col gap-2">
@@ -224,6 +264,26 @@ export const ColorPicker = React.forwardRef<
                             </div>
                         </div>
                     </div>
+                    {recentColors.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-medium text-muted-foreground">
+                                Recent
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {recentColors.map((option) => (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        className="size-7 cursor-pointer rounded-md border-2 border-muted transition-shadow hover:shadow-md"
+                                        style={{
+                                            backgroundColor: option,
+                                        }}
+                                        onClick={() => applyColor(option)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </PopoverContent>
         </Popover>
