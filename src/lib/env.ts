@@ -12,6 +12,3 @@ export const HIDE_CHARTDB_CLOUD: boolean =
 export const DISABLE_ANALYTICS: boolean =
     (window?.env?.DISABLE_ANALYTICS ??
         import.meta.env.VITE_DISABLE_ANALYTICS) === 'true';
-export const HIDE_SOCIAL_LINKS: boolean =
-    (window?.env?.HIDE_SOCIAL_LINKS ??
-        import.meta.env.VITE_HIDE_SOCIAL_LINKS) === 'true';

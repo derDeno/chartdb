@@ -6,7 +6,6 @@ import { Menu } from './menu/menu';
 import { Button } from '@/components/button/button';
 import { useSidebar } from '@/components/sidebar/use-sidebar';
 import { MenuIcon } from 'lucide-react';
-import { HIDE_SOCIAL_LINKS } from '@/lib/env';
 import { useConfig } from '@/hooks/use-config';
 import { getConfigAssetUrl } from '@/lib/domain/config';
 
@@ -16,6 +15,7 @@ export const TopNavbarMobile: React.FC<TopNavbarMobileProps> = () => {
     const { config } = useConfig();
     const appName = config?.appName?.trim() || 'ChartDB';
     const customLogoUrl = getConfigAssetUrl(config?.appLogo);
+    const hideSocialLinks = config?.hideSocialLinks ?? false;
     const logoSrc = customLogoUrl ?? ChartDBLogo;
 
     const renderStars = useCallback(() => {
@@ -57,7 +57,7 @@ export const TopNavbarMobile: React.FC<TopNavbarMobileProps> = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {HIDE_SOCIAL_LINKS ? null : renderStars()}
+                        {hideSocialLinks ? null : renderStars()}
                         <LanguageNav />
                     </div>
                 </div>

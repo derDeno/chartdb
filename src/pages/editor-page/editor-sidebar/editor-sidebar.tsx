@@ -30,7 +30,6 @@ import { useChartDB } from '@/hooks/use-chartdb';
 import { supportsCustomTypes } from '@/lib/domain/database-capabilities';
 import { useDialog } from '@/hooks/use-dialog';
 import { Separator } from '@/components/separator/separator';
-import { HIDE_SOCIAL_LINKS } from '@/lib/env';
 import { useConfig } from '@/hooks/use-config';
 import { getConfigAssetUrl } from '@/lib/domain/config';
 
@@ -59,6 +58,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
     const { config } = useConfig();
     const appName = config?.appName?.trim() || 'ChartDB';
     const customLogoUrl = getConfigAssetUrl(config?.appLogo);
+    const hideSocialLinks = config?.hideSocialLinks ?? false;
     const logoSrc =
         customLogoUrl ??
         (effectiveTheme === 'light' ? ChartDBLogo : ChartDBDarkLogo);
@@ -149,7 +149,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
     );
 
     const footerItems: SidebarItem[] = useMemo(() => {
-        if (HIDE_SOCIAL_LINKS) {
+        if (hideSocialLinks) {
             return [];
         }
 

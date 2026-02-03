@@ -6,7 +6,10 @@ import type { ChartDBConfig } from '@/lib/domain/config';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 
 const API_BASE = '/api';
-const defaultConfig: ChartDBConfig = { defaultDiagramId: '' };
+const defaultConfig: ChartDBConfig = {
+    defaultDiagramId: '',
+    hideSocialLinks: false,
+};
 
 type DiagramPayload = Omit<Diagram, 'createdAt' | 'updatedAt'> & {
     createdAt: string;

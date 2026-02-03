@@ -29,7 +29,7 @@ import { useLocalConfig } from '@/hooks/use-local-config';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '@/context/alert-context/alert-context';
 import { TABLE_MINIMIZED_FIELDS } from '@/lib/domain/db-table';
-import { HIDE_SOCIAL_LINKS } from '@/lib/env';
+import { useConfig } from '@/hooks/use-config';
 
 export interface MenuProps {}
 
@@ -70,6 +70,8 @@ export const Menu: React.FC<MenuProps> = () => {
     const { redo, undo, hasRedo, hasUndo } = useHistory();
     const { exportImage } = useExportImage();
     const navigate = useNavigate();
+    const { config } = useConfig();
+    const hideSocialLinks = config?.hideSocialLinks ?? false;
 
     const handleDeleteDiagramAction = useCallback(() => {
         deleteDiagram();
@@ -524,7 +526,7 @@ export const Menu: React.FC<MenuProps> = () => {
                 </MenubarContent>
             </MenubarMenu>
 
-            {HIDE_SOCIAL_LINKS ? null : (
+            {hideSocialLinks ? null : (
                 <MenubarMenu>
                     <MenubarTrigger>{t('menu.help.help')}</MenubarTrigger>
                     <MenubarContent>

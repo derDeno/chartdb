@@ -6,7 +6,6 @@ import { DiagramName } from './diagram-name';
 import { LastSaved } from './last-saved';
 import { LanguageNav } from './language-nav/language-nav';
 import { Menu } from './menu/menu';
-import { HIDE_SOCIAL_LINKS } from '@/lib/env';
 import { useConfig } from '@/hooks/use-config';
 import { getConfigAssetUrl } from '@/lib/domain/config';
 
@@ -18,6 +17,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
 
     const appName = config?.appName?.trim() || 'ChartDB';
     const customLogoUrl = getConfigAssetUrl(config?.appLogo);
+    const hideSocialLinks = config?.hideSocialLinks ?? false;
     const logoSrc =
         customLogoUrl ??
         (effectiveTheme === 'light' ? ChartDBLogo : ChartDBDarkLogo);
@@ -54,7 +54,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
             <DiagramName />
             <div className="hidden flex-1 items-center justify-end gap-2 sm:flex">
                 <LastSaved />
-                {HIDE_SOCIAL_LINKS ? null : renderStars()}
+                {hideSocialLinks ? null : renderStars()}
                 <LanguageNav />
             </div>
         </nav>

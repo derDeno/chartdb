@@ -3,6 +3,7 @@ export interface ChartDBConfig {
     exportActions?: Date[];
     appName?: string;
     appLogo?: string;
+    hideSocialLinks?: boolean;
 }
 
 export const getConfigAssetUrl = (

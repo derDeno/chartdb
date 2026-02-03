@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const jsonContentType = { 'Content-Type': 'application/json; charset=utf-8' };
-const defaultConfig = { defaultDiagramId: '' };
+const defaultConfig = { defaultDiagramId: '', hideSocialLinks: false };
 const assetContentTypes = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',

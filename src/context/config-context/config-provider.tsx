@@ -25,7 +25,10 @@ export const ConfigProvider: React.FC<React.PropsWithChildren> = ({
     }) => {
         const promise = new Promise<void>((resolve) => {
             setConfig((prevConfig) => {
-                let baseConfig: ChartDBConfig = { defaultDiagramId: '' };
+                let baseConfig: ChartDBConfig = {
+                    defaultDiagramId: '',
+                    hideSocialLinks: false,
+                };
                 if (prevConfig) {
                     baseConfig = prevConfig;
                 }
