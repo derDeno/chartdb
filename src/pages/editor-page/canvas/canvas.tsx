@@ -1713,7 +1713,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     return (
         <CanvasContextMenu>
             <div
-                className="relative flex h-full"
+                className="relative flex size-full min-w-0 flex-1"
                 id="canvas"
                 ref={containerRef}
                 onMouseMove={handleMouseMove}
