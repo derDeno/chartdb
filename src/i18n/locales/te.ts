@@ -444,6 +444,13 @@ export const te: LanguageTranslation = {
             transparent: 'Transparent background',
             transparent_description: 'Remove background color from image.',
         },
+        share_table_dialog: {
+            title: 'Share Table',
+            description: 'Copy the following link to share this table.',
+            close: 'Close',
+            copy_aria_label: 'Copy share URL',
+        },
+
 
         new_table_schema_dialog: {
             title: 'స్కీమాను ఎంచుకోండి',

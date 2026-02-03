@@ -42,6 +42,8 @@ import { useDiagramFilter } from '@/context/diagram-filter-context/use-diagram-f
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogClose,
     DialogHeader,
     DialogTitle,
 } from '@/components/dialog/dialog';
@@ -382,22 +384,45 @@ export const TableListItemHeader: React.FC<TableListItemHeaderProps> = ({
             </div>
             <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                 <DialogContent
-                    className="sm:max-w-xl"
+                    className="sm:max-w-xl border border-slate-800/80 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 text-slate-100 shadow-2xl ring-1 ring-white/5"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => event.stopPropagation()}
                 >
-                    <DialogHeader>
-                        <DialogTitle>Share Table</DialogTitle>
+                    <DialogHeader className="gap-1 text-left">
+                        <DialogTitle>
+                            {t('share_table_dialog.title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm text-slate-400">
+                            {t('share_table_dialog.description')}
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="flex items-center gap-2">
-                        <Input readOnly value={shareUrl} />
+                    <div className="mt-2 flex items-center gap-2">
+                        <Input
+                            readOnly
+                            value={shareUrl}
+                            className="h-10 border-slate-800/80 bg-slate-900/60 text-xs text-slate-100 placeholder:text-slate-500 focus-visible:ring-slate-600 sm:text-sm"
+                        />
                         <Button
                             onClick={handleCopyShareUrl}
                             type="button"
-                            aria-label="Copy share URL"
+                            aria-label={t('share_table_dialog.copy_aria_label')}
+                            size="icon"
+                            variant="outline"
+                            className="h-10 w-10 border-slate-800/80 bg-slate-900/60 text-slate-100 hover:bg-slate-800/80"
                         >
                             <Copy className="size-4" />
                         </Button>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <DialogClose asChild>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-slate-800/80 bg-slate-900/40 text-slate-100 hover:bg-slate-800/70"
+                            >
+                                {t('share_table_dialog.close')}
+                            </Button>
+                        </DialogClose>
                     </div>
                 </DialogContent>
             </Dialog>

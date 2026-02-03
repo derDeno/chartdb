@@ -419,6 +419,21 @@ export const Canvas: React.FC<CanvasProps> = ({
     }, [isInitialLoadingNodes, fitView]);
 
     useEffect(() => {
+        if (!cleanMode || filterLoading || initialTablesForRender.length === 0) {
+            return;
+        }
+
+        debounce(() => {
+            fitView({
+                duration: 200,
+                padding: 0.1,
+                maxZoom: 0.8,
+                includeHiddenNodes: true,
+            });
+        }, 200)();
+    }, [cleanMode, filterLoading, initialTablesForRender.length, fitView]);
+
+    useEffect(() => {
         if (isCleanTableFocus) {
             setEdges([]);
             return;
