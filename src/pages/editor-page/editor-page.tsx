@@ -132,17 +132,20 @@ const EditorPageComponent: React.FC<EditorPageComponentProps> = ({
 export const EditorPage: React.FC = () => {
     const cleanMode = useCleanMode();
     const cleanTableId = useCleanTableId();
+    const lockInteractions = cleanMode && !!cleanTableId?.trim();
 
     return (
         <LocalConfigProvider>
-            <ThemeProvider disableHotkeys={cleanMode}>
+            <ThemeProvider disableHotkeys={lockInteractions}>
                 <FullScreenLoaderProvider>
                     <LayoutProvider>
                         <StorageProvider>
                             <ConfigProvider>
                                 <RedoUndoStackProvider>
                                     <DiffProvider>
-                                        <ChartDBProvider readonly={cleanMode}>
+                                        <ChartDBProvider
+                                            readonly={lockInteractions}
+                                        >
                                             <DiagramFilterProvider>
                                                 <HistoryProvider>
                                                     <ReactFlowProvider>
@@ -152,7 +155,7 @@ export const EditorPage: React.FC = () => {
                                                                     <DialogProvider>
                                                                         <KeyboardShortcutsProvider
                                                                             enabled={
-                                                                                !cleanMode
+                                                                                !lockInteractions
                                                                             }
                                                                         >
                                                                             <EditorPageComponent

@@ -27,7 +27,7 @@ export const EditorDesktopLayout: React.FC<EditorDesktopLayoutProps> = ({
 
     if (cleanMode) {
         return (
-            <div className="flex min-h-0 flex-1">
+            <div className="flex size-full min-h-0 flex-1">
                 <Canvas
                     initialTables={initialDiagram?.tables ?? []}
                     cleanMode

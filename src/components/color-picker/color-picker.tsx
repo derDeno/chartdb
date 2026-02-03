@@ -162,9 +162,7 @@ export const ColorPicker = React.forwardRef<
                             aria-label="Color picker"
                             type="color"
                             value={resolvedHex || '#000000'}
-                            onChange={(event) =>
-                                onChange(event.target.value)
-                            }
+                            onChange={(event) => onChange(event.target.value)}
                             className="h-12 w-16 cursor-pointer p-1"
                         />
                         <div className="flex flex-1 flex-col gap-2">
@@ -194,10 +192,7 @@ export const ColorPicker = React.forwardRef<
                                     max={255}
                                     value={rgbValues.r}
                                     onChange={(event) =>
-                                        handleRgbChange(
-                                            'r',
-                                            event.target.value
-                                        )
+                                        handleRgbChange('r', event.target.value)
                                     }
                                     placeholder="R"
                                     className="h-9"
@@ -209,10 +204,7 @@ export const ColorPicker = React.forwardRef<
                                     max={255}
                                     value={rgbValues.g}
                                     onChange={(event) =>
-                                        handleRgbChange(
-                                            'g',
-                                            event.target.value
-                                        )
+                                        handleRgbChange('g', event.target.value)
                                     }
                                     placeholder="G"
                                     className="h-9"
@@ -224,10 +216,7 @@ export const ColorPicker = React.forwardRef<
                                     max={255}
                                     value={rgbValues.b}
                                     onChange={(event) =>
-                                        handleRgbChange(
-                                            'b',
-                                            event.target.value
-                                        )
+                                        handleRgbChange('b', event.target.value)
                                     }
                                     placeholder="B"
                                     className="h-9"

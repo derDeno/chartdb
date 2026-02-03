@@ -336,6 +336,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     const normalizedCleanTableId = cleanTableId?.trim();
     const isCleanTableFocus = cleanMode && !!normalizedCleanTableId;
     const lockViewport = isCleanTableFocus;
+    const lockInteractions = isCleanTableFocus;
 
     const shouldForceShowTable = useCallback(
         (tableId: string) => {
@@ -363,7 +364,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 databaseType,
                 filterLoading,
                 showDBViews,
-                forceShow: shouldForceShowTable(table.id),
+                forceShow: isCleanTableFocus || shouldForceShowTable(table.id),
                 isRelationshipCreatingTarget: false,
             })
         )
@@ -389,7 +390,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 databaseType,
                 filterLoading,
                 showDBViews,
-                forceShow: shouldForceShowTable(table.id),
+                forceShow: isCleanTableFocus || shouldForceShowTable(table.id),
                 isRelationshipCreatingTarget: false,
             })
         );
@@ -404,6 +405,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         filterLoading,
         showDBViews,
         shouldForceShowTable,
+        isCleanTableFocus,
     ]);
 
     useEffect(() => {
@@ -614,7 +616,8 @@ export const Canvas: React.FC<CanvasProps> = ({
                         databaseType,
                         filterLoading,
                         showDBViews,
-                        forceShow: shouldForceShowTable(table.id),
+                        forceShow:
+                            isCleanTableFocus || shouldForceShowTable(table.id),
                         isRelationshipCreatingTarget: false,
                     });
 
@@ -1705,7 +1708,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         ]
     );
 
-    const effectiveShiftPressed = cleanMode ? false : shiftPressed;
+    const effectiveShiftPressed = lockInteractions ? false : shiftPressed;
 
     return (
         <CanvasContextMenu>
@@ -1724,11 +1727,15 @@ export const Canvas: React.FC<CanvasProps> = ({
                     })}
                     nodes={nodesWithCursor}
                     edges={edgesWithFloating}
-                    onNodesChange={cleanMode ? undefined : onNodesChangeHandler}
-                    onEdgesChange={cleanMode ? undefined : onEdgesChangeHandler}
+                    onNodesChange={
+                        lockInteractions ? undefined : onNodesChangeHandler
+                    }
+                    onEdgesChange={
+                        lockInteractions ? undefined : onEdgesChangeHandler
+                    }
                     maxZoom={5}
                     minZoom={0.1}
-                    onConnect={cleanMode ? undefined : onConnectHandler}
+                    onConnect={lockInteractions ? undefined : onConnectHandler}
                     proOptions={{
                         hideAttribution: true,
                     }}
@@ -1745,21 +1752,23 @@ export const Canvas: React.FC<CanvasProps> = ({
                     zoomOnPinch={!lockViewport}
                     zoomOnDoubleClick={!lockViewport}
                     snapToGrid={
-                        !cleanMode &&
+                        !lockInteractions &&
                         (effectiveShiftPressed || snapToGridEnabled)
                     }
                     snapGrid={[20, 20]}
                     selectionMode={SelectionMode.Full}
                     onPaneClick={onPaneClickHandler}
                     connectionLineComponent={ConnectionLine}
-                    deleteKeyCode={cleanMode ? null : ['Backspace', 'Delete']}
-                    multiSelectionKeyCode={
-                        cleanMode ? null : ['Shift', 'Meta', 'Control']
+                    deleteKeyCode={
+                        lockInteractions ? null : ['Backspace', 'Delete']
                     }
-                    nodesDraggable={!cleanMode}
-                    nodesConnectable={!cleanMode}
-                    elementsSelectable={!cleanMode}
-                    selectionOnDrag={!cleanMode}
+                    multiSelectionKeyCode={
+                        lockInteractions ? null : ['Shift', 'Meta', 'Control']
+                    }
+                    nodesDraggable={!lockInteractions}
+                    nodesConnectable={!lockInteractions}
+                    elementsSelectable={!lockInteractions}
+                    selectionOnDrag={!lockInteractions}
                 >
                     {!cleanMode ? (
                         <Controls
