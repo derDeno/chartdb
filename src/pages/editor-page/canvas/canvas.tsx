@@ -432,7 +432,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                 duration: 200,
                 padding: 0.1,
                 maxZoom: 0.8,
-                includeHiddenNodes: true,
             });
         }, 200)();
     }, [cleanMode, filterLoading, initialTablesForRender.length, fitView]);
