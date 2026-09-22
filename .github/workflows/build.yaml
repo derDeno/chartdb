@@ -16,13 +16,113 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-branch-image:
-    if: github.ref_type == 'branch'
+  build-branch-platform:
+    if: github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract architecture image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,suffix=-${{ matrix.arch }}
+
+      - name: Build and push native architecture image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=chartdb-${{ github.ref_name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=chartdb-${{ github.ref_name }}-${{ matrix.arch }}
+
+  publish-branch-manifest:
+    if: github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+    needs: build-branch-platform
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      
+
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract branch image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/heads/feat/') }}
+            type=ref,event=branch
+            type=sha,prefix=sha-
+
+      - name: Publish multi-architecture manifest
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          IMAGE="$(printf '%s' "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
+          SOURCE_AMD64="${IMAGE}:sha-${COMMIT_SHA:0:7}-amd64"
+          SOURCE_ARM64="${IMAGE}:sha-${COMMIT_SHA:0:7}-arm64"
+
+          while IFS= read -r tag; do
+            [ -z "${tag}" ] && continue
+            docker buildx imagetools create \
+              --tag "${tag}" \
+              "${SOURCE_AMD64}" \
+              "${SOURCE_ARM64}"
+          done <<< "${TAGS}"
+
+  retag-main-image:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,59 +136,45 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract Docker metadata
+      - name: Extract main image metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
-            type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/heads/feat/') }}
+            type=raw,value=latest
             type=ref,event=branch
-            type=ref,event=tag
             type=sha,prefix=sha-
 
-      - name: Find reusable image for main
+      - name: Find dev image from merge parent
         id: source
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
 
-          source_sha="${GITHUB_SHA}"
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            second_parent="$(git rev-list --parents -n1 "${GITHUB_SHA}" | awk '{print $3}')"
-            if [ -n "${second_parent}" ]; then
-              source_sha="${second_parent}"
-            fi
+          IMAGE="$(printf '%s' "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
+          source_sha="$(git rev-list --parents -n1 "${GITHUB_SHA}" | awk '{print $3}')"
+          if [ -z "${source_sha}" ]; then
+            source_sha="${GITHUB_SHA}"
           fi
 
           source_image="${IMAGE}:sha-${source_sha:0:7}"
-          reusable=false
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            for attempt in {1..60}; do
-              if docker buildx imagetools inspect "${source_image}" >/dev/null 2>&1; then
-                reusable=true
-                break
-              fi
-              sleep 5
-            done
-          fi
+          for attempt in {1..120}; do
+            if docker buildx imagetools inspect "${source_image}" >/dev/null 2>&1; then
+              echo "source_image=${source_image}" >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+            sleep 5
+          done
 
-          echo "source_image=${source_image}" >> "${GITHUB_OUTPUT}"
-          echo "reusable=${reusable}" >> "${GITHUB_OUTPUT}"
+          echo "Could not find the dev image ${source_image}; refusing to rebuild on main." >&2
+          exit 1
 
-      - name: Retag reusable main image
-        if: steps.source.outputs.reusable == 'true'
+      - name: Retag dev image for main
         env:
           SOURCE_IMAGE: ${{ steps.source.outputs.source_image }}
           TAGS: ${{ steps.meta.outputs.tags }}
@@ -100,16 +186,6 @@ jobs:
               --tag "${tag}" \
               "${SOURCE_IMAGE}"
           done <<< "${TAGS}"
-
-      - name: Build and push multi-arch Docker image
-        if: steps.source.outputs.reusable != 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
 
   retag-release-image:
     if: github.ref_type == 'tag'
@@ -137,14 +213,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          IMAGE="$(printf '%s' "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
           SOURCE_TAG="sha-${COMMIT_SHA:0:7}"
           SOURCE_IMAGE="${IMAGE}:${SOURCE_TAG}"
 
-          for attempt in {1..60}; do
+          for attempt in {1..120}; do
             if docker buildx imagetools inspect "${SOURCE_IMAGE}" >/dev/null 2>&1; then
               break
             fi
-            if [ "${attempt}" -eq 60 ]; then
+            if [ "${attempt}" -eq 120 ]; then
               echo "Timed out waiting for ${SOURCE_IMAGE}" >&2
               exit 1
             fi
