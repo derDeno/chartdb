@@ -88,6 +88,12 @@ const fetchJson = async <T,>(
         headers.set('Content-Type', 'application/json');
     }
 
+    const apiToken =
+        window.env?.CHARTDB_API_TOKEN ?? import.meta.env.VITE_CHARTDB_API_TOKEN;
+    if (apiToken && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${apiToken}`);
+    }
+
     const response = await fetch(url, {
         ...options,
         headers,

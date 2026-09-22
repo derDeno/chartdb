@@ -53,7 +53,9 @@ Other features:
 - hiding social links
 - better table color picker
 
-Mount a docker volume to `/data`
+Mount a Docker volume to `/data`. Set `CHARTDB_API_TOKEN` to protect the
+persistent storage API; the token is sent by the frontend for same-origin API
+requests. If it is unset, authentication is disabled for local development.
 
 In the mounted volume you will find a `config.json` file. This file allows you to perform custom configs. The possible options are:
 
@@ -126,33 +128,39 @@ VITE_OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> npm run build
 ### Run the Docker Container
 
 ```bash
-docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -p 8080:80 ghcr.io/chartdb/chartdb:latest
+docker run \
+  -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> \
+  -e CHARTDB_API_TOKEN=<A_LONG_RANDOM_TOKEN> \
+  -v chartdb-data:/data \
+  -p 8080:80 \
+  ghcr.io/derdeno/chartdb:latest
 ```
 
 #### Build and Run locally
 
 ```bash
 docker build -t chartdb .
-docker run -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> -p 8080:80 chartdb
+docker run \
+  -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> \
+  -e CHARTDB_API_TOKEN=<A_LONG_RANDOM_TOKEN> \
+  -v chartdb-data:/data \
+  -p 8080:80 \
+  chartdb
 ```
 
 #### Using Custom Inference Server
 
-```bash
-# Build
-docker build \
-  --build-arg VITE_OPENAI_API_ENDPOINT=<YOUR_ENDPOINT> \
-  --build-arg VITE_LLM_MODEL_NAME=<YOUR_MODEL_NAME> \
-  -t chartdb .
+Runtime configuration is supplied when the container starts; rebuilding the
+image is not necessary when changing the endpoint or model:
 
-# Run
+```bash
 docker run \
   -e OPENAI_API_ENDPOINT=<YOUR_ENDPOINT> \
   -e LLM_MODEL_NAME=<YOUR_MODEL_NAME> \
   -p 8080:80 chartdb
 ```
 
-> **Privacy Note:** ChartDB includes privacy-focused analytics via Fathom Analytics. You can disable this by adding `-e DISABLE_ANALYTICS=true` to the run command or `--build-arg VITE_DISABLE_ANALYTICS=true` when building.
+> **Privacy Note:** ChartDB includes privacy-focused analytics via Fathom Analytics. You can disable this by adding `-e DISABLE_ANALYTICS=true` to the run command.
 
 > **Note:** You must configure either Option 1 (OpenAI API key) OR Option 2 (Custom endpoint and model name) for AI capabilities to work. Do not mix the two options.
 
