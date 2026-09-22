@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { timingSafeEqual } from 'node:crypto';
 
 const jsonContentType = { 'Content-Type': 'application/json; charset=utf-8' };
 const defaultConfig = { defaultDiagramId: '', hideSocialLinks: false };
@@ -20,6 +21,8 @@ const includeKeys = [
     'customTypes',
     'notes',
 ];
+
+const configuredApiToken = process.env.CHARTDB_API_TOKEN?.trim();
 
 export const resolveDataDir = () =>
     process.env.CHARTDB_DATA_DIR ?? path.join(process.cwd(), 'data');
@@ -78,6 +81,30 @@ const sendJson = (res, statusCode, data) => {
 const sendEmpty = (res, statusCode) => {
     res.statusCode = statusCode;
     res.end();
+};
+
+const tokensMatch = (providedToken, expectedToken) => {
+    const provided = Buffer.from(providedToken);
+    const expected = Buffer.from(expectedToken);
+
+    return (
+        provided.length === expected.length &&
+        timingSafeEqual(provided, expected)
+    );
+};
+
+const isAuthorized = (req) => {
+    if (!configuredApiToken) return true;
+
+    const authorization = req.headers.authorization;
+    if (typeof authorization !== 'string') return false;
+
+    const [scheme, token] = authorization.split(' ', 2);
+    return (
+        scheme?.toLowerCase() === 'bearer' &&
+        !!token &&
+        tokensMatch(token, configuredApiToken)
+    );
 };
 
 const sendFile = (res, data, contentType) => {
@@ -144,6 +171,15 @@ export const createApiHandler = ({ dataDir = resolveDataDir() } = {}) => {
                 next();
             }
             return false;
+        }
+
+        if (url.pathname !== '/api/health' && !isAuthorized(req)) {
+            res.writeHead(401, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'WWW-Authenticate': 'Bearer',
+            });
+            res.end(JSON.stringify({ error: 'Authentication required.' }));
+            return true;
         }
 
         try {

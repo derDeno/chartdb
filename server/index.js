@@ -12,6 +12,15 @@ const staticDir =
 
 const apiHandler = createApiHandler({ dataDir });
 
+const runtimeConfig = {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
+    OPENAI_API_ENDPOINT: process.env.OPENAI_API_ENDPOINT ?? '',
+    LLM_MODEL_NAME: process.env.LLM_MODEL_NAME ?? '',
+    HIDE_CHARTDB_CLOUD: process.env.HIDE_CHARTDB_CLOUD ?? '',
+    DISABLE_ANALYTICS: process.env.DISABLE_ANALYTICS ?? '',
+    CHARTDB_API_TOKEN: process.env.CHARTDB_API_TOKEN ?? '',
+};
+
 const mimeTypes = new Map([
     ['.html', 'text/html; charset=utf-8'],
     ['.js', 'text/javascript; charset=utf-8'],
@@ -75,7 +84,22 @@ const serveStatic = async (req, res) => {
     }
 };
 
+const serveRuntimeConfig = (res) => {
+    const body = `window.env = ${JSON.stringify(runtimeConfig)};`;
+    res.writeHead(200, {
+        'Cache-Control': 'no-store',
+        'Content-Type': 'application/javascript; charset=utf-8',
+    });
+    res.end(body);
+};
+
 const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    if (url.pathname === '/config.js' && req.method === 'GET') {
+        serveRuntimeConfig(res);
+        return;
+    }
+
     const handled = await apiHandler(req, res);
     if (handled) {
         return;
