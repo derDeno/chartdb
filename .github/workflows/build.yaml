@@ -16,7 +16,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-publish:
+  build-branch-image:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,3 +63,57 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  retag-release-image:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Retag the existing commit image
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          SOURCE_TAG="sha-${COMMIT_SHA:0:7}"
+          SOURCE_IMAGE="${IMAGE}:${SOURCE_TAG}"
+
+          for attempt in {1..60}; do
+            if docker buildx imagetools inspect "${SOURCE_IMAGE}" >/dev/null 2>&1; then
+              break
+            fi
+            if [ "${attempt}" -eq 60 ]; then
+              echo "Timed out waiting for ${SOURCE_IMAGE}" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+          if [[ "${RELEASE_TAG}" == v* ]]; then
+            VERSION="${RELEASE_TAG#v}"
+            MAJOR_MINOR="$(printf '%s' "${VERSION}" | cut -d. -f1-2)"
+            docker buildx imagetools create \
+              --tag "${IMAGE}:${VERSION}" \
+              --tag "${IMAGE}:${RELEASE_TAG}" \
+              --tag "${IMAGE}:${MAJOR_MINOR}" \
+              "${SOURCE_IMAGE}"
+          else
+            docker buildx imagetools create \
+              --tag "${IMAGE}:${RELEASE_TAG}" \
+              "${SOURCE_IMAGE}"
+          fi
