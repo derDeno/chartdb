@@ -160,6 +160,39 @@ docker run \
   -p 8080:80 chartdb
 ```
 
+#### Docker environment variables
+
+The Docker image reads the following variables when the container starts. The
+values are exposed to the frontend through the runtime `/config.js` endpoint,
+so you can change them without rebuilding the image.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | empty | API key for OpenAI-compatible AI features. |
+| `OPENAI_API_ENDPOINT` | empty | Custom OpenAI-compatible API endpoint, for example `http://host.docker.internal:8000/v1`. |
+| `LLM_MODEL_NAME` | empty | Model name sent to the configured AI endpoint. |
+| `CHARTDB_API_TOKEN` | empty | Optional Bearer token protecting the persistence API. Authentication is disabled when unset. |
+| `CHARTDB_DATA_DIR` | `/data` | Directory for persisted diagrams, filters, configuration, and uploaded assets. Mount a volume here. |
+| `HIDE_CHARTDB_CLOUD` | empty | Set to `true` to hide ChartDB Cloud-related UI. |
+| `DISABLE_ANALYTICS` | empty | Set to `true` to disable analytics. |
+| `PORT` | `80` | HTTP port used by the Node server inside the container. |
+| `CHARTDB_STATIC_DIR` | `/usr/src/app/dist` | Advanced: directory containing the built frontend files. |
+
+Example with the commonly used runtime options:
+
+```bash
+docker run \
+  -e OPENAI_API_KEY=<YOUR_OPEN_AI_KEY> \
+  -e OPENAI_API_ENDPOINT=https://api.openai.com/v1 \
+  -e LLM_MODEL_NAME=<YOUR_MODEL_NAME> \
+  -e CHARTDB_API_TOKEN=<A_LONG_RANDOM_TOKEN> \
+  -e HIDE_CHARTDB_CLOUD=true \
+  -e DISABLE_ANALYTICS=true \
+  -v chartdb-data:/data \
+  -p 8080:80 \
+  ghcr.io/derdeno/chartdb:latest
+```
+
 > **Privacy Note:** ChartDB includes privacy-focused analytics via Fathom Analytics. You can disable this by adding `-e DISABLE_ANALYTICS=true` to the run command.
 
 > **Note:** You must configure either Option 1 (OpenAI API key) OR Option 2 (Custom endpoint and model name) for AI capabilities to work. Do not mix the two options.
